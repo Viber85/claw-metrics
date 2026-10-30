@@ -15,26 +15,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Read version
+        id: version
+        run: echo "number=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build QAM
+      - name: Build Decky QAM frontend
         run: npm run build
+      - name: Reject CommonJS requires in browser bundle
+        run: |
+          test -s dist/index.js
+          node -e 'const s=require("node:fs").readFileSync("dist/index.js","utf8");if(/\brequire\s*\(/.test(s)) { throw new Error("Decky bundle contains unsupported CommonJS require()") }'
       - name: Check Python backend
         run: python3 -m py_compile main.py
-      - name: Package Decky plugin
+      - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py artifact/ClawMetrics/
+          cp plugin.json package.json main.py README.md artifact/ClawMetrics/
           cp -r dist artifact/ClawMetrics/
-          (cd artifact && zip -r ../ClawMetrics-v0.1.0.zip ClawMetrics)
+          (cd artifact && zip -r "../ClawMetrics-v${{ steps.version.outputs.number }}.zip" ClawMetrics)
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.1.0
-          path: ClawMetrics-v0.1.0.zip
+          name: ClawMetrics-v${{ steps.version.outputs.number }}
+          path: ClawMetrics-v${{ steps.version.outputs.number }}.zip
       - name: Publish experimental GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.number }}
         run: |
-          if ! gh release view v0.1.0 >/dev/null 2>&1; then
-            gh release create v0.1.0 ClawMetrics-v0.1.0.zip --target "${GITHUB_SHA}" --title "Claw Metrics v0.1.0 (experimental)" --notes "Initial SteamOS-targeted Decky QAM and MangoHud configuration prototype. NOT YET device-tested. Uses manual per-game launch options for this version. Does not yet implement native automatic Game Mode overlay, Panel de Control TDP readback, or total system power draw." --prerelease
+          PACKAGE="ClawMetrics-v${VERSION}.zip"
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" "$PACKAGE" --clobber
+          else
+            gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
+              --title "Claw Metrics v${VERSION} (experimental)" \
+              --notes "Frontend packaging hotfix: removes unsupported require() from Decky QAM JavaScript. Intended for SteamOS test on MSI Claw A8 Z2 Extreme. Not yet verified on hardware. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
+              --prerelease
           fi
