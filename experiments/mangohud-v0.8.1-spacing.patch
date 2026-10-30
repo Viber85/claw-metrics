@@ -1,0 +1,67 @@
+--- a/src/overlay_params.h
++++ b/src/overlay_params.h
+@@ -183,7 +183,9 @@
+    OVERLAY_PARAM_CUSTOM(cpu_load_color)              \
+    OVERLAY_PARAM_CUSTOM(fps_value)                   \
+    OVERLAY_PARAM_CUSTOM(fps_color)                   \
+-   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
++   OVERLAY_PARAM_CUSTOM(claw_padding_x)              \
++   OVERLAY_PARAM_CUSTOM(claw_element_gap)            \
++   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
+    OVERLAY_PARAM_CUSTOM(table_columns)               \
+    OVERLAY_PARAM_CUSTOM(blacklist)                   \
+    OVERLAY_PARAM_CUSTOM(autostart_log)               \
+@@ -289,7 +291,8 @@
+    float font_size_text;
+    float font_scale_media_player;
+    float background_alpha, alpha;
+-   float cellpadding_y;
++   float cellpadding_y;
++   float claw_padding_x, claw_element_gap;
+    std::vector<KeySym> toggle_hud;
+    std::vector<KeySym> toggle_preset;
+    std::vector<KeySym> toggle_fps_limit;
+--- a/src/overlay_params.cpp
++++ b/src/overlay_params.cpp
+@@ -482,7 +482,9 @@
+ #define parse_alpha(s) parse_float(s)
+ #define parse_permit_upload(s) parse_unsigned(s)
+ #define parse_no_small_font(s) parse_unsigned(s) != 0
+-#define parse_cellpadding_y(s) parse_float(s)
++#define parse_claw_padding_x(s) parse_float(s)
++#define parse_claw_element_gap(s) parse_float(s)
++#define parse_cellpadding_y(s) parse_float(s)
+ #define parse_table_columns(s) parse_unsigned(s)
+ #define parse_autostart_log(s) parse_unsigned(s)
+ #define parse_gl_bind_framebuffer(s) parse_unsigned(s)
+@@ -790,7 +792,9 @@
+    params->benchmark_percentiles = { "97", "AVG"};
+    params->gpu_load_value = { 60, 90 };
+    params->cpu_load_value = { 60, 90 };
+-   params->cellpadding_y = -0.085;
++   params->cellpadding_y = -0.085;
++   params->claw_padding_x = 5.0f;
++   params->claw_element_gap = 8.0f;
+    params->fps_color = { 0xb22222, 0xfdfd09, 0x39f900 };
+    params->fps_value = { 30, 60 };
+    params->round_corners = 0;
+--- a/src/overlay.cpp
++++ b/src/overlay.cpp
+@@ -330,7 +330,7 @@
+ void overlay_new_frame(const struct overlay_params& params)
+ {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+-   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8,-3));
++   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(params.claw_element_gap,-3));
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, params.alpha);
+    if (!params.enabled[OVERLAY_PARAM_ENABLED_hud_compact]){
+       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5,5));
+@@ -333,7 +333,7 @@
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8,-3));
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, params.alpha);
+    if (!params.enabled[OVERLAY_PARAM_ENABLED_hud_compact]){
+-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5,5));
++      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(params.claw_padding_x,5));
+    }
+    else {
+       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
