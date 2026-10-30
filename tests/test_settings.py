@@ -68,6 +68,22 @@ class Settings(unittest.TestCase):
         self.assertIn('claw_graph_width=150\n', patched)
         self.assertIn('fps_text=FPS*\n', patched)
 
+    def test_experimental_layer_manifest_is_explicit(self):
+        from unittest.mock import patch
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            binary = root / "libMangoHud.so"
+            binary.write_bytes(b"X" * 110000)
+            manifest = root / "layers" / "ClawMetrics.x86_64.json"
+            with patch.object(main, "BASE", root), patch.object(main, "experimental_library", return_value=binary), patch.object(main, "experimental_manifest", return_value=manifest):
+                main.install_native_manifest()
+                layer = json.loads(manifest.read_text())["layer"]
+                self.assertEqual(layer["name"], "VK_LAYER_MANGOHUD_overlay_x86_64")
+                self.assertEqual(layer["library_path"], str(binary))
+                self.assertNotIn("enable_environment", layer)
+                self.assertNotIn("disable_environment", layer)
+
     def test_corrupt_bundled_font_is_rejected(self):
         from unittest.mock import patch
         import base64, gzip
