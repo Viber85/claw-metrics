@@ -54,7 +54,7 @@ class Settings(unittest.TestCase):
         options = main.mango_config(settings)
         self.assertNotIn('claw_padding_x=', options)
         self.assertNotIn('claw_element_gap=', options)
-        self.assertIn('hud_compact=0\\n', options)
+        self.assertIn('hud_compact=0\n', options)
         self.assertEqual(main.normalize({})['padding_x'], 5)
         self.assertEqual(main.normalize({})['element_gap'], 8)
         patched = main.mango_config(main.normalize({'padding_x': 3, 'element_gap': 2}), native_spacing=True)
