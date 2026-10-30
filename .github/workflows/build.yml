@@ -1,8 +1,12 @@
-name: Build Decky plugin
+name: Build and release Decky plugin
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,16 +15,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
-      - run: npm run build
-      - run: python3 -m py_compile main.py
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build QAM
+        run: npm run build
+      - name: Check Python backend
+        run: python3 -m py_compile main.py
       - name: Package Decky plugin
         run: |
           mkdir -p artifact/ClawMetrics
           cp plugin.json package.json main.py artifact/ClawMetrics/
           cp -r dist artifact/ClawMetrics/
-          cd artifact && zip -r ../ClawMetrics-v0.1.0.zip ClawMetrics
+          (cd artifact && zip -r ../ClawMetrics-v0.1.0.zip ClawMetrics)
       - uses: actions/upload-artifact@v4
         with:
           name: ClawMetrics-v0.1.0
           path: ClawMetrics-v0.1.0.zip
+      - name: Publish experimental GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view v0.1.0 >/dev/null 2>&1; then
+            gh release create v0.1.0 ClawMetrics-v0.1.0.zip --target "${GITHUB_SHA}" --title "Claw Metrics v0.1.0 (experimental)" --notes "Initial SteamOS-targeted Decky QAM and MangoHud configuration prototype. NOT YET device-tested. Uses manual per-game launch options for this version. Does not yet implement native automatic Game Mode overlay, Panel de Control TDP readback, or total system power draw." --prerelease
+          fi
