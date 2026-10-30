@@ -47,17 +47,12 @@
     params->round_corners = 0;
 --- a/src/overlay.cpp
 +++ b/src/overlay.cpp
-@@ -330,7 +330,7 @@
+@@ -330,10 +330,10 @@
  void overlay_new_frame(const struct overlay_params& params)
  {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 -   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8,-3));
 +   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(params.claw_element_gap,-3));
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, params.alpha);
-    if (!params.enabled[OVERLAY_PARAM_ENABLED_hud_compact]){
-       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5,5));
-@@ -333,7 +333,7 @@
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8,-3));
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, params.alpha);
     if (!params.enabled[OVERLAY_PARAM_ENABLED_hud_compact]){
 -      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5,5));
