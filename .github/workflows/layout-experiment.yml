@@ -1,22 +1,21 @@
-name: Experimental padding and gap checks (no release)
+name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches:
-      - feature/layout-spacing-v0.2.4
+    branches: [feature/layout-spacing-v0.2.4]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   layout-experiment:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Python regression tests
+      - name: Python tests
         run: python3 -m unittest discover -s tests
       - name: Install Decky dependencies
         run: npm install --no-audit --no-fund
@@ -24,16 +23,66 @@ jobs:
         run: npm run typecheck
       - name: Build QAM
         run: npm run build
-      - name: Verify original MangoHud 5px content inset in ImGui fixture
+      - name: Check original ImGui geometry
         run: python3 tools/check_native_layout.py
-      - name: Verify experimental native patch matches MangoHud v0.8.1
+      - name: Install native build prerequisites
         run: |
-          mkdir -p native/src
-          for file in overlay.cpp overlay_params.cpp overlay_params.h; do
-            curl -fsSL --retry 3 "https://raw.githubusercontent.com/flightlessmango/MangoHud/v0.8.1/src/$file" -o "native/src/$file"
-          done
-          cd native
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git g++ pkg-config meson ninja-build python3-mako \
+            libvulkan-dev vulkan-headers glslang-tools libgl-dev libegl-dev \
+            libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
+            libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
+            libpciaccess-dev libglvnd-dev
+      - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan)
+        run: |
+          git clone --depth 1 --recurse-submodules --branch v0.8.1 \
+            https://github.com/flightlessmango/MangoHud.git native-source
+          cd native-source
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
-          grep -q 'ImVec2(params.claw_padding_x,5)' src/overlay.cpp
-          grep -q 'ImVec2(params.claw_element_gap,-3)' src/overlay.cpp
+          meson setup build --prefix=/usr --buildtype=release \
+            -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
+            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=disabled \
+            -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
+          ninja -C build -j 2
+          mkdir -p ../native64
+          file=$(find build -type f -name 'libMangoHud.so' -size +100k | head -1)
+          test -n "$file"
+          cp "$file" ../native64/libMangoHud.so
+          file ../native64/libMangoHud.so
+          readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
+          test -s ../native64/libMangoHud.so
+      - name: Package isolated experimental Decky ZIP
+        run: |
+          mkdir -p artifact/ClawMetrics
+          cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
+          cp -r dist assets native64 artifact/ClawMetrics/
+          python3 - <<'PY'
+          import pathlib, json, zipfile, sys
+          root=pathlib.Path('artifact')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.1.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
+              for f in sorted(root.rglob('*')):
+                  if f.is_file():
+                      out.write(f, str(f.relative_to(root)))
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              for p in ['main.py','plugin.json','dist/index.js','native64/libMangoHud.so',
+                        'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt']:
+                  assert 'ClawMetrics/'+p in z.namelist(), p
+          print(archive,archive.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClawMetrics-v0.2.4-test.1
+          path: ClawMetrics-v0.2.4-test.1.zip
+      - name: Publish isolated prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete v0.2.4-test.1 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.1 ClawMetrics-v0.2.4-test.1.zip \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Claw Metrics v0.2.4-test.1 – spacing experiment" \
+            --notes "Experimental isolated 64-bit Vulkan renderer. The normal v0.2.3 launch command and system MangoHud are unchanged. Try only in a 64-bit Vulkan title using the separately marked experimental QAM launch command. If the game does not launch, restore the original v0.2.3 launch command. Not tested on MSI Claw hardware. Panel de Control is unaffected."
