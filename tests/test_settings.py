@@ -82,6 +82,30 @@ class Settings(unittest.TestCase):
         self.assertIn('claw_fps_bold=0\n', off)
         self.assertIn('fps_text=FPS*\n', patched)
 
+    def test_custom_colors_are_validated_and_persist_in_both_profiles(self):
+        overrides = {
+            'separator': '#ff0099', 'text': '0123ab', 'cpu': 'A1B2C3',
+            'gpu': 'bad;color', 'ram': 'fff', 'fps_value': 'AABBCC',
+            'unknown': '000000', 'battery': 1234,
+        }
+        d = main.normalize({'colors': overrides})
+        self.assertEqual(d['colors']['separator'], 'FF0099')
+        self.assertEqual(d['colors']['text'], '0123AB')
+        self.assertEqual(d['colors']['cpu'], 'A1B2C3')
+        self.assertEqual(d['colors']['gpu'], main.COLORS['gpu'])
+        self.assertEqual(d['colors']['ram'], main.COLORS['ram'])
+        self.assertEqual(d['colors']['battery'], main.COLORS['battery'])
+        self.assertNotIn('unknown', d['colors'])
+        for native in (False, True):
+            cfg = main.mango_config(d, native_spacing=native)
+            for line in ('text_color=0123AB', 'cpu_color=A1B2C3',
+                         'horizontal_separator_color=FF0099',
+                         'fps_color=AABBCC,AABBCC,AABBCC'):
+                self.assertIn(line + '\\n', cfg)
+        first = main.normalize({})
+        first['colors']['separator'] = 'FFFFFF'
+        self.assertEqual(main.normalize({})['colors']['separator'], '777C87')
+
     def test_experimental_layer_manifest_is_explicit(self):
         from unittest.mock import patch
         import json
