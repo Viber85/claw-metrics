@@ -1,4 +1,4 @@
-"""Claw Metrics v0.1 — safe, isolated MangoHud configuration writer.
+"""Claw Metrics — isolated MangoHud profile writer and read-only sensor sampler.
 No TDP writes; Panel de Control retains control of the device.
 """
 import asyncio
@@ -8,8 +8,9 @@ import pathlib
 import tempfile
 import shlex
 import copy
-import functools
-import subprocess
+import base64
+import gzip
+import hashlib
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
 METRICS = {
@@ -100,29 +101,29 @@ def normalize(payload):
         d["order"] = seen + [key for key in ORDER if key not in seen]
     return d
 
-@functools.lru_cache(maxsize=1)
+FONT_SHA256 = "507e0aff243abd8cb440c7ed9927d9d554dafddaf8d4526ca9ed2b145f20f699"
+
+def font_path():
+    return BASE / "ClawSans.ttf"
+
 def sans_font():
-    # Use an installed proportional sans; never guess a font file path.
-    try:
-        result = subprocess.run(["fc-match", "-f", "%{file}", "DejaVu Sans"],
-                                capture_output=True, text=True, timeout=2)
-        path = pathlib.Path(result.stdout.strip())
-        if result.returncode == 0 and path.is_file() and path.is_absolute():
-            return str(path)
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    for name in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                 "/usr/share/fonts/TTF/DejaVuSans.ttf"):
-        if pathlib.Path(name).is_file():
-            return name
-    return ""
+    return str(font_path())
+
+def install_font():
+    # Ship a licensed font; host /usr font paths can differ inside a game runtime.
+    asset = pathlib.Path(__file__).resolve().parent / "assets" / "ClawSans.ttf.gz.b64"
+    data = gzip.decompress(base64.b64decode(asset.read_bytes(), validate=False))
+    if hashlib.sha256(data).hexdigest() != FONT_SHA256:
+        raise ValueError("Claw Sans font asset failed checksum verification")
+    write_atomic(font_path(), data)
 
 def write_atomic(path, content):
     BASE.mkdir(parents=True, exist_ok=True)
     BASE.chmod(0o755)
     fd, temporary = tempfile.mkstemp(dir=str(BASE), prefix=".tmp-")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as file:
+        binary = isinstance(content, bytes)
+        with os.fdopen(fd, "wb" if binary else "w", **({} if binary else {"encoding": "utf-8"})) as file:
             file.write(content)
             # mkstemp defaults to 0600; the game runs as the desktop user.
             os.fchmod(file.fileno(), 0o644)
@@ -138,9 +139,9 @@ def mango_config(settings):
     flag = lambda key, value: key + "=" + str(int(bool(value)))
     lines = [
         "# Claw Metrics v0.2.1 — generated from QAM settings",
-        "legacy_layout=0", "horizontal", "horizontal_stretch=1",
+        "legacy_layout=0", "horizontal", "horizontal_stretch=0",
         # Critical: compact battery_time resets the cursor to column zero.
-        "hud_compact=0", "hud_no_margin", "position=top-left",
+        "hud_compact=0", "hud_no_margin", "position=top-center",
         "offset_x=0", "offset_y=" + str(d["margin"]),
         "round_corners=" + str(d["rounding"]),
         "background_color=161820", "text_color=F0F2F5",
@@ -193,6 +194,7 @@ def mango_config(settings):
 
 class Plugin:
     async def _main(self):
+        install_font()
         if not CONFIG.is_file():
             write_atomic(CONFIG, json.dumps(DEFAULTS, indent=2) + "\n")
         try:
@@ -241,6 +243,7 @@ class Plugin:
             "launch_option": "MANGOHUD_CONFIGFILE=" + shlex.quote(str(HUD)) + " mangohud %command%",
             "config_readable": HUD.is_file() and bool(HUD.stat().st_mode & 0o004),
             "font_path": sans_font(),
+            "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,
             "tdp_note": "TDP: očitanje primijenjenog limita iz Panel de Controla još nije dostupno.",
             "power_note": "CPU/GPU sensor power is not the same as total system battery draw."
         }

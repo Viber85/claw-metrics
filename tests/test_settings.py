@@ -29,10 +29,21 @@ class Settings(unittest.TestCase):
         self.assertTrue(main.normalize({})['metrics']['gpu_temp'])
         self.assertEqual(main.normalize({})['order'], main.ORDER)
 
-    def test_full_width_hud_has_no_horizontal_shift(self):
+    def test_floating_hud_is_centered_and_not_stretched(self):
         config = main.mango_config(main.normalize({'margin': 24}))
         self.assertIn('offset_x=0\n', config)
         self.assertIn('offset_y=24\n', config)
+        self.assertIn('horizontal_stretch=0\n', config)
+        self.assertIn('position=top-center\n', config)
+        self.assertIn('hud_compact=0\n', config)
+        self.assertIn('round_corners=10\n', config)
+
+    def test_corrupt_bundled_font_is_rejected(self):
+        from unittest.mock import patch
+        import base64, gzip
+        with patch.object(Path, 'read_bytes', return_value=base64.b64encode(gzip.compress(b'wrong font'))):
+            with self.assertRaisesRegex(ValueError, 'checksum'):
+                main.install_font()
 
     def test_draw_has_no_game_runtime_python_dependency(self):
         config = main.mango_config(main.normalize({}))
@@ -71,6 +82,9 @@ class BackendLifecycle(unittest.IsolatedAsyncioTestCase):
                 await plugin._main()
                 try:
                     self.assertEqual(main.draw_path().read_text(), 'DRAW 24.6W\n')
+                    self.assertTrue((await plugin.get_info())['font_ready'])
+                    self.assertEqual(stat.S_IMODE(main.font_path().stat().st_mode), 0o644)
+                    self.assertIn(str(main.font_path()), main.HUD.read_text())
                     self.assertEqual(stat.S_IMODE(main.draw_path().stat().st_mode), 0o644)
                     self.assertEqual(stat.S_IMODE(main.HUD.stat().st_mode), 0o644)
                     settings = await plugin.get_settings()

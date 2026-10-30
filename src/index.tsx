@@ -33,6 +33,7 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
 
 type Info = {
   font_path: string;
+  font_ready: boolean;
   config_readable: boolean;
   config_path: string;
   launch_option: string;
@@ -174,7 +175,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.1">
+      <PanelSection title="Claw Metrics · v0.2.2">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -220,7 +221,7 @@ function Content() {
       <PanelSection title="APPEARANCE">
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, margin: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
         {toggle("sans", "Sans-serif font")}
-        <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_path || "MangoHud font — sistemski sans nije pronađen") : "MangoHud zadani font"} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_ready ? "Claw Sans · provjeren i spremljen uz profil" : "Font nije spreman — ponovno pokreni Decky Loader") : "MangoHud zadani font"} /></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
           ["rounding", "Zaobljenost rubova", 0, 20, 1], ["margin", "Odmak od vrha", 0, 24, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
