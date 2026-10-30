@@ -1,3 +1,14 @@
+# Claw Metrics v0.1.3
+
+## Fixes in v0.1.3
+
+- MangoHud profiles written by the root Decky service are now readable by games (0644). Existing profiles are repaired when the backend starts.
+- Use DECKY_USER_HOME for the actual SteamOS user's home.
+- Explicit no_display controls the master toggle.
+- QAM backend requests report errors/timeouts and provide a retry button. Settings saves are serialized to avoid overlapping slider writes.
+
+Restart Decky Loader after installing, copy the launch command again, and restart the test game. Disable the native Steam performance overlay for this test. Check QAM Status for backend confirmation. This does not prove controller navigation or clipboard operation works on the device; those still require hardware verification.
+
 # Claw Metrics v0.1.2 — SteamOS experimental prototype
 
 A Decky QAM control panel for a compact MangoHud performance row. Target: **MSI Claw A8 Z2 Extreme running official SteamOS**. This is a prototype: not yet a pixel-perfect replica of the agreed mockup, and **not yet device-tested**.

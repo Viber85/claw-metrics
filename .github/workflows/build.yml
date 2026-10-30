@@ -22,6 +22,8 @@ jobs:
           echo "number=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
       - name: Build Decky QAM frontend
         run: npm run build
       - name: Reject CommonJS requires in browser bundle
@@ -51,6 +53,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.1.2: adds a one-click Copy launch command button in the Decky QAM. Experimental SteamOS build; clipboard function requires on-device verification. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
+              --notes "Claw Metrics v0.1.3: fixes root-only MangoHud profile permissions, honors Decky user home, and adds backend timeout/retry feedback and ordered settings saves. On-device verification required. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
               --prerelease
           fi

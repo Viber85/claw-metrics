@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
@@ -27,6 +27,7 @@ type Settings = {
 };
 
 type Info = {
+  config_readable: boolean;
   config_path: string;
   launch_option: string;
   tdp_note: string;
@@ -54,35 +55,57 @@ const load = callable<[], Settings>("get_settings");
 const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
 
+function withTimeout<T>(request: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Backend ne odgovara (10 s). Ponovno pokreni Decky Loader.")), 10000);
+    request.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
+}
+
 function Content() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Učitavanje…");
   const [copyStatus, setCopyStatus] = useState("");
 
-  useEffect(() => {
-    Promise.all([load(), getInfo()])
-      .then(([saved, details]) => {
+  const current = useRef<Settings>(defaults);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const revision = useRef(0);
+
+  const refresh = async () => {
+    setStatus("Provjera veze s backendom…");
+    const started = revision.current;
+    try {
+      const [saved, details] = await withTimeout(Promise.all([load(), getInfo()]));
+      if (revision.current === started) {
+        current.current = saved;
         setSettings(saved);
-        setInfo(details);
-        setStatus("Spremno");
-      })
-      .catch((error: unknown) => {
-        setStatus("Greška pri učitavanju: " + String(error));
-      });
-  }, []);
+      }
+      setInfo(details);
+      setStatus(details.config_readable
+        ? "Backend povezan · profil dostupan igri."
+        : "Backend povezan, ali profil nije čitljiv. Ponovno pokreni Decky Loader.");
+    } catch (error) {
+      setStatus("Greška veze: " + String(error));
+    }
+  };
+  useEffect(() => { void refresh(); }, []);
 
   const update = (patch: Partial<Settings>) => {
-    const next = { ...settings, ...patch };
+    const next = { ...current.current, ...patch };
+    current.current = next;
+    const id = ++revision.current;
     setSettings(next);
     setStatus("Spremanje…");
-    save(next)
-      .then(() => {
-        setStatus("Spremljeno. Za primjenu u igri možda je potreban restart igre.");
-      })
-      .catch((error: unknown) => {
-        setStatus("Greška pri spremanju: " + String(error));
-      });
+    queue.current = queue.current.then(async () => {
+      try {
+        const result = await withTimeout(save(next));
+        if (!result.ok) throw new Error("Backend nije potvrdio spremanje.");
+        if (id === revision.current) setStatus("Spremljeno. Ponovno pokreni igru za sigurnu primjenu.");
+      } catch (error) {
+        if (id === revision.current) setStatus("Greška pri spremanju: " + String(error));
+      }
+    });
   };
 
   // Copy synchronously from a button click: SteamOS Game Mode often does
@@ -139,7 +162,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.1.2">
+      <PanelSection title="Claw Metrics · v0.1.3">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow>
           <Field label="Status" description={status} />
@@ -217,8 +240,8 @@ function Content() {
           />
         </PanelSectionRow>
         <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => { void getInfo().then(setInfo); }}>
-            Osvježi informacije
+          <ButtonItem layout="below" onClick={() => { void refresh(); }}>
+            Provjeri vezu / ponovno učitaj
           </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
