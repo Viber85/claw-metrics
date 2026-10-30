@@ -11,8 +11,22 @@ import copy
 import base64
 import gzip
 import hashlib
+import re
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
+COLORS = {
+    "text": "F0F2F5",        # numeric metrics, clock and DRAW text
+    "separator": "777C87",   # independent of VRAM
+    "fps_label": "30E5A0",
+    "fps_value": "30E5A0",
+    "cpu": "37C9EF",
+    "gpu": "8BDA62",
+    "ram": "B077DF",
+    "vram": "D76AB8",
+    "battery": "30E5A0",
+    "graph": "30E5A0",
+}
+
 METRICS = {
     "fps_ms": True, "graph": True,
     "cpu_temp": True, "cpu_mhz": True, "cpu_power": True,
@@ -31,6 +45,7 @@ DEFAULTS = {
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "inner_gap": 4, "inline_metrics": True, "fps_bold": True,
+    "colors": COLORS,
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -168,6 +183,12 @@ def normalize(payload):
     if "metrics" not in payload and payload.get("power") is False:
         d["metrics"]["cpu_power"] = False
         d["metrics"]["gpu_power"] = False
+    if isinstance(payload.get("colors"), dict):
+        for key, value in payload["colors"].items():
+            if key in COLORS and isinstance(value, str):
+                candidate = value.lstrip("#").upper()
+                if re.fullmatch(r"[0-9A-F]{6}", candidate):
+                    d["colors"][key] = candidate
     if isinstance(payload.get("metrics"), dict):
         for key, v in payload["metrics"].items():
             if key in METRICS and type(v) is bool:
@@ -214,6 +235,7 @@ def write_atomic(path, content):
 def mango_config(settings, native_spacing=False):
     d = normalize(settings)
     m = d["metrics"]
+    c = d["colors"]
     active = lambda key: d["enabled"] and d[key]
     flag = lambda key, value: key + "=" + str(int(bool(value)))
     lines = [
@@ -225,12 +247,15 @@ def mango_config(settings, native_spacing=False):
         # MangoHud multiplies this factor by real_font_size.y = font_size/2.
         "cellpadding_y=" + format(d["padding_y"] / (d["fontsize"] / 2), ".6f"),
         "round_corners=" + str(d["rounding"]),
-        "background_color=161820", "text_color=F0F2F5",
-        "cpu_color=37C9EF", "gpu_color=8BDA62", "ram_color=B077DF",
-        "vram_color=D76AB8", "battery_color=30E5A0",
-        "engine_color=30E5A0", "frametime_color=30E5A0",
-        "horizontal_separator_color=777C87", "fps_color_change=1",
-        "fps_value=30,60", "fps_color=30E5A0,30E5A0,30E5A0",
+        "background_color=161820",
+        "text_color=" + c["text"],
+        "cpu_color=" + c["cpu"], "gpu_color=" + c["gpu"],
+        "ram_color=" + c["ram"], "vram_color=" + c["vram"],
+        "battery_color=" + c["battery"], "engine_color=" + c["fps_label"],
+        "frametime_color=" + c["graph"],
+        "horizontal_separator_color=" + c["separator"], "fps_color_change=1",
+        "fps_value=30,60",
+        "fps_color=" + ",".join([c["fps_value"]] * 3),
         "background_alpha=" + str(d["opacity"] / 100),
         "font_size=" + str(d["fontsize"]),
         "font_size_text=" + str(max(10, round(d["fontsize"] * 0.78))),
