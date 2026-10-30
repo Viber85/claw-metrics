@@ -43,7 +43,7 @@ jobs:
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           meson setup build --prefix=/usr --buildtype=release \
             -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
-            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=disabled \
+            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
             -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
           ninja -C build -j 2
           mkdir -p ../native64
