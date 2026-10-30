@@ -1,3 +1,7 @@
+# Claw Metrics v0.1.5 — battery-time overlap fix
+
+Root cause verified in MangoHud v0.8.1 src/hud_elements.cpp, HudElements::battery(): with hud_compact enabled, battery_time calls ImGuiTableSetColumnIndex(0). This overwrites the FPS column and subsequent time output, even with enough table columns. v0.1.5 explicitly sets hud_compact=0 while retaining horizontal mode and remaining battery time. Restart Decky Loader and the game. Visual confirmation on hardware remains required.
+
 # Claw Metrics v0.1.4 — horizontal layout fix
 
 The horizontal HUD now starts with 64 table columns instead of 20. MangoHud automatically measures and reduces the active column count. This prevents multi-column CPU/GPU and battery/time fields from wrapping into the initial FPS cells. Explicit horizontal_stretch keeps the row across the screen. Existing settings are retained; restart Decky and the test game after installing. Hardware visual verification remains required.

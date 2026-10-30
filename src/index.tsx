@@ -162,7 +162,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.1.4">
+      <PanelSection title="Claw Metrics · v0.1.5">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow>
           <Field label="Status" description={status} />

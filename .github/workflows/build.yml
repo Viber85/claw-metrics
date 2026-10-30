@@ -31,7 +31,9 @@ jobs:
           test -s dist/index.js
           node -e 'const s=require("node:fs").readFileSync("dist/index.js","utf8");if(/\brequire\s*\(/.test(s)) { throw new Error("Decky bundle contains unsupported CommonJS require()") }'
       - name: Check Python backend
-        run: python3 -m py_compile main.py
+        run: |
+          python3 -m py_compile main.py
+          python3 -m unittest discover -s tests
       - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
@@ -53,6 +55,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.1.4: fixes horizontal HUD column capacity to prevent battery/time wrapping over FPS. Explicit full-width horizontal layout. Restart Decky Loader and the game after installation. Device visual verification required." \
+              --notes "Claw Metrics v0.1.5: disables MangoHud compact mode because its battery remaining-time renderer resets to column zero and overwrites FPS. Horizontal row and remaining battery time retained. Restart Decky Loader and the game." \
               --prerelease
           fi
