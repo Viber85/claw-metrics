@@ -22,7 +22,7 @@ class NativeBundle(unittest.TestCase):
             self.assertTrue(ready)
             self.assertEqual((base/'renderer/lib64/libMangoHud.so').read_bytes(),(source/'x86_64/libMangoHud.so').read_bytes())
             self.assertEqual((base/'renderer/lib/i386-linux-gnu/libMangoHud.so').read_bytes(),(source/'i386/libMangoHud.so').read_bytes())
-            self.assertEqual((base/'renderer/lib/libMangoHud.so').read_bytes(),(source/'i386/libMangoHud.so').read_bytes())
+            self.assertEqual((base/'renderer/lib/libMangoHud.so').read_bytes(),(source/(claw_renderer.generic_lib_arch()+'/libMangoHud.so')).read_bytes())
             manifest=json.loads((base/'renderer/layers/ClawMetrics.json').read_text())
             self.assertIn('$LIB',manifest['layer']['library_path'])
             self.assertEqual(manifest['layer']['name'],claw_renderer.LAYER)
@@ -30,6 +30,19 @@ class NativeBundle(unittest.TestCase):
             self.assertIn('DISABLE_MANGOHUD=1',script)
             self.assertIn('VK_LAYER_PATH=',script)
             self.assertTrue((base/'renderer/launch.sh').stat().st_mode & 0o111)
+
+    def test_permissions_with_restrictive_service_umask(self):
+        import os, stat
+        with tempfile.TemporaryDirectory() as folder:
+            source=self.fixture(folder);base=Path(folder)/'profile'
+            previous=os.umask(0o077)
+            try:
+                claw_renderer.install(base,source)
+            finally:
+                os.umask(previous)
+            for relative in ('', 'renderer', 'renderer/x86_64', 'renderer/i386', 'renderer/lib', 'renderer/layers'):
+                self.assertEqual(stat.S_IMODE((base/relative).stat().st_mode),0o755,relative)
+            self.assertEqual(stat.S_IMODE((base/'renderer/x86_64/libMangoHud.so').stat().st_mode),0o644)
 
     def test_corrupt_bundle_refused_before_copy(self):
         with tempfile.TemporaryDirectory() as folder:

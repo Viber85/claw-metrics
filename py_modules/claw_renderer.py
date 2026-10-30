@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import shlex
 import tempfile
+import re
+import subprocess
 
 LAYER = 'VK_LAYER_CLAW_METRICS_overlay'
 LIBS = ('libMangoHud.so', 'libMangoHud_opengl.so', 'libMangoHud_shim.so')
@@ -35,6 +37,28 @@ def link(path, target):
     path.symlink_to(target)
 
 
+def generic_lib_arch():
+    # glibc $LIB differs between Arch/SteamOS and Debian containers. Keep the
+    # explicit Debian/lib64/lib32 aliases and resolve the host's generic lib.
+    candidates = [
+        ('x86_64', '/lib64/ld-linux-x86-64.so.2'),
+        ('x86_64', '/usr/lib/ld-linux-x86-64.so.2'),
+        ('i386', '/lib/ld-linux.so.2'),
+        ('i386', '/usr/lib32/ld-linux.so.2'),
+    ]
+    for arch, loader in candidates:
+        if not Path(loader).is_file():
+            continue
+        try:
+            result = subprocess.run([loader, '--list-diagnostics'], capture_output=True, text=True, timeout=1)
+            token = re.search(r'^dl_dst_lib="([^"]+)"', result.stdout, re.MULTILINE)
+            if result.returncode == 0 and token and token[1] == 'lib':
+                return arch
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return 'x86_64'
+
+
 def install(base, source):
     index_path = source / 'index.json'
     if not index_path.is_file():
@@ -50,7 +74,11 @@ def install(base, source):
         if hashlib.sha256(data).hexdigest() != index['files'][relative]:
             raise ValueError(f'Renderer checksum failed: {relative}')
         verified[relative] = data
+    base.mkdir(parents=True, exist_ok=True)
+    base.chmod(0o755)
     destination = base / 'renderer'
+    destination.mkdir(exist_ok=True)
+    destination.chmod(0o755)
     for relative, data in verified.items():
         write(destination / relative, data)
     (destination / 'lib').mkdir(exist_ok=True)
@@ -59,8 +87,9 @@ def install(base, source):
     link(destination / 'lib32', 'i386')
     link(destination / 'lib/x86_64-linux-gnu', '../x86_64')
     link(destination / 'lib/i386-linux-gnu', '../i386')
+    generic_arch = generic_lib_arch()
     for name in LIBS:
-        link(destination / 'lib' / name, '../i386/' + name)
+        link(destination / 'lib' / name, '../' + generic_arch + '/' + name)
     manifest = {'file_format_version': '1.0.0', 'layer': {
         'name': LAYER, 'type': 'GLOBAL', 'api_version': '1.3.0',
         'implementation_version': '1', 'description': 'Claw Metrics private renderer',

@@ -1,6 +1,10 @@
 """Load the actual private Vulkan layer and exercise rendering via lavapipe/Xvfb."""
 import base64, gzip, json, os, pathlib, re, subprocess, tempfile
 root=pathlib.Path(__file__).resolve().parents[1]
+icds=sorted(pathlib.Path('/usr/share/vulkan/icd.d').glob('lvp_icd*.json'), key=lambda p: ('x86_64' not in p.name, p.name))
+assert icds, 'Lavapipe test driver is missing'
+TEST_ICD=str(icds[0])
+
 with tempfile.TemporaryDirectory() as folder:
     tmp=pathlib.Path(folder)
     font=tmp/'ClawSans.ttf'
@@ -38,7 +42,7 @@ background_alpha=0.8
 ''')
     manifest={'file_format_version':'1.0.0','layer':{'name':'VK_LAYER_CLAW_METRICS_overlay','type':'GLOBAL','api_version':'1.3.0','implementation_version':'1','description':'Claw Metrics private test renderer','library_path':str(root/'native-dist/libMangoHud.so'),'functions':{'vkGetInstanceProcAddr':'overlay_GetInstanceProcAddr','vkGetDeviceProcAddr':'overlay_GetDeviceProcAddr'}}}
     (tmp/'ClawMetrics.json').write_text(json.dumps(manifest))
-    env=dict(os.environ, VK_LAYER_PATH=str(tmp), VK_INSTANCE_LAYERS='VK_LAYER_CLAW_METRICS_overlay', DISABLE_MANGOHUD='1', MANGOHUD_CONFIGFILE=str(config), CLAW_METRICS_VERIFY='1', VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
+    env=dict(os.environ, VK_LAYER_PATH=str(tmp), VK_INSTANCE_LAYERS='VK_LAYER_CLAW_METRICS_overlay', DISABLE_MANGOHUD='1', MANGOHUD_CONFIGFILE=str(config), CLAW_METRICS_VERIFY='1', VK_ICD_FILENAMES=TEST_ICD)
     result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
     log=result.stdout+'\n'+result.stderr
     print(log[-18000:])

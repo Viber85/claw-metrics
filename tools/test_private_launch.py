@@ -2,6 +2,10 @@
 import asyncio, os, pathlib, re, subprocess, sys, tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import main
+icds=sorted(pathlib.Path('/usr/share/vulkan/icd.d').glob('lvp_icd*.json'), key=lambda p: ('x86_64' not in p.name, p.name))
+assert icds, 'Lavapipe test driver is missing'
+TEST_ICD=str(icds[0])
+
 
 
 def verify(log, label):
@@ -24,7 +28,7 @@ async def run():
             settings=await plugin.get_settings();settings.update(renderer=True,center=True,auto_fit=True,offset_x=0,offset_y=8,fps_fontsize=34,padding_x=18,padding_y=10)
             await plugin.save_settings(settings)
             wrapper=str(main.BASE/'renderer/launch.sh')
-            env=dict(os.environ,CLAW_METRICS_VERIFY='1',VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json',LIBGL_ALWAYS_SOFTWARE='1')
+            env=dict(os.environ,CLAW_METRICS_VERIFY='1',VK_ICD_FILENAMES=TEST_ICD,LIBGL_ALWAYS_SOFTWARE='1')
             result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,'vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
             log=result.stdout+'\n'+result.stderr
             assert result.returncode==0, log[-18000:]
