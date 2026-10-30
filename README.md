@@ -1,3 +1,19 @@
+# Claw Metrics v0.2.4-test.2 (experimental SteamOS Vulkan injection)
+
+**This is NOT a stable replacement for v0.2.3.**
+
+The v0.2.4-test.1 layer was generated with implicit-layer enable/disable fields but was searched through `VK_LAYER_PATH` (an explicit layer path), so QAM controls could save values without the customized library actually loading. v0.2.4-test.2 removes those implicit fields and uses an explicitly requested Vulkan layer with `VK_ADD_LAYER_PATH` to avoid overriding other system layer search paths.
+
+**How to test**: install the test.2 ZIP through Decky, restart Decky, enable the game-specific experimental launch option from the QAM *Activation* section, and fully restart a **64-bit Vulkan game**. Do not append the old `mangohud %command%` command. Keep SteamOS performance overlay off. Set graph width to 80, then 180 (or change gap) and restart the game between tests. If a value changes visually, the experimental renderer is working.
+
+Two diagnostics:
+- `FPS*` in the overlay proves the game read **our experimental config**. It does NOT by itself prove the modified library was loaded.
+- With the game running, open QAM and press **Provjeri koristi li igra eksperimentalni renderer**. Only `AKTIVNO` means the modified `native64/libMangoHud.so` was found in the process map.
+
+If it shows `NIJE AKTIVNO`, this might be due to the game using a 32-bit Vulkan runtime, a sandboxed path, or another layer taking precedence. If the game refuses to start, replace the launch option with the original v0.2.3 command. The stable MangoHud and Panel de Control are not changed.
+
+## Original v0.2.3 documentation
+
 # Claw Metrics v0.2.3
 
 Decky QAM controls for MSI Claw A8 Z2 Extreme on official SteamOS. Generates a per-game MangoHud profile; the launch option remains necessary.
