@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.4
+  group: claw-metrics-v0.2.4-test.5
   cancel-in-progress: true
 
 jobs:
@@ -46,6 +46,12 @@ jobs:
           cd native-source
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          grep -q 'ClawMetricGap' src/hud_elements.cpp
+          grep -q 'position.x + 1.8f' src/hud_elements.cpp
           meson setup build --prefix=/usr --buildtype=release \
             -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
             -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
@@ -66,7 +72,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.4.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.5.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -80,14 +86,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.4
-          path: ClawMetrics-v0.2.4-test.4.zip
+          name: ClawMetrics-v0.2.4-test.5
+          path: ClawMetrics-v0.2.4-test.5.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.4 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.4 ClawMetrics-v0.2.4-test.4.zip \
+          gh release delete v0.2.4-test.5 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.5 ClawMetrics-v0.2.4-test.5.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.4 – spacing experiment" \
-            --notes "Experimental SteamOS Vulkan renderer v0.2.4-test.4: CPU/GPU values now render inline with equal spacing, and numeric FPS gets subtle faux-bold without font size increase. Includes live QAM sliders, toggle and existing test.3 diagnostics. Built from v0.2.3; system MangoHud and Panel de Control unchanged. Install, use EXPERIMENTAL launch command, test in-game before treating as stable."
+            --title "Claw Metrics v0.2.4-test.5 – spacing experiment" \
+            --notes "Experimental Claw Metrics v0.2.4-test.5: fixes remaining CPU/GPU-style column gaps in FPS, RAM, VRAM and BATT; stronger numeric FPS faux-bold (same font size), one row. QAM controls preserved. CI compiled native Vulkan layer; real hardware test required. Built from v0.2.3; Panel de Control and system MangoHud unchanged."
