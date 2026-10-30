@@ -1,0 +1,147 @@
+--- a/src/hud_elements.cpp
++++ b/src/hud_elements.cpp
+@@ -589,7 +589,41 @@
+ #endif
+ }
+ 
+-void HudElements::vram(){
++void HudElements::vram(){
++    if (HUDElements.params->claw_inline_metrics &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_vram]) {
++        if (!gpus)
++            gpus = std::make_unique<GPUS>(HUDElements.params);
++        for (auto& gpu : gpus->selected_gpus()) {
++            ImguiNextColumnFirstItem();
++            HUDElements.TextColored(HUDElements.colors.vram, "%s", gpu->vram_text().c_str());
++            ClawMetricGap();
++            float used = gpu->metrics.memoryUsed + (gpu->is_apu() ? gpu->metrics.gtt_used : 0.0f);
++            HUDElements.TextColored(HUDElements.colors.text, "%.1f", used);
++            ImGui::SameLine(0.0f, 1.0f);
++            ImGui::PushFont(HUDElements.sw_stats->font1);
++            HUDElements.TextColored(HUDElements.colors.text, "GiB");
++            ImGui::PopFont();
++            if (gpu->metrics.memory_temp > -1 &&
++                HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_mem_temp]) {
++                ClawMetricGap();
++                int temp = HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]
++                    ? HUDElements.convert_to_fahrenheit(gpu->metrics.memory_temp) : gpu->metrics.memory_temp;
++                HUDElements.TextColored(HUDElements.colors.text, "%i°%c", temp,
++                    HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit] ? 'F' : 'C');
++            }
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_mem_clock]) {
++                ClawMetricGap();
++                HUDElements.TextColored(HUDElements.colors.text, "%i", gpu->metrics.MemClock);
++                ImGui::SameLine(0.0f, 1.0f);
++                ImGui::PushFont(HUDElements.sw_stats->font1);
++                HUDElements.TextColored(HUDElements.colors.text, "MHz");
++                ImGui::PopFont();
++            }
++        }
++        return;
++    }
+     if (!gpus)
+         gpus = std::make_unique<GPUS>(HUDElements.params);
+ 
+@@ -650,7 +684,31 @@
+     }
+ }
+ 
+-void HudElements::ram(){
++void HudElements::ram(){
++#ifdef __linux__
++    // Use one table cell for the whole group; each token has the same gap.
++    if (HUDElements.params->claw_inline_metrics &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_ram]) {
++        ImguiNextColumnFirstItem();
++        HUDElements.TextColored(HUDElements.colors.ram, "RAM");
++        ClawMetricGap();
++        HUDElements.TextColored(HUDElements.colors.text, "%.1f", memused);
++        ImGui::SameLine(0.0f, 1.0f);
++        ImGui::PushFont(HUDElements.sw_stats->font1);
++        HUDElements.TextColored(HUDElements.colors.text, "GiB");
++        ImGui::PopFont();
++        if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_swap]) {
++            ClawMetricGap();
++            HUDElements.TextColored(HUDElements.colors.text, "%.1f", swapused);
++            ImGui::SameLine(0.0f, 1.0f);
++            ImGui::PushFont(HUDElements.sw_stats->font1);
++            HUDElements.TextColored(HUDElements.colors.text, "GiB swap");
++            ImGui::PopFont();
++        }
++        return;
++    }
++#endif
+ #ifdef __linux__
+     if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_ram]){
+         ImguiNextColumnFirstItem();
+@@ -723,9 +781,16 @@
+         ImGui::SetCursorPosX(cursor.x + off_x - ImGui::CalcTextSize(text).x);
+     ImVec2 position = ImGui::GetCursorScreenPos();
+     HUDElements.TextColored(color, "%s", text);
+-    ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+-        ImVec2(position.x + 0.8f, position.y),
+-        ImGui::ColorConvertFloat4ToU32(color), text);
++    // Stronger visible faux-bold: add strokes on both sides without changing
++    // font size or affecting the table cell's measured width.
++    const ImU32 ink = ImGui::ColorConvertFloat4ToU32(color);
++    ImDrawList* ink_list = ImGui::GetWindowDrawList();
++    ink_list->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
++        ImVec2(position.x - 1.1f, position.y), ink, text);
++    ink_list->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
++        ImVec2(position.x + 1.1f, position.y), ink, text);
++    ink_list->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
++        ImVec2(position.x + 1.8f, position.y), ink, text);
+ }
+ 
+ void HudElements::fps(){
+@@ -1122,7 +1187,47 @@
+     }
+ }
+ 
+-void HudElements::battery(){
++void HudElements::battery(){
++#ifdef __linux__
++    if (HUDElements.params->claw_inline_metrics &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
++        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_battery] &&
++        Battery_Stats.batt_count > 0) {
++        ImguiNextColumnFirstItem();
++        HUDElements.TextColored(HUDElements.colors.battery, "BATT");
++        ClawMetricGap();
++        if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_battery_icon]) {
++            const char* icon = ICON_FK_BATTERY_FULL;
++            if (Battery_Stats.current_percent <= 33) icon = ICON_FK_BATTERY_QUARTER;
++            else if (Battery_Stats.current_percent <= 66) icon = ICON_FK_BATTERY_HALF;
++            else if (Battery_Stats.current_percent <= 97) icon = ICON_FK_BATTERY_THREE_QUARTERS;
++            HUDElements.TextColored(HUDElements.colors.text, "%s", icon);
++        } else {
++            HUDElements.TextColored(HUDElements.colors.text, "%.0f%%", Battery_Stats.current_percent);
++        }
++        if (Battery_Stats.current_watt != 0) {
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_battery_watt]) {
++                ClawMetricGap();
++                HUDElements.TextColored(HUDElements.colors.text, "%.1f", Battery_Stats.current_watt);
++                ImGui::SameLine(0.0f, 1.0f);
++                ImGui::PushFont(HUDElements.sw_stats->font1);
++                HUDElements.TextColored(HUDElements.colors.text, "W");
++                ImGui::PopFont();
++            }
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_battery_time]) {
++                float hours = 0.0f;
++                float mins = std::modf(Battery_Stats.remaining_time, &hours) * 60.0f;
++                ClawMetricGap();
++                HUDElements.TextColored(HUDElements.colors.text, "%02d:%02d",
++                    static_cast<int>(hours), static_cast<int>(mins));
++            }
++        } else {
++            ClawMetricGap();
++            HUDElements.TextColored(HUDElements.colors.text, "%s", ICON_FK_PLUG);
++        }
++        return;
++    }
++#endif
+ #ifdef __linux__
+     if (Battery_Stats.batt_count > 0) {
+         if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_battery]) {
