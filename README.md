@@ -1,3 +1,25 @@
+# Claw Metrics v0.2.4-test.3 — Vulkan layer diagnostic
+
+The previous test reported NIJE AKTIVNO on MSI Claw A8 / official SteamOS despite using the experimental launch command. This release is a **diagnostic experiment, not a confirmed fix**.
+
+Changes:
+- Custom Vulkan explicit layer uses a **unique layer name** `VK_LAYER_CLAW_METRICS_overlay_x86_64`, rather than colliding with system MangoHud.
+- Install a discoverable but inactive-by-default JSON manifest at `~/.local/share/vulkan/explicit_layer.d/ClawMetrics.test3.x86_64.json`. The manifest does not automatically load the layer for other games; it needs the launch option. This is a user-level file, not a modification of Valve's OS files.
+- Launch command requests the custom layer and sets `DISABLE_MANGOHUD=1` to prevent interference from system MangoHud.
+- Diagnostics scan process library mappings and selected environment variables. No process command lines, passwords, or raw environment strings are shown.
+- Existing stock v0.2.3 configuration stays unchanged; use its original launch command to revert.
+
+**Testing:** Install v0.2.4-test.3 ZIP, restart Decky, copy the newly generated EXPERIMENTAL launch command (do not reuse the command from test.2), replace all launch options for one 64-bit Vulkan game, and relaunch the game. While running, select **Provjeri koristi li igra eksperimentalni renderer**. Read the counts:
+- `native` > 0: our library was loaded.
+- `zahtjev za slojem` > 0 and `native` = 0: environment reached a process but the library did not load.
+- `testni config` > 0 but `zahtjev za slojem` = 0: game got config but not Vulkan request.
+- Both zero: command may not have reached game, or process inspection is restricted. Do not claim a specific cause without more data.
+- `manifest` = NE: on-disk manifest was not created/accessible.
+
+The Vulkan layer has been compiled in CI, but its behavior with Proton/Steam Runtime on MSI Claw still requires hardware confirmation.
+
+---
+
 # Claw Metrics v0.2.4-test.2 (experimental SteamOS Vulkan injection)
 
 **This is NOT a stable replacement for v0.2.3.**
