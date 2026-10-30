@@ -224,9 +224,11 @@ def mango_config(settings, native_spacing=False):
         "battery_watt=0",
     ]
     if native_spacing:
-        # Experimental parameters ONLY understood by patched MangoHud v0.8.1.
-        # Stock SteamOS MangoHud ignores them; never write them by default.
+        # Visible diagnostic: FPS* confirms this experimental config was read.
+        # An ordinary FPS label means the game is still using the stock profile.
+        # This marker is temporary and only affects the experimental profile.
         lines.extend([
+            "fps_text=FPS*",
             "claw_padding_x=" + str(d["padding_x"]),
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
@@ -309,6 +311,11 @@ class Plugin:
             "font_path": sans_font(),
             "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,
             "layout_spacing_supported": native_renderer_available(),
+            # Binary presence does not mean the SteamOS game actually loads it.
+            "experimental_config_readable": (
+                native_hud_path().is_file()
+                and bool(native_hud_path().stat().st_mode & 0o004)
+            ),
             "experimental_launch_option": (
                 "env VK_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
                 + " VK_INSTANCE_LAYERS=VK_LAYER_MANGOHUD_overlay_x86_64"
