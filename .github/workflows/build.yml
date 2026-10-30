@@ -17,8 +17,9 @@ jobs:
           node-version: '22'
       - name: Read version
         id: version
-        run: echo "number=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
-      - name: Install dependencies
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          echo "number=${VERSION}" >> "$GITHUB_OUTPUT"
         run: npm install --no-audit --no-fund
       - name: Build Decky QAM frontend
         run: npm run build
