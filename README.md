@@ -1,3 +1,22 @@
+# Claw Metrics v0.2.4-test.4 — uniform inline CPU/GPU + bold FPS
+
+This experimental version changes **only the custom renderer**. It retains one single horizontal row, all existing metrics, and the known-working Vulkan launch integration from test.3.
+
+- The CPU/GPU sections use the same adjustable **inner gap** between label, load, temperature, clock and power. They are no longer separate right-aligned four-character-wide table cells.
+- `Razmak unutar CPU/GPU (px)` (0–16 px, default 4 px) controls that gap.
+- `CPU/GPU vrijednosti u jednom redu` toggles the custom layout on/off for comparison.
+- `Podebljani FPS broj` makes the **numeric FPS** slightly bolder by drawing an additional subpixel stroke. **Font size does not change.** This is faux-bold, not a separate bold font.
+- The current FPS* label is the temporary experimental-config diagnostic.
+- The four previous spacing controls remain. Stock MangoHud and Panel de Control are left unchanged.
+
+## Test steps
+
+Install this version and use the **experimental Vulkan 64-bit launch command** in a single game. Keep the built-in SteamOS performance overlay off. While the game runs, verify `AKTIVNO` under renderer diagnostics. Compare CPU/GPU with `CPU/GPU vrijednosti u jednom redu` off/on; adjust `Razmak unutar CPU/GPU` between 2 and 10 px. Toggle `Podebljani FPS broj` to compare. Other metrics should stay in the same single top row.
+
+This native change is CI compiled but has **not** been tested yet on your MSI Claw hardware. Keep the working v0.2.3 for rollback.
+
+---
+
 # Claw Metrics v0.2.4-test.3 — Vulkan layer diagnostic
 
 The previous test reported NIJE AKTIVNO on MSI Claw A8 / official SteamOS despite using the experimental launch command. This release is a **diagnostic experiment, not a confirmed fix**.
