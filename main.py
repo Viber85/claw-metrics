@@ -11,6 +11,9 @@ import copy
 import base64
 import gzip
 import hashlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent / "py_modules"))
+import claw_renderer
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
 METRICS = {
@@ -27,6 +30,7 @@ DEFAULTS = {
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
     "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 8,
+    "renderer": False, "center": True, "auto_fit": True, "fps_fontsize": 28, "padding_x": 12,
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -82,7 +86,8 @@ def normalize(payload):
             d[key] = v
     for key, low, high in (("fontsize", 12, 28), ("opacity", 0, 100),
                            ("rounding", 0, 20), ("offset_x", -1920, 1920),
-                           ("offset_y", -1200, 1200), ("padding_y", 0, 24)):
+                           ("offset_y", -1200, 1200), ("padding_y", 0, 40),
+                           ("fps_fontsize", 12, 64), ("padding_x", 0, 40)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
@@ -180,6 +185,12 @@ def mango_config(settings):
         flag("battery_time", active("battery") and m["battery_time"]),
         "battery_watt=0",
     ]
+    if d["renderer"]:
+        lines += ["claw_renderer=1", flag("claw_center", d["center"]),
+                  flag("claw_auto_fit", d["auto_fit"]),
+                  "claw_fps_size=" + str(d["fps_fontsize"]),
+                  "claw_padding_x=" + str(d["padding_x"]),
+                  "claw_padding_y=" + str(d["padding_y"])]
     if d["sans"] and sans_font():
         lines += ["font_file=" + sans_font(), "font_file_text=" + sans_font()]
     display = {"fps": "fps", "frametime": "frame_timing", "cpu": "cpu_stats",
@@ -201,6 +212,10 @@ def mango_config(settings):
 class Plugin:
     async def _main(self):
         install_font()
+        try:
+            self._renderer_ready, self._renderer_note = claw_renderer.install(BASE, pathlib.Path(__file__).resolve().parent / "assets/native")
+        except (OSError, ValueError) as error:
+            self._renderer_ready, self._renderer_note = False, "Greška nativnog paketa: " + str(error)
         if not CONFIG.is_file():
             write_atomic(CONFIG, json.dumps(DEFAULTS, indent=2) + "\n")
         try:
@@ -239,14 +254,23 @@ class Plugin:
 
     async def save_settings(self, settings: dict):
         data = normalize(settings)
+        if data["renderer"] and not getattr(self, "_renderer_ready", False):
+            raise RuntimeError(getattr(self, "_renderer_note", "Claw renderer nije spreman"))
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
         write_atomic(HUD, mango_config(data))
-        return {"ok": True, "settings": data, "config_path": str(HUD)}
+        return {"ok": True, "settings": data, "config_path": str(HUD), "info": await self.get_info()}
 
     async def get_info(self):
+        settings = await self.get_settings()
+        ready = getattr(self, "_renderer_ready", False)
+        stock = "MANGOHUD_CONFIGFILE=" + shlex.quote(str(HUD)) + " mangohud %command%"
+        private = shlex.quote(str(BASE / "renderer/launch.sh")) + " %command%"
         return {
+            "renderer_ready": ready,
+            "renderer_note": getattr(self, "_renderer_note", "Ponovno pokreni Decky Loader"),
             "config_path": str(HUD),
-            "launch_option": "MANGOHUD_CONFIGFILE=" + shlex.quote(str(HUD)) + " mangohud %command%",
+            "launch_option": private if settings["renderer"] and ready else stock,
+            "stock_launch_option": stock,
             "config_readable": HUD.is_file() and bool(HUD.stat().st_mode & 0o004),
             "font_path": sans_font(),
             "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,

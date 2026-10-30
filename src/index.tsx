@@ -15,12 +15,13 @@ import { FaChartLine, FaCopy } from "react-icons/fa";
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
+  renderer: boolean; center: boolean; auto_fit: boolean; fps_fontsize: number; padding_x: number;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number; order: Group[];
   metrics: Record<string, boolean>;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
 const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
-  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "MangoHud koristi istu glavnu veličinu fonta za FPS i ostale vrijednosti."},
+  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "Neovisna veličina FPS broja dostupna je uz uključeni Claw renderer."},
   frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "Broj u ms prati FPS blok; strelice premještaju graf. Za ms uključi i FPS."},
   gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock/temp prikazuju se u VRAM bloku i traže uključen VRAM. Ostali senzori ovise o dostupnosti na Z2 Extremeu."},
   cpu: {label: "CPU", color: "#37c9ef", always: "CPU load", metrics: [["cpu_temp", "CPU temp"], ["cpu_mhz", "CPU clock"], ["cpu_power", "CPU watts"]]},
@@ -32,6 +33,9 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
 };
 
 type Info = {
+  renderer_ready: boolean;
+  renderer_note: string;
+  stock_launch_option: string;
   font_path: string;
   font_ready: boolean;
   config_readable: boolean;
@@ -44,7 +48,7 @@ type Info = {
 const defaults: Settings = {
   enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
-  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8, order,
+  power: true, time: true, tdp: false, renderer: false, center: true, auto_fit: true, fps_fontsize: 28, padding_x: 12, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8, order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
@@ -53,7 +57,7 @@ const defaults: Settings = {
 
 // Callable methods are provided by the Decky Python backend.
 const load = callable<[], Settings>("get_settings");
-const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
+const save = callable<[Settings], { ok: boolean; config_path: string; info: Info }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
 
 function withTimeout<T>(request: Promise<T>): Promise<T> {
@@ -105,7 +109,10 @@ function Content() {
       try {
         const result = await withTimeout(save(next));
         if (!result.ok) throw new Error("Backend nije potvrdio spremanje.");
-        if (id === revision.current) setStatus("Spremljeno. Ponovno pokreni igru za sigurnu primjenu.");
+        if (id === revision.current) {
+          setInfo(result.info);
+          setStatus("Spremljeno. Ponovno pokreni igru za sigurnu primjenu.");
+        }
       } catch (error) {
         if (id === revision.current) setStatus("Greška pri spremanju: " + String(error));
       }
@@ -154,8 +161,8 @@ function Content() {
     );
   };
 
-  const toggle = (key: "enabled" | "sans", label: string) => (
-    <PanelSectionRow><ToggleField label={label} checked={settings[key]} disabled={!ready}
+  const toggle = (key: "enabled" | "sans" | "renderer" | "center" | "auto_fit", label: string, unavailable = false) => (
+    <PanelSectionRow><ToggleField label={label} checked={settings[key]} disabled={!ready || unavailable}
       onChange={(value: boolean) => update({[key]: value})} /></PanelSectionRow>
   );
   const move = (key: Group, direction: number) => {
@@ -175,7 +182,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.3">
+      <PanelSection title="Claw Metrics · v0.3.0">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -209,6 +216,8 @@ function Content() {
                 {group.always && <Field label={group.always} padding="compact"><span style={{fontSize: 11, color: "#4acbff", background: "#123e59", borderRadius: 12, padding: "3px 7px"}}>Always</span></Field>}
                 {group.metrics.map(([id, label]) => <ToggleField key={id} label={label} checked={settings.metrics[id]} disabled={!ready}
                   onChange={(checked: boolean) => metric(id, checked)} />)}
+                {key === "fps" && <SliderField label="FPS broj — veličina fonta (px)" value={settings.fps_fontsize} min={12} max={64} step={1} showValue disabled={!ready || !settings.renderer || !info?.renderer_ready}
+                  onChange={(value: number) => update({fps_fontsize: value})} />}
                 {group.note && <div style={{fontSize: 11, lineHeight: 1.5, color: "#a6b6c6", marginTop: 10}}>{group.note}</div>}
               </div>}
             </div>
@@ -218,19 +227,29 @@ function Content() {
         {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {groups[key].label}</ButtonItem></PanelSectionRow>)}
         <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
       </PanelSection>
+      <PanelSection title="CLAW RENDERER">
+        {toggle("renderer", "Koristi Claw renderer", !info?.renderer_ready && !settings.renderer)}
+        <PanelSectionRow><Field label="Nativni paket" description={info?.renderer_note ?? "Učitavanje…"} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Aktivacija u igri" description="Za prvi prelazak kopiraj NOVU launch naredbu iz odjeljka ACTIVATION i ponovno pokreni igru. Prekidač ne mijenja Steam Launch Options automatski. Sistemski MangoHud ostaje netaknut." /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready || !info?.renderer_ready} layout="below" onClick={() => update({renderer: true, sans: true, center: true, auto_fit: true, fontsize: 18, fps_fontsize: 28, padding_x: 12, padding_y: 8, offset_x: 0, offset_y: 8, opacity: 80, rounding: 12})}>Claw renderer + izgled prijedloga</ButtonItem></PanelSectionRow>
+      </PanelSection>
       <PanelSection title="APPEARANCE">
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: settings.renderer && settings.center ? 0 : 8, offset_y: 8, padding_y: 8, padding_x: 12, fps_fontsize: 28})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
         {toggle("sans", "Sans-serif font")}
+        {toggle("center", "Automatsko centriranje", !settings.renderer || !info?.renderer_ready)}
+        {toggle("auto_fit", "Prilagodi red širini igre", !settings.renderer || !info?.renderer_ready)}
+        <PanelSectionRow><SliderField label="Padding lijevo/desno (px)" value={settings.padding_x} min={0} max={40} step={1} showValue disabled={!ready || !settings.renderer || !info?.renderer_ready}
+          onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
         <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_ready ? "Claw Sans · provjeren i spremljen uz profil" : "Font nije spreman — ponovno pokreni Decky Loader") : "MangoHud zadani font"} /></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
-          ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", settings.renderer ? "Padding gore/dolje (px)" : "Dodatni padding gore/dolje (px)", 0, 40, 1],
+          ["offset_x", settings.renderer && settings.center ? "X — pomak od centra (px)" : "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: settings.renderer && settings.center ? 0 : 8, offset_y: 8})}>Vrati položaj</ButtonItem></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak je fiksan u MangoHudu. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
-        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description={settings.renderer ? "Padding djeluje na sve četiri strane. Uz centriranje X pomiče red od centra. Automatsko prilagođavanje smanjuje cijeli red samo kada ne stane u širinu igre." : "Stock MangoHud: ručni položaj od lijevog i gornjeg ruba, podesiv samo vertikalni padding. Za bočni padding, centriranje i FPS font uključi Claw renderer."} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Neovisni FPS font podešava se u ELEMENTS → FPS uz uključen Claw renderer." /></PanelSectionRow>
       </PanelSection>
       <PanelSection title="ACTIVATION">
         <PanelSectionRow><Field label="Steam Launch Options" description={info?.launch_option ?? "Učitavanje…"} /></PanelSectionRow>

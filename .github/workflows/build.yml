@@ -25,7 +25,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb libxkbcommon0 libgl1
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb libxkbcommon0 libgl1 gdb
       - name: Install native compiler and headers
         if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
@@ -81,11 +81,17 @@ jobs:
           path: native-packages
       - name: Prepare native bundle
         run: python3 tools/package_renderer.py
+      - name: Install graphics integration test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils xvfb libxkbcommon0 libgl1
+      - name: Test packaged private launcher with Vulkan and OpenGL
+        run: python3 tools/test_private_launch.py
       - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
           cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
-          cp -r dist assets artifact/ClawMetrics/
+          cp -r dist assets py_modules artifact/ClawMetrics/
           (cd artifact && zip -r "../ClawMetrics-v${{ steps.version.outputs.number }}.zip" ClawMetrics)
       - name: Validate installation ZIP
         run: |
@@ -94,7 +100,7 @@ jobs:
           version = json.loads(pathlib.Path('package.json').read_text())['version']
           with zipfile.ZipFile(f'ClawMetrics-v{version}.zip') as package:
               assert package.testzip() is None
-              for name in ('main.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt'):
+              for name in ('main.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt', 'assets/native/index.json', 'py_modules/claw_renderer.py'):
                   assert f'ClawMetrics/{name}' in package.namelist(), name
               assert json.loads(package.read('ClawMetrics/package.json'))['version'] == version
               assert f'v{version}' in package.read('ClawMetrics/dist/index.js').decode()
@@ -115,6 +121,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.2.3: functional manual X/Y placement, extra vertical padding, position reset and compact preset. Native layout checks cover position/padding changes at 1920 and a compact 1280 preset. Horizontal padding and independent FPS size are not supported by the native MangoHud config." \
+              --notes "Claw Metrics v0.3.0: isolated native renderer for 64/32-bit games, independent FPS number size, four-side padding, measured centering and automatic fit. Includes a separate launch command and stock fallback. Renderer checks include actual software Vulkan/OpenGL rendering; MSI Claw hardware verification remains required." \
               --prerelease
           fi

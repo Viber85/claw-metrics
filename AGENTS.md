@@ -13,3 +13,9 @@ Before publishing a version:
 - Do not replace working builds with speculative configuration changes just to produce another download. Diagnose against upstream implementation and collect evidence first.
 
 Manual X/Y must use the top-left positioning branch. The native horizontal top-center branch ignores offset_x. Test actual coordinate changes, vertical padding changes, and the compact preset at 1280 px. Never label vertical-only padding as full horizontal/vertical padding or expose a fake independent FPS-font slider.
+
+## Private renderer (v0.3)
+
+Independent FPS size and four-side padding are real features only in the isolated native fork, not stock config. New controls must be disabled when the native bundle/mode is unavailable. Preserve stock fallback and never alter the system MangoHud installation. The custom measured-center branch honors X relative to center; the stock top-left branch retains absolute X/Y.
+
+Release must require both native architectures, actual Vulkan rendering with the FPS draw-font ratio, and the packaged wrapper's Vulkan/OpenGL tests. A rendered frame followed by a crash is a failed test. Develop on renderer-native; do not publish its intermediate test artifacts as a release. One new launch command is required for first activation and must be stated clearly.

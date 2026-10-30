@@ -42,6 +42,9 @@ background_alpha=0.8
     result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
     log=result.stdout+'\n'+result.stderr
     print(log[-18000:])
+    if result.returncode != 0:
+        debug=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','gdb','--batch','-ex','run','-ex','thread apply all bt','--args','vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
+        print('DEBUG_BACKTRACE\n'+debug.stdout[-24000:]+'\n'+debug.stderr[-8000:])
     assert result.returncode == 0, result.returncode
     match=re.search(r'CLAW_RENDER screen=([\d.]+) x=([\d.-]+) y=([\d.-]+) width=([\d.]+) height=([\d.]+) fps_font=([\d.]+) scale=([\d.]+)',log)
     assert match, 'Private renderer did not report a rendered frame'
@@ -49,4 +52,6 @@ background_alpha=0.8
     assert fps==34 and y==8 and 0<scale<=1, match.group()
     assert abs(x-(screen-width)/2)<2, match.group()
     assert width<=screen-8 and x>=0 and height>20, match.group()
+    fps_draw=re.search(r'CLAW_FPS actual=([\d.]+) normal=([\d.]+)',log)
+    assert fps_draw and abs(float(fps_draw[1])/float(fps_draw[2])-34/18)<0.01, 'FPS font was not used in the actual draw branch'
     print('PASS actual Vulkan private layer: loaded, rendered, independent FPS font, measured centering and fit-to-width.')

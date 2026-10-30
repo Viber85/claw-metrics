@@ -29,7 +29,7 @@ fi
 meson setup native-source/build native-source "${extra[@]}" --buildtype=release --prefix=/usr \
   -Dinclude_doc=false -Dwith_x11=enabled -Dwith_wayland=disabled -Dwith_dbus=disabled \
   -Dwith_nvml=disabled -Dwith_xnvctrl=disabled -Dtests=disabled -Dmangoplot=disabled
-meson compile -C native-source/build -j 2
+meson compile -C native-source/build -j 4
 mkdir -p native-dist
 cp native-source/build/src/libMangoHud.so native-source/build/src/libMangoHud_opengl.so native-source/build/src/libMangoHud_shim.so native-dist/
 cp native-source/LICENSE native-dist/MANGOHUD-LICENSE.txt

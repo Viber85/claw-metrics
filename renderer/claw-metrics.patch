@@ -55,20 +55,25 @@
  #include "logging.h"
  #include "battery.h"
  #include "device.h"
-@@ -637,6 +638,12 @@
+@@ -637,6 +638,17 @@
          }
  
          ImguiNextColumnOrNewRow();
 +        bool custom_fps = HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_claw_renderer] && HUDElements.sw_stats->font_fps;
 +        float saved_align = HUDElements.ralign_width;
++        float normal_font_size = ImGui::GetFontSize();
 +        if (custom_fps) {
 +            ImGui::PushFont(HUDElements.sw_stats->font_fps);
 +            HUDElements.ralign_width = std::max(saved_align, ImGui::CalcTextSize("0000").x);
++            if (getenv("CLAW_METRICS_VERIFY")) {
++                static int fps_verify = 0;
++                if (++fps_verify == 120) fprintf(stderr, "CLAW_FPS actual=%.4f normal=%.4f\n", ImGui::GetFontSize(), normal_font_size);
++            }
 +        }
          if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps_color_change]){
              int fps = int(HUDElements.sw_stats->fps);
              struct LOAD_DATA fps_data = {
-@@ -651,6 +658,10 @@
+@@ -651,6 +663,10 @@
          }
          else {
              right_aligned_text(HUDElements.colors.text, HUDElements.ralign_width, "%.0f", HUDElements.sw_stats->fps);
@@ -79,7 +84,7 @@
          }
          ImGui::SameLine(0, 1.0f);
          if(!HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact] && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]){
-@@ -794,8 +805,10 @@
+@@ -794,8 +810,10 @@
          double max_time = 50.0f;
          float width, height = 0;
          if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]){
