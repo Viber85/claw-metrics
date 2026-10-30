@@ -1,40 +1,45 @@
 --- a/src/overlay_params.h
 +++ b/src/overlay_params.h
-@@ -183,7 +183,9 @@
+@@ -183,7 +183,11 @@
     OVERLAY_PARAM_CUSTOM(cpu_load_color)              \
     OVERLAY_PARAM_CUSTOM(fps_value)                   \
     OVERLAY_PARAM_CUSTOM(fps_color)                   \
 -   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
 +   OVERLAY_PARAM_CUSTOM(claw_padding_x)              \
 +   OVERLAY_PARAM_CUSTOM(claw_element_gap)            \
++   OVERLAY_PARAM_CUSTOM(claw_table_padding_x)        \
++   OVERLAY_PARAM_CUSTOM(claw_graph_width)            \
 +   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
     OVERLAY_PARAM_CUSTOM(table_columns)               \
     OVERLAY_PARAM_CUSTOM(blacklist)                   \
     OVERLAY_PARAM_CUSTOM(autostart_log)               \
-@@ -289,7 +291,8 @@
+@@ -289,7 +293,9 @@
     float font_size_text;
     float font_scale_media_player;
     float background_alpha, alpha;
 -   float cellpadding_y;
 +   float cellpadding_y;
 +   float claw_padding_x, claw_element_gap;
++   float claw_table_padding_x, claw_graph_width;
     std::vector<KeySym> toggle_hud;
     std::vector<KeySym> toggle_preset;
     std::vector<KeySym> toggle_fps_limit;
 --- a/src/overlay_params.cpp
 +++ b/src/overlay_params.cpp
-@@ -482,7 +482,9 @@
+@@ -482,7 +482,11 @@
  #define parse_alpha(s) parse_float(s)
  #define parse_permit_upload(s) parse_unsigned(s)
  #define parse_no_small_font(s) parse_unsigned(s) != 0
 -#define parse_cellpadding_y(s) parse_float(s)
 +#define parse_claw_padding_x(s) parse_float(s)
 +#define parse_claw_element_gap(s) parse_float(s)
++#define parse_claw_table_padding_x(s) parse_float(s)
++#define parse_claw_graph_width(s) parse_float(s)
 +#define parse_cellpadding_y(s) parse_float(s)
  #define parse_table_columns(s) parse_unsigned(s)
  #define parse_autostart_log(s) parse_unsigned(s)
  #define parse_gl_bind_framebuffer(s) parse_unsigned(s)
-@@ -790,7 +792,9 @@
+@@ -790,7 +794,11 @@
     params->benchmark_percentiles = { "97", "AVG"};
     params->gpu_load_value = { 60, 90 };
     params->cpu_load_value = { 60, 90 };
@@ -42,6 +47,8 @@
 +   params->cellpadding_y = -0.085;
 +   params->claw_padding_x = 5.0f;
 +   params->claw_element_gap = 8.0f;
++   params->claw_table_padding_x = 4.0f;
++   params->claw_graph_width = 150.0f;
     params->fps_color = { 0xb22222, 0xfdfd09, 0x39f900 };
     params->fps_value = { 30, 60 };
     params->round_corners = 0;
@@ -60,3 +67,24 @@
     }
     else {
        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
+--- a/src/hud_elements.cpp
++++ b/src/hud_elements.cpp
+@@ -106,7 +106,8 @@
+     style.Colors[ImGuiCol_PlotHistogram] = convert(params.frametime_color);
+     style.Colors[ImGuiCol_WindowBg]  = convert(params.background_color);
+     style.Colors[ImGuiCol_Text] = convert(params.text_color);
+-    style.CellPadding.y = params.cellpadding_y * real_font_size.y;
++    style.CellPadding.y = params.cellpadding_y * real_font_size.y;
++    style.CellPadding.x = params.claw_table_padding_x;
+     style.WindowRounding = params.round_corners;
+ }
+ 
+@@ -794,7 +795,7 @@
+         double max_time = 50.0f;
+         float width, height = 0;
+         if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]){
+-            width = 150;
++            width = HUDElements.params->claw_graph_width;
+             height = HUDElements.params->font_size * 0.85;
+         } else {
+             width = ImGui::GetWindowContentRegionWidth();
