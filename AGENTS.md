@@ -11,3 +11,5 @@ Before publishing a version:
 - Preserve existing settings through normalization/migration.
 - Explain test scope precisely: mock Decky controls do not verify native controller navigation; ImGui fixtures do not verify Vulkan injection or actual SteamOS appearance. Never call these on-device validation.
 - Do not replace working builds with speculative configuration changes just to produce another download. Diagnose against upstream implementation and collect evidence first.
+
+Manual X/Y must use the top-left positioning branch. The native horizontal top-center branch ignores offset_x. Test actual coordinate changes, vertical padding changes, and the compact preset at 1280 px. Never label vertical-only padding as full horizontal/vertical padding or expose a fake independent FPS-font slider.

@@ -29,14 +29,22 @@ class Settings(unittest.TestCase):
         self.assertTrue(main.normalize({})['metrics']['gpu_temp'])
         self.assertEqual(main.normalize({})['order'], main.ORDER)
 
-    def test_floating_hud_is_centered_and_not_stretched(self):
+    def test_manual_position_and_legacy_top_margin(self):
         config = main.mango_config(main.normalize({'margin': 24}))
-        self.assertIn('offset_x=0\n', config)
+        self.assertIn('offset_x=8\n', config)
         self.assertIn('offset_y=24\n', config)
         self.assertIn('horizontal_stretch=0\n', config)
-        self.assertIn('position=top-center\n', config)
+        self.assertIn('position=top-left\n', config)
         self.assertIn('hud_compact=0\n', config)
         self.assertIn('round_corners=10\n', config)
+
+    def test_padding_is_in_pixels_at_each_font_size(self):
+        for font in (12, 18, 28):
+            c = main.mango_config(main.normalize({'fontsize': font, 'padding_y': 12, 'offset_x': -100, 'offset_y': 60}))
+            opts = dict(line.split('=', 1) for line in c.splitlines() if '=' in line)
+            self.assertAlmostEqual(float(opts['cellpadding_y']) * font / 2, 12, places=4)
+            self.assertEqual(opts['offset_x'], '-100')
+            self.assertEqual(opts['offset_y'], '60')
 
     def test_corrupt_bundled_font_is_rejected(self):
         from unittest.mock import patch

@@ -15,7 +15,7 @@ import { FaChartLine, FaCopy } from "react-icons/fa";
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
-  sans: boolean; rounding: number; margin: number; order: Group[];
+  sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number; order: Group[];
   metrics: Record<string, boolean>;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
@@ -44,7 +44,7 @@ type Info = {
 const defaults: Settings = {
   enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
-  power: true, time: true, tdp: false, sans: true, rounding: 10, margin: 8, order,
+  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8, order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
@@ -175,7 +175,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.2">
+      <PanelSection title="Claw Metrics · v0.2.3">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -219,13 +219,17 @@ function Content() {
         <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
       </PanelSection>
       <PanelSection title="APPEARANCE">
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, margin: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
         {toggle("sans", "Sans-serif font")}
         <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_ready ? "Claw Sans · provjeren i spremljen uz profil" : "Font nije spreman — ponovno pokreni Decky Loader") : "MangoHud zadani font"} /></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["margin", "Odmak od vrha", 0, 24, 1] ] as const).map(([key, label, min, max, step]) =>
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
+          ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak je fiksan u MangoHudu. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
       </PanelSection>
       <PanelSection title="ACTIVATION">

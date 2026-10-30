@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -29,7 +30,7 @@ HASHES = {
 }
 
 
-def run(imgui_dir=None):
+def run(imgui_dir=None, render_dir=None):
     root = pathlib.Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory() as folder:
         tmp = pathlib.Path(folder)
@@ -49,7 +50,7 @@ def run(imgui_dir=None):
         main.install_font()
         config = main.mango_config(main.normalize({}))
         assert 'horizontal_stretch=0\n' in config
-        assert 'position=top-center\n' in config
+        assert 'position=top-left\n' in config
         assert 'hud_compact=0\n' in config
         assert 'round_corners=10\n' in config
         assert 'font_size=18\n' in config
@@ -60,24 +61,51 @@ def run(imgui_dir=None):
         source = tmp / 'render_check.cpp'
         source.write_bytes((root / 'tools/render_check.cpp').read_bytes())
         subprocess.run(['g++', '-O1', '-I', str(dest), str(source), *sources, '-o', str(target)], check=True)
-        for mode in ('0', '1'):
-            output = subprocess.check_output([str(target), str(main.font_path()), '0', '1920', mode], cwd=tmp, text=True)
+        cases = [
+            ("full", 1920, 18, 8, 8, 8, 0),
+            ("minimal", 1920, 18, 8, 8, 8, 1),
+            ("moved", 1920, 18, 90, 60, 8, 0),
+            ("no-padding", 1920, 18, 8, 8, 0, 0),
+            ("max-padding", 1920, 18, 8, 8, 24, 0),
+            ("compact-1280", 1280, 12, 8, 8, 4, 2),
+        ]
+        results = {}
+        for name, screen, fs, ox, oy, pad, mode in cases:
+            settings = main.normalize({'fontsize': fs, 'offset_x': ox, 'offset_y': oy, 'padding_y': pad})
+            if mode == 2:
+                settings['metrics']['cpu_mhz'] = False
+                settings['metrics']['gpu_core_clock'] = False
+            generated = dict(line.split('=', 1) for line in main.mango_config(settings).splitlines() if '=' in line)
+            assert int(generated['offset_x']) == ox and int(generated['offset_y']) == oy
+            assert abs(float(generated['cellpadding_y']) * fs / 2 - pad) < 0.001
+            args = [str(target), str(main.font_path()), '0', str(screen), str(mode), str(fs), str(ox), str(oy), str(pad)]
+            output = subprocess.check_output(args, cwd=tmp, text=True)
+            if name == 'full' and render_dir:
+                exported = pathlib.Path(render_dir)
+                exported.mkdir(parents=True, exist_ok=True)
+                for filename in ('draw.json', 'atlas.pgm'):
+                    shutil.copy2(tmp / filename, exported / filename)
             glyph = re.search(r'glyph I=([\d.]+) W=([\d.]+)', output)
             assert glyph and float(glyph[1]) != float(glyph[2]), 'Font is not proportional'
             geom = re.search(r'window x=([\d.-]+) y=([\d.-]+) w=([\d.-]+) h=([\d.-]+)', output)
             assert geom, output
             x, y, width, height = map(float, geom.groups())
-            assert x > 0 and x + width < 1920, output
-            assert abs(x + width / 2 - 960) < 20, output
-            assert y == 8 and 20 <= height < 60, output
+            assert x == ox and y == oy, output
+            assert x >= 0 and x + width < screen and height < 120, output
             spans = re.findall(r'label .*? at ([\d.-]+)\.\.([\d.-]+)', output)
             assert spans and all(x <= float(a) < float(b) <= x + width for a, b in spans), output
             assert all(float(spans[i][1]) <= float(spans[i+1][0]) + 0.01 for i in range(len(spans)-1)), output
-            print(f'PASS native ImGui fixture ({mode}): font proportional, row x={x:g}, y={y:g}, width={width:g}, height={height:g}; all labels inside row.')
+            results[name] = (width, height)
+            print(f'PASS native ImGui fixture {name}: x={x:g}, y={y:g}, width={width:g}, height={height:g}, font={fs}, padding={pad}; labels fit.')
+        assert results['full'][0] == results['moved'][0]
+        assert results['full'][1] >= results['no-padding'][1] + 12
+        assert results['max-padding'][1] > results['full'][1]
         print('Scope: actual ImGui layout operations with fixture metrics; native game injection and device visuals remain untested.')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgui-dir')
-    run(parser.parse_args().imgui_dir)
+    parser.add_argument('--render-dir')
+    args = parser.parse_args()
+    run(args.imgui_dir, args.render_dir)

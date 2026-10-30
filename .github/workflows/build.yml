@@ -69,6 +69,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.2.2: centered content-width horizontal HUD with rounded background; bundled licensed Claw Sans font installed beside the profile and SHA-256 verified. Layout checked against the MangoHud v0.8.1 ImGui renderer with fixture values; final device verification remains required. Restart Decky and the game." \
+              --notes "Claw Metrics v0.2.3: functional manual X/Y placement, extra vertical padding, position reset and compact preset. Native layout checks cover position/padding changes at 1920 and a compact 1280 preset. Horizontal padding and independent FPS size are not supported by the native MangoHud config." \
               --prerelease
           fi

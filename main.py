@@ -26,7 +26,7 @@ DEFAULTS = {
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
-    "sans": True, "rounding": 10, "margin": 8,
+    "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 8,
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -81,10 +81,14 @@ def normalize(payload):
         if type(default) is bool and type(v) is bool:
             d[key] = v
     for key, low, high in (("fontsize", 12, 28), ("opacity", 0, 100),
-                           ("rounding", 0, 20), ("margin", 0, 24)):
+                           ("rounding", 0, 20), ("offset_x", -1920, 1920),
+                           ("offset_y", -1200, 1200), ("padding_y", 0, 24)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
+    # Preserve the old top-margin preference when upgrading to explicit X/Y.
+    if "offset_y" not in payload and type(payload.get("margin")) is int:
+        d["offset_y"] = min(1200, max(-1200, payload["margin"]))
     # Migrate v0.1 sensor-power toggle without changing existing preferences.
     if "metrics" not in payload and payload.get("power") is False:
         d["metrics"]["cpu_power"] = False
@@ -141,8 +145,10 @@ def mango_config(settings):
         "# Claw Metrics v0.2.1 — generated from QAM settings",
         "legacy_layout=0", "horizontal", "horizontal_stretch=0",
         # Critical: compact battery_time resets the cursor to column zero.
-        "hud_compact=0", "hud_no_margin", "position=top-center",
-        "offset_x=0", "offset_y=" + str(d["margin"]),
+        "hud_compact=0", "hud_no_margin", "position=top-left",
+        "offset_x=" + str(d["offset_x"]), "offset_y=" + str(d["offset_y"]),
+        # MangoHud multiplies this factor by real_font_size.y = font_size/2.
+        "cellpadding_y=" + format(d["padding_y"] / (d["fontsize"] / 2), ".6f"),
         "round_corners=" + str(d["rounding"]),
         "background_color=161820", "text_color=F0F2F5",
         "cpu_color=37C9EF", "gpu_color=8BDA62", "ram_color=B077DF",
