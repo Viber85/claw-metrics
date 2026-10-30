@@ -54,6 +54,7 @@ class Settings(unittest.TestCase):
         options = main.mango_config(settings)
         self.assertNotIn('claw_padding_x=', options)
         self.assertNotIn('claw_element_gap=', options)
+        self.assertNotIn('fps_text=FPS*', options)
         self.assertIn('hud_compact=0\n', options)
         self.assertEqual(main.normalize({})['padding_x'], 5)
         self.assertEqual(main.normalize({})['element_gap'], 8)
@@ -65,6 +66,7 @@ class Settings(unittest.TestCase):
         self.assertIn('claw_element_gap=2\n', patched)
         self.assertIn('claw_table_padding_x=4\n', patched)
         self.assertIn('claw_graph_width=150\n', patched)
+        self.assertIn('fps_text=FPS*\n', patched)
 
     def test_corrupt_bundled_font_is_rejected(self):
         from unittest.mock import patch
