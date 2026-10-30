@@ -45,7 +45,7 @@ async def run():
             result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,str(glx)],env=env,text=True,capture_output=True,timeout=60)
             if result.returncode != 0:
                 debug=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','gdb','--batch','-ex','set exec-wrapper '+wrapper,'-ex','run','-ex','thread apply all bt','-ex','info proc mappings','--args',str(glx)],env=env,text=True,capture_output=True,timeout=120)
-                print('OPENGL_DEBUG\n'+debug.stdout[-25000:]+'\n'+debug.stderr[-8000:])
+                print('OPENGL_DEBUG\n'+debug.stdout[:24000]+'\nMAP_TAIL\n'+debug.stdout[-6000:]+'\n'+debug.stderr[-8000:])
             assert result.returncode==0, result.stdout+'\n'+result.stderr
             verify(result.stdout+'\n'+result.stderr,'PACKAGED OPENGL')
             glx32=main.BASE/'glx-fixture32'
