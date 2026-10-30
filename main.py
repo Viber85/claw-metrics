@@ -96,12 +96,30 @@ def install_native_manifest():
         "functions": {"vkGetInstanceProcAddr": "overlay_GetInstanceProcAddr",
                       "vkGetDeviceProcAddr": "overlay_GetDeviceProcAddr"},
     }}
-    for path in (experimental_manifest(), user_vulkan_manifest()):
-        path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-        # A user-level explicit manifest is inert until requested by name.
-        # This provides a fallback when Steam's pressure-vessel strips
-        # nonstandard VK_LAYER_PATH/VK_ADD_LAYER_PATH variables.
-        write_atomic(path, json.dumps(content, indent=2) + "\n")
+    private_manifest = experimental_manifest()
+    private_manifest.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    write_atomic(private_manifest, json.dumps(content, indent=2) + "\n")
+
+    # A discoverable user explicit layer is inert until requested by name.
+    # Create any missing XDG directories as the desktop user, not root:
+    # Decky's privileged backend must not leave root-owned user directories.
+    public_manifest = user_vulkan_manifest()
+    try:
+        home = user_home()
+        owner = home.stat()
+        for directory in (home / ".local", home / ".local/share",
+                          home / ".local/share/vulkan", public_manifest.parent):
+            if not directory.exists():
+                directory.mkdir(mode=0o755)
+                if os.geteuid() == 0 and owner.st_uid != 0:
+                    os.chown(directory, owner.st_uid, owner.st_gid)
+        write_atomic(public_manifest, json.dumps(content, indent=2) + "\n")
+        if os.geteuid() == 0 and owner.st_uid != 0:
+            os.chown(public_manifest, owner.st_uid, owner.st_gid)
+    except OSError as error:
+        # This fallback is optional. A permission issue must never prevent
+        # the QAM plugin or the private manifest from working.
+        print("Claw Metrics: user Vulkan manifest unavailable:", error)
 
 
 def draw_path():
