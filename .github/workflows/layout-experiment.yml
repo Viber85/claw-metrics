@@ -24,6 +24,8 @@ jobs:
         run: npm run typecheck
       - name: Build QAM
         run: npm run build
+      - name: Verify original MangoHud 5px content inset in ImGui fixture
+        run: python3 tools/check_native_layout.py
       - name: Verify experimental native patch matches MangoHud v0.8.1
         run: |
           mkdir -p native/src
