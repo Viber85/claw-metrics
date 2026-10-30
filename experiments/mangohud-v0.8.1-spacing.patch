@@ -1,6 +1,6 @@
 --- a/src/overlay_params.h
 +++ b/src/overlay_params.h
-@@ -183,7 +183,11 @@
+@@ -183,7 +183,14 @@
     OVERLAY_PARAM_CUSTOM(cpu_load_color)              \
     OVERLAY_PARAM_CUSTOM(fps_value)                   \
     OVERLAY_PARAM_CUSTOM(fps_color)                   \
@@ -9,24 +9,28 @@
 +   OVERLAY_PARAM_CUSTOM(claw_element_gap)            \
 +   OVERLAY_PARAM_CUSTOM(claw_table_padding_x)        \
 +   OVERLAY_PARAM_CUSTOM(claw_graph_width)            \
++   OVERLAY_PARAM_CUSTOM(claw_inner_gap)             \
++   OVERLAY_PARAM_CUSTOM(claw_inline_metrics)        \
++   OVERLAY_PARAM_CUSTOM(claw_fps_bold)              \
 +   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
     OVERLAY_PARAM_CUSTOM(table_columns)               \
     OVERLAY_PARAM_CUSTOM(blacklist)                   \
     OVERLAY_PARAM_CUSTOM(autostart_log)               \
-@@ -289,7 +293,9 @@
+@@ -289,7 +296,10 @@
     float font_size_text;
     float font_scale_media_player;
     float background_alpha, alpha;
 -   float cellpadding_y;
 +   float cellpadding_y;
 +   float claw_padding_x, claw_element_gap;
-+   float claw_table_padding_x, claw_graph_width;
++   float claw_table_padding_x, claw_graph_width, claw_inner_gap;
++   bool claw_inline_metrics, claw_fps_bold;
     std::vector<KeySym> toggle_hud;
     std::vector<KeySym> toggle_preset;
     std::vector<KeySym> toggle_fps_limit;
 --- a/src/overlay_params.cpp
 +++ b/src/overlay_params.cpp
-@@ -482,7 +482,11 @@
+@@ -482,7 +482,14 @@
  #define parse_alpha(s) parse_float(s)
  #define parse_permit_upload(s) parse_unsigned(s)
  #define parse_no_small_font(s) parse_unsigned(s) != 0
@@ -35,11 +39,14 @@
 +#define parse_claw_element_gap(s) parse_float(s)
 +#define parse_claw_table_padding_x(s) parse_float(s)
 +#define parse_claw_graph_width(s) parse_float(s)
++#define parse_claw_inner_gap(s) parse_float(s)
++#define parse_claw_inline_metrics(s) parse_unsigned(s) != 0
++#define parse_claw_fps_bold(s) parse_unsigned(s) != 0
 +#define parse_cellpadding_y(s) parse_float(s)
  #define parse_table_columns(s) parse_unsigned(s)
  #define parse_autostart_log(s) parse_unsigned(s)
  #define parse_gl_bind_framebuffer(s) parse_unsigned(s)
-@@ -790,7 +794,11 @@
+@@ -790,7 +797,14 @@
     params->benchmark_percentiles = { "97", "AVG"};
     params->gpu_load_value = { 60, 90 };
     params->cpu_load_value = { 60, 90 };
@@ -49,6 +56,9 @@
 +   params->claw_element_gap = 8.0f;
 +   params->claw_table_padding_x = 4.0f;
 +   params->claw_graph_width = 150.0f;
++   params->claw_inner_gap = 4.0f;
++   params->claw_inline_metrics = false;
++   params->claw_fps_bold = false;
     params->fps_color = { 0xb22222, 0xfdfd09, 0x39f900 };
     params->fps_value = { 30, 60 };
     params->round_corners = 0;
@@ -79,7 +89,170 @@
      style.WindowRounding = params.round_corners;
  }
  
-@@ -794,7 +795,7 @@
+@@ -184,12 +185,71 @@
+     }
+ }
+ 
+-void HudElements::gpu_stats(){
++// Native Claw Metrics inline path: each value is one ImGui item, separated by
++// a single tunable gap instead of separate right-aligned table columns.
++static void ClawMetricGap() {
++    ImGui::SameLine(0.0f, HUDElements.params->claw_inner_gap);
++}
++
++void HudElements::gpu_stats(){
+     if (!gpus)
+         gpus = std::make_unique<GPUS>(HUDElements.params);
+ 
+     size_t i = 0;
+-    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_stats]){
++    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_stats]){
++        if (HUDElements.params->claw_inline_metrics &&
++            HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
++            for (auto& gpu : gpus->selected_gpus()) {
++                ImguiNextColumnFirstItem();
++                HUDElements.TextColored(HUDElements.colors.gpu, "%s", gpu->gpu_text().c_str());
++                auto text_color = HUDElements.colors.text;
++                ClawMetricGap();
++                HUDElements.TextColored(text_color, "%i%%", gpu->metrics.load);
++                if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_temp]) {
++                    ClawMetricGap();
++                    int temperature = HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]
++                        ? HUDElements.convert_to_fahrenheit(gpu->metrics.temp) : gpu->metrics.temp;
++                    HUDElements.TextColored(text_color, "%i°%c", temperature,
++                        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit] ? 'F' : 'C');
++                }
++                if (gpu->metrics.junction_temp > -1 &&
++                    HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_junction_temp]) {
++                    ClawMetricGap();
++                    int temperature = HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]
++                        ? HUDElements.convert_to_fahrenheit(gpu->metrics.junction_temp) : gpu->metrics.junction_temp;
++                    HUDElements.TextColored(text_color, "%i°%c Jnc", temperature,
++                        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit] ? 'F' : 'C');
++                }
++                if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_fan] && !gpu->is_apu()) {
++                    ClawMetricGap();
++                    if (gpu->metrics.fan_rpm)
++                        HUDElements.TextColored(text_color, "%i RPM", gpu->metrics.fan_speed);
++                    else
++                        HUDElements.TextColored(text_color, "%i%% FAN", gpu->metrics.fan_speed);
++                }
++                if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_core_clock]) {
++                    ClawMetricGap();
++                    HUDElements.TextColored(text_color, "%i", gpu->metrics.CoreClock);
++                    ImGui::SameLine(0.0f, 1.0f);
++                    ImGui::PushFont(HUDElements.sw_stats->font1);
++                    HUDElements.TextColored(text_color, "MHz");
++                    ImGui::PopFont();
++                }
++                if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_power]) {
++                    ClawMetricGap();
++                    HUDElements.TextColored(text_color, "%.1f", gpu->metrics.powerUsage);
++                    ImGui::SameLine(0.0f, 1.0f);
++                    ImGui::PushFont(HUDElements.sw_stats->font1);
++                    HUDElements.TextColored(text_color, "W");
++                    ImGui::PopFont();
++                }
++                if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_gpu_voltage]) {
++                    ClawMetricGap();
++                    HUDElements.TextColored(text_color, "%i mV", gpu->metrics.voltage);
++                }
++            }
++            return;
++        }
+         for (auto& gpu : gpus->selected_gpus()) {
+             ImguiNextColumnFirstItem();
+             HUDElements.TextColored(HUDElements.colors.gpu, "%s", gpu->gpu_text().c_str());
+@@ -306,7 +366,42 @@
+ }
+ 
+ void HudElements::cpu_stats(){
+-    if(HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_cpu_stats]){
++    if(HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_cpu_stats]){
++        if (HUDElements.params->claw_inline_metrics &&
++            HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
++            ImguiNextColumnFirstItem();
++            const char* label = HUDElements.params->cpu_text.empty()
++                ? "CPU" : HUDElements.params->cpu_text.c_str();
++            HUDElements.TextColored(HUDElements.colors.cpu, "%s", label);
++            auto text_color = HUDElements.colors.text;
++            ClawMetricGap();
++            HUDElements.TextColored(text_color, "%d%%", int(cpuStats.GetCPUDataTotal().percent));
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_cpu_temp]) {
++                ClawMetricGap();
++                int temperature = HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]
++                    ? HUDElements.convert_to_fahrenheit(cpuStats.GetCPUDataTotal().temp)
++                    : cpuStats.GetCPUDataTotal().temp;
++                HUDElements.TextColored(text_color, "%i°%c", temperature,
++                    HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit] ? 'F' : 'C');
++            }
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_cpu_mhz]) {
++                ClawMetricGap();
++                HUDElements.TextColored(text_color, "%i", cpuStats.GetCPUDataTotal().cpu_mhz);
++                ImGui::SameLine(0.0f, 1.0f);
++                ImGui::PushFont(HUDElements.sw_stats->font1);
++                HUDElements.TextColored(text_color, "MHz");
++                ImGui::PopFont();
++            }
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_cpu_power]) {
++                ClawMetricGap();
++                HUDElements.TextColored(text_color, "%.1f", cpuStats.GetCPUDataTotal().power);
++                ImGui::SameLine(0.0f, 1.0f);
++                ImGui::PushFont(HUDElements.sw_stats->font1);
++                HUDElements.TextColored(text_color, "W");
++                ImGui::PopFont();
++            }
++            return;
++        }
+         ImguiNextColumnFirstItem();
+         const char* cpu_text;
+         if (HUDElements.params->cpu_text.empty())
+@@ -618,7 +713,22 @@
+ #endif
+ }
+ 
+-void HudElements::fps(){
++// Faux bold only for the numeric FPS value. The text is drawn twice with a
++// subpixel horizontal offset; its font size and ImGui layout are unchanged.
++static void ClawBoldFpsNumber(ImVec4& color, float off_x, float fps) {
++    char text[32] {};
++    snprintf(text, sizeof(text), "%.0f", fps);
++    ImVec2 cursor = ImGui::GetCursorPos();
++    if (!HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact])
++        ImGui::SetCursorPosX(cursor.x + off_x - ImGui::CalcTextSize(text).x);
++    ImVec2 position = ImGui::GetCursorScreenPos();
++    HUDElements.TextColored(color, "%s", text);
++    ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
++        ImVec2(position.x + 0.8f, position.y),
++        ImGui::ColorConvertFloat4ToU32(color), text);
++}
++
++void HudElements::fps(){
+     if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps] && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps_only]){
+         ImguiNextColumnFirstItem();
+         if (HUDElements.params->fps_text.empty()){
+@@ -647,10 +757,18 @@
+             HUDElements.params->fps_value[1]
+             };
+             auto load_color = change_on_load_temp(fps_data, fps);
+-            right_aligned_text(load_color, HUDElements.ralign_width, "%.0f", HUDElements.sw_stats->fps);
++            if (HUDElements.params->claw_fps_bold &&
++                HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])
++                ClawBoldFpsNumber(load_color, HUDElements.ralign_width, HUDElements.sw_stats->fps);
++            else
++                right_aligned_text(load_color, HUDElements.ralign_width, "%.0f", HUDElements.sw_stats->fps);
+         }
+         else {
+-            right_aligned_text(HUDElements.colors.text, HUDElements.ralign_width, "%.0f", HUDElements.sw_stats->fps);
++            if (HUDElements.params->claw_fps_bold &&
++                HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])
++                ClawBoldFpsNumber(HUDElements.colors.text, HUDElements.ralign_width, HUDElements.sw_stats->fps);
++            else
++                right_aligned_text(HUDElements.colors.text, HUDElements.ralign_width, "%.0f", HUDElements.sw_stats->fps);
+         }
+         ImGui::SameLine(0, 1.0f);
+         if(!HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact] && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]){
+@@ -794,7 +912,7 @@
          double max_time = 50.0f;
          float width, height = 0;
          if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]){
