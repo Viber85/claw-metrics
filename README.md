@@ -1,3 +1,30 @@
+# Claw Metrics v0.2.4-test.6 — gamepad color editor
+
+Based on the verified working `v0.2.4-test.5` layout. Keeps the one-line overlay, inner spacing controls, bold FPS, the explicit Vulkan launch path, and all sensor options.
+
+## What's new
+
+The **BOJE / COLORS** section in Decky QAM includes a controller-operated color picker (hue, saturation, lightness) for:
+- Numeric values / clock / DRAW (shared `text_color`)
+- Vertical separators between categories (**independent** from VRAM)
+- FPS label and FPS number (separate controls)
+- CPU, GPU, RAM, VRAM and BATT category labels
+- Frametime graph
+
+The existing defaults are kept as the initial palette. Values are saved as six-digit RGB colors, validated in Python, and applied to both MangoHud configs. `Vrati zadane boje` resets **only** the colors.
+
+**Technical compatibility:** stock MangoHud 0.8.1 draws separators with `params.vram_color`. The experimental native patch changes that to a new `horizontal_separator_color` parameter, making independent separator customization work; stock MangoHud will still tie separator color to VRAM. This test is for our **experimental Vulkan** launch command.
+
+## Test
+
+Install the Decky ZIP, restart Decky if needed, launch a 64-bit Vulkan game with the experimental command, and confirm renderer status **AKTIVNO**. In QAM, open **BOJE / COLORS**, choose a color, move the HSL sliders and confirm. The game overlay should update without restarting, as in the preceding test. Try separator bright red and VRAM label green to verify the colors are independent; then restore default colors. Changes outside a running game are persisted for next launch.
+
+If color changes do not refresh automatically in your game, re-open the overlay or restart that game. Do not change system MangoHud, OS files or Panel de Control settings.
+
+**Status:** compiled in CI, not yet device-tested for the color editor. The confirmed functional prior `v0.2.4-test.5` release remains available.
+
+---
+
 # Claw Metrics v0.2.4-test.5 — uniform spacing across ALL metric groups
 
 Built from the working `v0.2.3` baseline; retains the working experimental Vulkan layer integration confirmed on the MSI Claw in v0.2.4-test.3.
