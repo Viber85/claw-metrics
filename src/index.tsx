@@ -60,6 +60,8 @@ const defaults: Settings = {
 const load = callable<[], Settings>("get_settings");
 const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
+type RendererStatus = { native_loaded: boolean; process_count: number; checked_processes: number; note: string };
+const getRendererStatus = callable<[], RendererStatus>("get_renderer_status");
 
 function withTimeout<T>(request: Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -73,6 +75,22 @@ function Content() {
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Učitavanje…");
   const [copyStatus, setCopyStatus] = useState("");
+  const [rendererStatus, setRendererStatus] = useState("Nije provjereno. Pokreni igru za test.");
+  const [rendererBusy, setRendererBusy] = useState(false);
+  const verifyRenderer = async () => {
+    setRendererBusy(true);
+    setRendererStatus("Provjeravam procese igre...");
+    try {
+      const result = await withTimeout(getRendererStatus());
+      setRendererStatus(result.native_loaded
+        ? "AKTIVNO: eksperimentalni MangoHud je učitan (" + result.process_count + " proces/a)."
+        : "NIJE AKTIVNO: u pokrenutim procesima nije pronađena eksperimentalna biblioteka.");
+    } catch (error) {
+      setRendererStatus("Provjera nije uspjela: " + String(error));
+    } finally {
+      setRendererBusy(false);
+    }
+  };
   const [expanded, setExpanded] = useState<Group | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -260,7 +278,7 @@ function Content() {
         {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="VAŽNO: Testni prikaz"
-            description="Stara komanda učitava obični MangoHud i IGNORIRA 4 nova slidera. U Steamu zamijeni cijelu launch komandu ovom testnom, pa restartaj igru. Ako overlay prikazuje FPS* umjesto FPS, testna konfiguracija se učitala. Ako piše FPS, još se koristi stara konfiguracija." />
+            description="Koristi testnu komandu u Steam Launch Options i ponovno pokreni igru. FPS* potvrđuje testnu KONFIGURACIJU, ali ne i izmijenjeni renderer. Dok igra radi, pritisni 'Provjeri koristi li igra eksperimentalni renderer'. Samo status AKTIVNO potvrđuje učitanu biblioteku." />
         </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="Eksperimentalna konfiguracija"
@@ -274,6 +292,14 @@ function Content() {
           <ButtonItem layout="below" onClick={() => { void copyLaunchCommand(true); }}>
             <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (Vulkan 64-bit)
           </ButtonItem>
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <ButtonItem layout="below" disabled={rendererBusy} onClick={() => { void verifyRenderer(); }}>
+            Provjeri koristi li igra eksperimentalni renderer
+          </ButtonItem>
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <Field label="Stvarno učitana biblioteka" description={rendererStatus} />
         </PanelSectionRow>}
         <PanelSectionRow><Field label="Siguran povratak"
           description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
