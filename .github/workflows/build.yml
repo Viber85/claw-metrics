@@ -53,6 +53,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.1.3: fixes root-only MangoHud profile permissions, honors Decky user home, and adds backend timeout/retry feedback and ordered settings saves. On-device verification required. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
+              --notes "Claw Metrics v0.1.4: fixes horizontal HUD column capacity to prevent battery/time wrapping over FPS. Explicit full-width horizontal layout. Restart Decky Loader and the game after installation. Device visual verification required." \
               --prerelease
           fi

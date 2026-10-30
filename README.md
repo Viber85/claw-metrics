@@ -1,13 +1,6 @@
-# Claw Metrics v0.1.3
+# Claw Metrics v0.1.4 — horizontal layout fix
 
-## Fixes in v0.1.3
-
-- MangoHud profiles written by the root Decky service are now readable by games (0644). Existing profiles are repaired when the backend starts.
-- Use DECKY_USER_HOME for the actual SteamOS user's home.
-- Explicit no_display controls the master toggle.
-- QAM backend requests report errors/timeouts and provide a retry button. Settings saves are serialized to avoid overlapping slider writes.
-
-Restart Decky Loader after installing, copy the launch command again, and restart the test game. Disable the native Steam performance overlay for this test. Check QAM Status for backend confirmation. This does not prove controller navigation or clipboard operation works on the device; those still require hardware verification.
+The horizontal HUD now starts with 64 table columns instead of 20. MangoHud automatically measures and reduces the active column count. This prevents multi-column CPU/GPU and battery/time fields from wrapping into the initial FPS cells. Explicit horizontal_stretch keeps the row across the screen. Existing settings are retained; restart Decky and the test game after installing. Hardware visual verification remains required.
 
 # Claw Metrics v0.1.2 — SteamOS experimental prototype
 
