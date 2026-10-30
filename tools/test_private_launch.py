@@ -29,8 +29,17 @@ async def run():
             log=result.stdout+'\n'+result.stderr
             assert result.returncode==0, log[-18000:]
             verify(log,'PACKAGED VULKAN')
-            result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,'timeout','8','glxgears','-geometry','1280x720'],env=env,text=True,capture_output=True,timeout=30)
-            assert result.returncode in (0,124), result.stdout+'\n'+result.stderr
+            narrow=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,'vkcube','--c','180','--width','640','--height','480'],env=env,text=True,capture_output=True,timeout=120)
+            assert narrow.returncode==0, narrow.stdout+'\n'+narrow.stderr
+            narrow_log=narrow.stdout+'\n'+narrow.stderr
+            verify(narrow_log,'PACKAGED VULKAN NARROW')
+            fitted=re.search(r'scale=([\d.]+)',narrow_log)
+            assert fitted and float(fitted[1])<1, 'Narrow render did not exercise fit-to-width'
+
+            glx=main.BASE/'glx-fixture'
+            subprocess.run(['gcc',str(pathlib.Path(__file__).with_name('glx_fixture.c')),'-lX11','-lGL','-o',str(glx)],check=True)
+            result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,str(glx)],env=env,text=True,capture_output=True,timeout=60)
+            assert result.returncode==0, result.stdout+'\n'+result.stderr
             verify(result.stdout+'\n'+result.stderr,'PACKAGED OPENGL')
         finally:
             await plugin._unload()

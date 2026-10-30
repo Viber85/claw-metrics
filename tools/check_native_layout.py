@@ -60,6 +60,7 @@ def run(imgui_dir=None, render_dir=None):
         # render_check.cpp includes imgui/imgui.h relative to this temporary root.
         source = tmp / 'render_check.cpp'
         source.write_bytes((root / 'tools/render_check.cpp').read_bytes())
+        shutil.copy2(root / 'renderer/claw_layout.h', tmp / 'claw_layout.h')
         subprocess.run(['g++', '-O1', '-I', str(dest), str(source), *sources, '-o', str(target)], check=True)
         cases = [
             ("full", 1920, 18, 8, 8, 8, 0),
@@ -100,6 +101,21 @@ def run(imgui_dir=None, render_dir=None):
         assert results['full'][0] == results['moved'][0]
         assert results['full'][1] >= results['no-padding'][1] + 12
         assert results['max-padding'][1] > results['full'][1]
+        for screen, fs, fps_size, padx, pady, ox, oy, center in [(1920,18,34,18,10,0,8,1),(1280,18,34,18,10,0,8,1),(800,24,48,24,12,0,8,1),(1920,18,34,18,10,60,35,0)]:
+            args=[str(target),str(main.font_path()),'0',str(screen),'0',str(fs),str(ox),str(oy),str(pady),'1',str(fps_size),str(padx),str(center),'1']
+            output=subprocess.check_output(args,cwd=tmp,text=True)
+            geom=re.search(r'window x=([\d.-]+) y=([\d.-]+) w=([\d.-]+) h=([\d.-]+)',output)
+            assert geom,output
+            x,y,width,height=map(float,geom.groups())
+            assert 0<=x and x+width<=screen and y==oy,output
+            assert abs(x-((screen-width)/2 if center else 0)-ox)<1.5,output
+            spans=re.findall(r'label .*? at ([\d.-]+)\.\.([\d.-]+)',output)
+            assert all(x<=float(a)<float(b)<=x+width for a,b in spans),output
+            big=re.search(r'label 120 at .*? h=([\d.]+)',output)
+            normal=re.search(r'label CPU at .*? h=([\d.]+)',output)
+            assert big and normal and abs(float(big[1])/float(normal[1])-fps_size/fs)<.01,output
+            assert height>=2*pady+float(big[1])-1,output
+            print(f'PASS custom renderer fixture: screen={screen}, font={fs}, FPS={fps_size}, padding={padx}/{pady}, x/y={x:g}/{y:g}, width={width:g}, height={height:g}')
         print('Scope: actual ImGui layout operations with fixture metrics; native game injection and device visuals remain untested.')
 
 

@@ -16,7 +16,7 @@ jobs:
         arch: [x86_64, i386]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         id: native-cache
         with:
           path: native-dist
@@ -39,6 +39,11 @@ jobs:
       - name: Build isolated renderer
         if: steps.native-cache.outputs.cache-hit != 'true'
         run: bash tools/build_renderer.sh "${{ matrix.arch }}"
+      - uses: actions/cache/save@v4
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: native-dist
+          key: claw-native-v081-${{ matrix.arch }}-${{ hashFiles('renderer/claw-metrics.patch', 'renderer/claw_layout.h', 'tools/build_renderer.sh') }}
       - name: Test actual Vulkan rendering
         if: matrix.arch == 'x86_64'
         run: python3 tools/test_native_vulkan.py
@@ -84,7 +89,7 @@ jobs:
       - name: Install graphics integration test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils xvfb libxkbcommon0 libgl1
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils xvfb libxkbcommon0 libgl1 libx11-dev libgl1-mesa-dev
       - name: Test packaged private launcher with Vulkan and OpenGL
         run: python3 tools/test_private_launch.py
       - name: Package plugin ZIP

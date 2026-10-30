@@ -43,7 +43,7 @@ background_alpha=0.8
     log=result.stdout+'\n'+result.stderr
     print(log[-18000:])
     if result.returncode != 0:
-        debug=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','gdb','--batch','-ex','run','-ex','thread apply all bt','--args','vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
+        debug=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','gdb','--batch','-ex','run','-ex','thread apply all bt','-ex','info proc mappings','--args','vkcube','--c','180','--width','1280','--height','720'],env=env,text=True,capture_output=True,timeout=120)
         print('DEBUG_BACKTRACE\n'+debug.stdout[-24000:]+'\n'+debug.stderr[-8000:])
     assert result.returncode == 0, result.returncode
     match=re.search(r'CLAW_RENDER screen=([\d.]+) x=([\d.-]+) y=([\d.-]+) width=([\d.]+) height=([\d.]+) fps_font=([\d.]+) scale=([\d.]+)',log)
