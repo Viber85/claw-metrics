@@ -27,6 +27,9 @@ DEFAULTS = {
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
     "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 8,
+    # Native MangoHud 0.8.1 hard-codes these; retain the desired values
+    # until a separately validated compatible renderer is installed.
+    "padding_x": 5, "element_gap": 8,
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -82,7 +85,8 @@ def normalize(payload):
             d[key] = v
     for key, low, high in (("fontsize", 12, 28), ("opacity", 0, 100),
                            ("rounding", 0, 20), ("offset_x", -1920, 1920),
-                           ("offset_y", -1200, 1200), ("padding_y", 0, 24)):
+                           ("offset_y", -1200, 1200), ("padding_y", 0, 24),
+                           ("padding_x", 0, 24), ("element_gap", 0, 20)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
@@ -142,7 +146,7 @@ def mango_config(settings):
     active = lambda key: d["enabled"] and d[key]
     flag = lambda key, value: key + "=" + str(int(bool(value)))
     lines = [
-        "# Claw Metrics v0.2.1 — generated from QAM settings",
+        "# Claw Metrics v0.2.3 base — generated from QAM settings",
         "legacy_layout=0", "horizontal", "horizontal_stretch=0",
         # Critical: compact battery_time resets the cursor to column zero.
         "hud_compact=0", "hud_no_margin", "position=top-left",
@@ -250,6 +254,7 @@ class Plugin:
             "config_readable": HUD.is_file() and bool(HUD.stat().st_mode & 0o004),
             "font_path": sans_font(),
             "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,
+            "layout_spacing_supported": False,  # Stock MangoHud has no corresponding config options.
             "tdp_note": "TDP: očitanje primijenjenog limita iz Panel de Controla još nije dostupno.",
             "power_note": "CPU/GPU sensor power is not the same as total system battery draw."
         }
