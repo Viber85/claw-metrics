@@ -213,7 +213,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.4">
+      <PanelSection title="Claw Metrics · v0.2.4-test.5">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -276,13 +276,13 @@ function Content() {
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="CPU/GPU vrijednosti u jednom redu (jednak razmak)"
+        <PanelSectionRow><ToggleField label="Jednaki razmaci: FPS, CPU, GPU, RAM, VRAM, BATT"
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Razmak unutar CPU/GPU (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+        <PanelSectionRow><SliderField label="Razmak unutar grupa (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="Podebljani FPS broj (ista veličina)"
+        <PanelSectionRow><ToggleField label="Podebljani FPS broj (bez povećavanja)"
           checked={settings.fps_bold} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({fps_bold: v})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
