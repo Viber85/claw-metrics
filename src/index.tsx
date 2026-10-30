@@ -174,7 +174,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.0">
+      <PanelSection title="Claw Metrics · v0.2.1">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -222,7 +222,7 @@ function Content() {
         {toggle("sans", "Sans-serif font")}
         <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_path || "MangoHud font — sistemski sans nije pronađen") : "MangoHud zadani font"} /></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["margin", "Odmak od vrha / lijevo", 0, 24, 1] ] as const).map(([key, label, min, max, step]) =>
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["margin", "Odmak od vrha", 0, 24, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>

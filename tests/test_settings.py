@@ -29,6 +29,16 @@ class Settings(unittest.TestCase):
         self.assertTrue(main.normalize({})['metrics']['gpu_temp'])
         self.assertEqual(main.normalize({})['order'], main.ORDER)
 
+    def test_full_width_hud_has_no_horizontal_shift(self):
+        config = main.mango_config(main.normalize({'margin': 24}))
+        self.assertIn('offset_x=0\n', config)
+        self.assertIn('offset_y=24\n', config)
+
+    def test_draw_has_no_game_runtime_python_dependency(self):
+        config = main.mango_config(main.normalize({}))
+        self.assertIn('exec=cat ', config)
+        self.assertNotIn('/usr/bin/python3', config)
+
     def test_submetrics_and_hidden_group(self):
         d = main.normalize({'gpu': False, 'metrics': {'gpu_power': True}})
         c = main.mango_config(d)
@@ -48,3 +58,31 @@ class Settings(unittest.TestCase):
             (b/'status').write_text('Discharging'); (b/'power_now').unlink()
             (b/'current_now').write_text('-2000000'); (b/'voltage_now').write_text('12000000')
             self.assertEqual(draw(Path(tmp)), 'DRAW 24.0W')
+
+
+class BackendLifecycle(unittest.IsolatedAsyncioTestCase):
+    async def test_host_draw_persistence_permissions_and_unload(self):
+        from unittest.mock import patch
+        import stat
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder) / 'ClawMetrics'
+            with patch.object(main, 'BASE', base), patch.object(main, 'CONFIG', base/'settings.json'), patch.object(main, 'HUD', base/'MangoHud.conf'), patch.object(main, 'battery_draw', return_value='DRAW 24.6W'):
+                plugin = main.Plugin()
+                await plugin._main()
+                try:
+                    self.assertEqual(main.draw_path().read_text(), 'DRAW 24.6W\n')
+                    self.assertEqual(stat.S_IMODE(main.draw_path().stat().st_mode), 0o644)
+                    self.assertEqual(stat.S_IMODE(main.HUD.stat().st_mode), 0o644)
+                    settings = await plugin.get_settings()
+                    settings['order'].reverse()
+                    settings['metrics']['gpu_junction_temp'] = True
+                    await plugin.save_settings(settings)
+                finally:
+                    await plugin._unload()
+                self.assertTrue(plugin._draw_task.cancelled())
+                reloaded = main.Plugin()
+                await reloaded._main()
+                try:
+                    self.assertEqual(await reloaded.get_settings(), settings)
+                finally:
+                    await reloaded._unload()

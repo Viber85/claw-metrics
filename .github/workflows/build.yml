@@ -40,6 +40,18 @@ jobs:
           cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
           cp -r dist artifact/ClawMetrics/
           (cd artifact && zip -r "../ClawMetrics-v${{ steps.version.outputs.number }}.zip" ClawMetrics)
+      - name: Validate installation ZIP
+        run: |
+          python3 - <<'PYZIP'
+          import json, zipfile, pathlib
+          version = json.loads(pathlib.Path('package.json').read_text())['version']
+          with zipfile.ZipFile(f'ClawMetrics-v{version}.zip') as package:
+              assert package.testzip() is None
+              for name in ('main.py', 'plugin.json', 'package.json', 'dist/index.js'):
+                  assert f'ClawMetrics/{name}' in package.namelist(), name
+              assert json.loads(package.read('ClawMetrics/package.json'))['version'] == version
+              assert f'v{version}' in package.read('ClawMetrics/dist/index.js').decode()
+          PYZIP
       - uses: actions/upload-artifact@v4
         with:
           name: ClawMetrics-v${{ steps.version.outputs.number }}
@@ -55,6 +67,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.2.0: expandable metric groups, reorder/hide/restore controls, per-sensor options, reference-style colors and installed sans-serif font, opacity/radius/margin controls, battery-discharge DRAW readout. TDP readback and independent FPS sizing remain unavailable. Restart Decky and the game." \
+              --notes "Claw Metrics v0.2.1: audited grouped editor; DRAW sampled in the Decky backend without in-game Python dependency; zero horizontal offset prevents full-width HUD clipping. Includes v0.2 appearance and group controls. Hardware validation still required." \
               --prerelease
           fi

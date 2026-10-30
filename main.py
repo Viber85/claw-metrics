@@ -1,6 +1,7 @@
 """Claw Metrics v0.1 — safe, isolated MangoHud configuration writer.
 No TDP writes; Panel de Control retains control of the device.
 """
+import asyncio
 import json
 import os
 import pathlib
@@ -48,6 +49,27 @@ def user_home():
 BASE = user_home() / ".config" / "ClawMetrics"
 CONFIG = BASE / "settings.json"
 HUD = BASE / "MangoHud.conf"
+
+def draw_path():
+    return BASE / "draw.txt"
+
+def battery_draw(root=pathlib.Path('/sys/class/power_supply')):
+    try:
+        for battery in sorted(root.glob('*')):
+            if (battery / 'type').read_text().strip() != 'Battery':
+                continue
+            # Charging power is not total device consumption.
+            if (battery / 'status').read_text().strip() != 'Discharging':
+                return 'DRAW --'
+            power = battery / 'power_now'
+            watts = (abs(int(power.read_text())) / 1_000_000 if power.is_file()
+                     else abs(int((battery / 'current_now').read_text()) *
+                              int((battery / 'voltage_now').read_text())) / 1_000_000_000_000)
+            return f'DRAW {watts:.1f}W'
+    except (OSError, ValueError):
+        pass
+    return 'DRAW --'
+
 
 def normalize(payload):
     d = copy.deepcopy(DEFAULTS)
@@ -115,11 +137,11 @@ def mango_config(settings):
     active = lambda key: d["enabled"] and d[key]
     flag = lambda key, value: key + "=" + str(int(bool(value)))
     lines = [
-        "# Claw Metrics v0.2.0 — generated from QAM settings",
+        "# Claw Metrics v0.2.1 — generated from QAM settings",
         "legacy_layout=0", "horizontal", "horizontal_stretch=1",
         # Critical: compact battery_time resets the cursor to column zero.
         "hud_compact=0", "hud_no_margin", "position=top-left",
-        "offset_x=" + str(d["margin"]), "offset_y=" + str(d["margin"]),
+        "offset_x=0", "offset_y=" + str(d["margin"]),
         "round_corners=" + str(d["rounding"]),
         "background_color=161820", "text_color=F0F2F5",
         "cpu_color=37C9EF", "gpu_color=8BDA62", "ram_color=B077DF",
@@ -159,8 +181,8 @@ def mango_config(settings):
     for group in d["order"]:
         if group == "draw":
             if active("draw"):
-                helper = pathlib.Path(__file__).resolve().with_name("sensors.py")
-                lines.append("exec=/usr/bin/python3 " + shlex.quote(str(helper)))
+                # Read a host-generated value: no Python/runtime dependency in games.
+                lines.append("exec=cat " + shlex.quote(str(draw_path())))
         else:
             on = active(group)
             if group == "frametime":
@@ -179,6 +201,26 @@ class Plugin:
         except (OSError, ValueError):
             settings = dict(DEFAULTS)
         write_atomic(HUD, mango_config(settings))
+        write_atomic(draw_path(), battery_draw() + "\n")
+        self._draw_task = asyncio.create_task(self._draw_loop())
+
+    async def _draw_loop(self):
+        while True:
+            await asyncio.sleep(2)
+            try:
+                write_atomic(draw_path(), battery_draw() + "\n")
+            except OSError:
+                # A temporary filesystem failure must not kill the Decky backend.
+                pass
+
+    async def _unload(self):
+        task = getattr(self, "_draw_task", None)
+        if task is not None:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     async def get_settings(self):
         try:
