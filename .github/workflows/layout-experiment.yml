@@ -1,0 +1,37 @@
+name: Experimental padding and gap checks (no release)
+on:
+  push:
+    branches:
+      - feature/layout-spacing-v0.2.4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  layout-experiment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python regression tests
+        run: python3 -m unittest discover -s tests
+      - name: Install Decky dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check QAM
+        run: npm run typecheck
+      - name: Build QAM
+        run: npm run build
+      - name: Verify experimental native patch matches MangoHud v0.8.1
+        run: |
+          mkdir -p native/src
+          for file in overlay.cpp overlay_params.cpp overlay_params.h; do
+            curl -fsSL --retry 3 "https://raw.githubusercontent.com/flightlessmango/MangoHud/v0.8.1/src/$file" -o "native/src/$file"
+          done
+          cd native
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          grep -q 'ImVec2(params.claw_padding_x,5)' src/overlay.cpp
+          grep -q 'ImVec2(params.claw_element_gap,-3)' src/overlay.cpp
