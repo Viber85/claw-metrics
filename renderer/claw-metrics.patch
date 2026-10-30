@@ -45,6 +45,29 @@
          ImGui_ImplOpenGL3_CreateFontsTexture();
      }
  
+--- a/src/gl/inject_glx.cpp
++++ b/src/gl/inject_glx.cpp
+@@ -141,8 +141,18 @@
+     auto current_time = std::chrono::steady_clock::now();
+ 
+     std::chrono::duration<double> elapsed_seconds = current_time - last_time;
+-    if (HUDElements.vsync == 10 || elapsed_seconds.count() > 5.0)
+-        glx.QueryDrawable(dpy, drawable, GLX_SWAP_INTERVAL_EXT, &HUDElements.vsync);
++    if (HUDElements.vsync == 10 || elapsed_seconds.count() > 5.0) {
++        // GLX_SWAP_INTERVAL_EXT is not a core drawable attribute. In particular,
++        // software/remote GLX servers may expose QueryDrawable but not the EXT
++        // swap-control callback. Querying that attribute can jump to NULL.
++        using QueryExtensions = const char* (*)(Display*, int);
++        auto query = reinterpret_cast<QueryExtensions>(get_glx_proc_address("glXQueryExtensionsString"));
++        const char* extensions = query ? query(static_cast<Display*>(dpy), DefaultScreen(static_cast<Display*>(dpy))) : nullptr;
++        std::string advertised = extensions ? std::string(" ") + extensions + " " : "";
++        if (glx.QueryDrawable && advertised.find(" GLX_EXT_swap_control ") != std::string::npos)
++            glx.QueryDrawable(dpy, drawable, GLX_SWAP_INTERVAL_EXT, &HUDElements.vsync);
++        last_time = current_time;
++    }
+ 
+     GLint vp[4];
+     if (!is_blacklisted()) {
 --- a/src/hud_elements.cpp
 +++ b/src/hud_elements.cpp
 @@ -7,6 +7,7 @@
