@@ -16,7 +16,7 @@ type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | 
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
-  padding_x: number; element_gap: number; order: Group[];
+  padding_x: number; element_gap: number; table_gap: number; graph_width: number; order: Group[];
   metrics: Record<string, boolean>;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
@@ -34,6 +34,7 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
 
 type Info = {
   layout_spacing_supported: boolean;
+  experimental_launch_option: string;
   font_path: string;
   font_ready: boolean;
   config_readable: boolean;
@@ -47,7 +48,7 @@ const defaults: Settings = {
   enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
-  padding_x: 5, element_gap: 8, order,
+  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
@@ -117,8 +118,8 @@ function Content() {
 
   // Copy synchronously from a button click: SteamOS Game Mode often does
   // not expose the modern Clipboard API to Decky panels.
-  const copyLaunchCommand = async () => {
-    const command = info?.launch_option;
+  const copyLaunchCommand = async (experimental = false) => {
+    const command = experimental ? info?.experimental_launch_option : info?.launch_option;
     if (!command) {
       setCopyStatus("Naredba još nije dostupna.");
       return;
@@ -239,6 +240,14 @@ function Content() {
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Razmak između elemenata (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready || !info?.layout_spacing_supported} layout="below"
+          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110})}>
+          Test: kompaktan prikaz (graf 110px, razmaci 4/2px)
+        </ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
       </PanelSection>
@@ -248,6 +257,17 @@ function Content() {
           <FaCopy style={{marginRight: 8}} /> Kopiraj launch komandu
         </ButtonItem></PanelSectionRow>
         {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <Field label="EKSPERIMENTALNI prikaz – samo Vulkan 64-bit"
+            description={info.experimental_launch_option} />
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <ButtonItem layout="below" onClick={() => { void copyLaunchCommand(true); }}>
+            <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (Vulkan 64-bit)
+          </ButtonItem>
+        </PanelSectionRow>}
+        <PanelSectionRow><Field label="Siguran povratak"
+          description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Primjena" description="Nakon spremanja ponovno pokreni igru. Launch komanda ostaje ista. Sistemski Steam overlay drži isključenim." /></PanelSectionRow>
       </PanelSection>
