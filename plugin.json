@@ -1,0 +1,8 @@
+{
+  "name": "Claw Metrics",
+  "author": "Claw Metrics",
+  "flags": [
+    "root"
+  ],
+  "api_version": 1
+}
