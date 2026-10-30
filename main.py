@@ -86,8 +86,8 @@ def install_native_manifest():
         "implementation_version": "1", "description": "Claw Metrics experimental Vulkan 64-bit HUD",
         "functions": {"vkGetInstanceProcAddr": "overlay_GetInstanceProcAddr",
                       "vkGetDeviceProcAddr": "overlay_GetDeviceProcAddr"},
-        "enable_environment": {"MANGOHUD": "1"},
-        "disable_environment": {"DISABLE_MANGOHUD": "1"},
+        # Explicit Vulkan layer: no enable_environment / disable_environment.
+        # VK_INSTANCE_LAYERS requests this exact manifest via VK_ADD_LAYER_PATH.
     }}
     write_atomic(manifest, json.dumps(content, indent=2) + "\n")
 
@@ -303,6 +303,31 @@ class Plugin:
             write_atomic(native_hud_path(), mango_config(data, native_spacing=True))
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
+    async def get_renderer_status(self):
+        """Inspect running process maps to verify the *actual* injected library.
+
+        A saved config or a bundled .so alone does not prove the game's loader
+        uses it. Call on demand only, while a test game is running.
+        """
+        expected = str(experimental_library().resolve())
+        matches = 0
+        checked = 0
+        for process in pathlib.Path("/proc").iterdir():
+            if not process.name.isdecimal():
+                continue
+            try:
+                with (process / "maps").open("r", encoding="utf-8", errors="replace") as maps:
+                    checked += 1
+                    if any(expected in line for line in maps):
+                        matches += 1
+            except (OSError, PermissionError):
+                continue
+        return {"native_loaded": matches > 0, "process_count": matches,
+                "checked_processes": checked,
+                "note": ("Izmijenjeni MangoHud učitan je u procesu igre." if matches
+                         else "Nije pronađen učitani eksperimentalni renderer. "
+                              "Provjeri je li igra pokrenuta i koristi li Vulkan.")}
+
     async def get_info(self):
         return {
             "config_path": str(HUD),
@@ -317,9 +342,9 @@ class Plugin:
                 and bool(native_hud_path().stat().st_mode & 0o004)
             ),
             "experimental_launch_option": (
-                "env VK_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
+                "env VK_ADD_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
                 + " VK_INSTANCE_LAYERS=VK_LAYER_MANGOHUD_overlay_x86_64"
-                + " MANGOHUD=1 MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path()))
+                + " MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path()))
                 + " %command%" if native_renderer_available() else ""
             ),
             "tdp_note": "TDP: očitanje primijenjenog limita iz Panel de Controla još nije dostupno.",
