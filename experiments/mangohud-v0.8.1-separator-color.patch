@@ -1,0 +1,55 @@
+--- a/src/overlay_params.h
++++ b/src/overlay_params.h
+@@ -190,7 +190,8 @@
+    OVERLAY_PARAM_CUSTOM(claw_inner_gap)             \
+    OVERLAY_PARAM_CUSTOM(claw_inline_metrics)        \
+    OVERLAY_PARAM_CUSTOM(claw_fps_bold)              \
+-   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
++   OVERLAY_PARAM_CUSTOM(horizontal_separator_color)   \
++   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
+    OVERLAY_PARAM_CUSTOM(table_columns)               \
+    OVERLAY_PARAM_CUSTOM(blacklist)                   \
+    OVERLAY_PARAM_CUSTOM(autostart_log)               \
+@@ -289,7 +290,8 @@
+    std::vector<unsigned> cpu_load_value;
+    std::vector<unsigned> fps_color;
+    std::vector<unsigned> fps_value;
+-   unsigned media_player_color;
++   unsigned media_player_color;
++   unsigned horizontal_separator_color;
+    unsigned table_columns;
+    bool no_small_font;
+    float font_size, font_scale;
+--- a/src/overlay_params.cpp
++++ b/src/overlay_params.cpp
+@@ -521,7 +521,8 @@
+ #define parse_custom_text(s) parse_str(s)
+ #define parse_fps_value(s) parse_load_value(s)
+ #define parse_fps_color(s) parse_load_color(s)
+-#define parse_battery_color(s) parse_color(s)
++#define parse_battery_color(s) parse_color(s)
++#define parse_horizontal_separator_color(s) parse_color(s)
+ #define parse_media_player_format(s) parse_str_tokenize(s, ";", false)
+ #define parse_fsr_steam_sharpness(s) parse_float(s)
+ #define parse_text_outline_color(s) parse_color(s)
+@@ -776,7 +777,8 @@
+    params->time_format = "%T";
+    params->gpu_color = 0x2e9762;
+    params->cpu_color = 0x2e97cb;
+-   params->vram_color = 0xad64c1;
++   params->vram_color = 0xad64c1;
++   params->horizontal_separator_color = 0x777c87;
+    params->ram_color = 0xc26693;
+    params->engine_color = 0xeb5b5b;
+    params->io_color = 0xa491d3;
+--- a/src/overlay.cpp
++++ b/src/overlay.cpp
+@@ -651,7 +651,7 @@
+    }
+ 
+     // Draw the separator line
+-    drawList->AddLine(startPos, endPos, params.vram_color, outlineThickness);
++    drawList->AddLine(startPos, endPos, params.horizontal_separator_color, outlineThickness);
+ 
+     ImGui::SameLine();
+     ImGui::Spacing();
