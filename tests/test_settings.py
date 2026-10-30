@@ -57,6 +57,9 @@ class Settings(unittest.TestCase):
         self.assertIn('hud_compact=0\\n', options)
         self.assertEqual(main.normalize({})['padding_x'], 5)
         self.assertEqual(main.normalize({})['element_gap'], 8)
+        patched = main.mango_config(main.normalize({'padding_x': 3, 'element_gap': 2}), native_spacing=True)
+        self.assertIn('claw_padding_x=3\\n', patched)
+        self.assertIn('claw_element_gap=2\\n', patched)
 
     def test_corrupt_bundled_font_is_rejected(self):
         from unittest.mock import patch
