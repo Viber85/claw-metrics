@@ -1,3 +1,21 @@
+# Claw Metrics v0.2.4-test.5 — uniform spacing across ALL metric groups
+
+Built from the working `v0.2.3` baseline; retains the working experimental Vulkan layer integration confirmed on the MSI Claw in v0.2.4-test.3.
+
+Changes compared with test.4:
+- The **FPS** label, number and frametime in ms now use one group with equal interior spacing.
+- **RAM**, **VRAM** and **BATT** use the same single-cell layout as the now-working CPU and GPU blocks.
+- **DRAW** and **time** are already single-text cells; their inter-group spacing is controlled by existing horizontal gap settings.
+- The numeric FPS value is drawn with additional left/right strokes (+/-1.1 px and +1.8 px) without increasing font size. This is faux-bold, not a distinct bold font. The prior +0.8 px stroke was too subtle.
+- All functionality remains in **one horizontal line**. Existing QAM sliders and normal MangoHud fallback are preserved.
+
+## How to compare
+Install the ZIP in Decky, use the newly copied experimental Vulkan launch command, keep the SteamOS overlay disabled. Confirm renderer diagnostic `AKTIVNO`. Turn on `Jednaki razmaci: FPS, CPU, GPU, RAM, VRAM, BATT`; adjust `Razmak unutar grupa` to 3–5 px; toggle `Podebljani FPS broj` and compare just the numerical FPS. Changes should appear live as in the last hardware test. If text clips or any metric disappears, turn off the compact setting or restore v0.2.3 command.
+
+This version has **not** been device-tested. GitHub compilation passing is not sufficient proof of on-device behavior.
+
+---
+
 # Claw Metrics v0.2.4-test.4 — uniform inline CPU/GPU + bold FPS
 
 This experimental version changes **only the custom renderer**. It retains one single horizontal row, all existing metrics, and the known-working Vulkan launch integration from test.3.
