@@ -54,6 +54,44 @@ BASE = user_home() / ".config" / "ClawMetrics"
 CONFIG = BASE / "settings.json"
 HUD = BASE / "MangoHud.conf"
 
+def experimental_library():
+    return pathlib.Path(__file__).resolve().parent / "native64" / "libMangoHud.so"
+
+
+def experimental_manifest():
+    return BASE / "vk_layers" / "ClawMetrics.x86_64.json"
+
+
+def native_hud_path():
+    return BASE / "MangoHud-experimental.conf"
+
+
+def native_renderer_available():
+    binary = experimental_library()
+    # Only expose the native option when the installer actually contains
+    # the experimental library. This is an opt-in test, not a system override.
+    return binary.is_file() and binary.stat().st_size > 100_000
+
+
+def install_native_manifest():
+    if not native_renderer_available():
+        return
+    import json
+    manifest = experimental_manifest()
+    manifest.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    content = {"file_format_version": "1.0.0", "layer": {
+        "name": "VK_LAYER_MANGOHUD_overlay_x86_64",
+        "type": "GLOBAL", "api_version": "1.3.0",
+        "library_path": str(experimental_library()),
+        "implementation_version": "1", "description": "Claw Metrics experimental Vulkan 64-bit HUD",
+        "functions": {"vkGetInstanceProcAddr": "overlay_GetInstanceProcAddr",
+                      "vkGetDeviceProcAddr": "overlay_GetDeviceProcAddr"},
+        "enable_environment": {"MANGOHUD": "1"},
+        "disable_environment": {"DISABLE_MANGOHUD": "1"},
+    }}
+    write_atomic(manifest, json.dumps(content, indent=2) + "\n")
+
+
 def draw_path():
     return BASE / "draw.txt"
 
@@ -223,6 +261,9 @@ class Plugin:
         except (OSError, ValueError):
             settings = dict(DEFAULTS)
         write_atomic(HUD, mango_config(settings))
+        if native_renderer_available():
+            install_native_manifest()
+            write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
         write_atomic(draw_path(), battery_draw() + "\n")
         self._draw_task = asyncio.create_task(self._draw_loop())
 
@@ -255,6 +296,9 @@ class Plugin:
         data = normalize(settings)
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
         write_atomic(HUD, mango_config(data))
+        if native_renderer_available():
+            install_native_manifest()
+            write_atomic(native_hud_path(), mango_config(data, native_spacing=True))
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
     async def get_info(self):
@@ -264,7 +308,13 @@ class Plugin:
             "config_readable": HUD.is_file() and bool(HUD.stat().st_mode & 0o004),
             "font_path": sans_font(),
             "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,
-            "layout_spacing_supported": False,  # Stock MangoHud has no corresponding config options.
+            "layout_spacing_supported": native_renderer_available(),
+            "experimental_launch_option": (
+                "env VK_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
+                + " VK_INSTANCE_LAYERS=VK_LAYER_MANGOHUD_overlay_x86_64"
+                + " MANGOHUD=1 MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path()))
+                + " %command%" if native_renderer_available() else ""
+            ),
             "tdp_note": "TDP: očitanje primijenjenog limita iz Panel de Controla još nije dostupno.",
             "power_note": "CPU/GPU sensor power is not the same as total system battery draw."
         }
