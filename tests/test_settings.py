@@ -101,7 +101,7 @@ class Settings(unittest.TestCase):
             for line in ('text_color=0123AB', 'cpu_color=A1B2C3',
                          'horizontal_separator_color=FF0099',
                          'fps_color=AABBCC,AABBCC,AABBCC'):
-                self.assertIn(line + '\\n', cfg)
+                self.assertIn(line + '\n', cfg)
         first = main.normalize({})
         first['colors']['separator'] = 'FFFFFF'
         self.assertEqual(main.normalize({})['colors']['separator'], '777C87')
