@@ -1,0 +1,50 @@
+--- a/src/hud_elements.cpp
++++ b/src/hud_elements.cpp
+@@ -794,8 +794,45 @@
+ }
+ 
+ void HudElements::fps(){
+-    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps] && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps_only]){
+-        ImguiNextColumnFirstItem();
++    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps] && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps_only]){
++        if (HUDElements.params->claw_inline_metrics &&
++            HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
++            ImguiNextColumnFirstItem();
++            const char* label = HUDElements.params->fps_text.empty()
++                ? (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_engine_short_names]
++                    ? engines_short[HUDElements.sw_stats->engine] : "FPS")
++                : HUDElements.params->fps_text.c_str();
++            HUDElements.TextColored(HUDElements.colors.engine, "%s", label);
++            ClawMetricGap();
++            ImVec4 color = HUDElements.colors.text;
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_fps_color_change]) {
++                struct LOAD_DATA fps_data = {
++                    HUDElements.colors.fps_value_low,
++                    HUDElements.colors.fps_value_med,
++                    HUDElements.colors.fps_value_high,
++                    HUDElements.params->fps_value[0], HUDElements.params->fps_value[1]
++                };
++                color = change_on_load_temp(fps_data, int(HUDElements.sw_stats->fps));
++            }
++            if (HUDElements.params->claw_fps_bold) {
++                char fps_string[32] {};
++                snprintf(fps_string, sizeof(fps_string), "%.0f", HUDElements.sw_stats->fps);
++                ClawBoldFpsNumber(color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);
++            } else {
++                HUDElements.TextColored(color, "%.0f", HUDElements.sw_stats->fps);
++            }
++            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_frametime]) {
++                ClawMetricGap();
++                HUDElements.TextColored(HUDElements.colors.text, "%.1f",
++                    1000.0f / HUDElements.sw_stats->fps);
++                ImGui::SameLine(0.0f, 1.0f);
++                ImGui::PushFont(HUDElements.sw_stats->font1);
++                HUDElements.TextColored(HUDElements.colors.text, "ms");
++                ImGui::PopFont();
++            }
++            return;
++        }
++        ImguiNextColumnFirstItem();
+         if (HUDElements.params->fps_text.empty()){
+             if(HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact] || HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])
+                 if(HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_engine_short_names])
