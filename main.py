@@ -347,7 +347,7 @@ class Plugin:
                 with (process / "environ").open("rb") as env_file:
                     raw = env_file.read(262144)
                 environment_accessible += 1
-                envs = raw.split(b"\\0")
+                envs = raw.split(bytes([0]))
                 if any(x.startswith(b"VK_INSTANCE_LAYERS=") and
                        EXPERIMENTAL_LAYER_NAME.encode() in x for x in envs):
                     layer_request += 1
