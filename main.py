@@ -62,6 +62,15 @@ def experimental_manifest():
     return BASE / "vk_layers" / "ClawMetrics.x86_64.json"
 
 
+def user_vulkan_manifest():
+    # Vulkan Loader's standard user explicit-layer location. The manifest is
+    # discoverable but NOT enabled unless VK_INSTANCE_LAYERS requests it.
+    return user_home() / ".local/share/vulkan/explicit_layer.d/ClawMetrics.test3.x86_64.json"
+
+
+EXPERIMENTAL_LAYER_NAME = "VK_LAYER_CLAW_METRICS_overlay_x86_64"
+
+
 def native_hud_path():
     return BASE / "MangoHud-experimental.conf"
 
@@ -76,20 +85,23 @@ def native_renderer_available():
 def install_native_manifest():
     if not native_renderer_available():
         return
-    import json
-    manifest = experimental_manifest()
-    manifest.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    # Use a unique explicit-layer name. Reusing the standard MangoHud name
+    # clashes with SteamOS/Proton's already registered implicit layer.
     content = {"file_format_version": "1.0.0", "layer": {
-        "name": "VK_LAYER_MANGOHUD_overlay_x86_64",
+        "name": EXPERIMENTAL_LAYER_NAME,
         "type": "GLOBAL", "api_version": "1.3.0",
         "library_path": str(experimental_library()),
-        "implementation_version": "1", "description": "Claw Metrics experimental Vulkan 64-bit HUD",
+        "implementation_version": "1",
+        "description": "Claw Metrics experimental Vulkan 64-bit HUD",
         "functions": {"vkGetInstanceProcAddr": "overlay_GetInstanceProcAddr",
                       "vkGetDeviceProcAddr": "overlay_GetDeviceProcAddr"},
-        # Explicit Vulkan layer: no enable_environment / disable_environment.
-        # VK_INSTANCE_LAYERS requests this exact manifest via VK_ADD_LAYER_PATH.
     }}
-    write_atomic(manifest, json.dumps(content, indent=2) + "\n")
+    for path in (experimental_manifest(), user_vulkan_manifest()):
+        path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+        # A user-level explicit manifest is inert until requested by name.
+        # This provides a fallback when Steam's pressure-vessel strips
+        # nonstandard VK_LAYER_PATH/VK_ADD_LAYER_PATH variables.
+        write_atomic(path, json.dumps(content, indent=2) + "\n")
 
 
 def draw_path():
@@ -304,29 +316,72 @@ class Plugin:
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
     async def get_renderer_status(self):
-        """Inspect running process maps to verify the *actual* injected library.
+        """Detect both Vulkan request propagation and actual native library maps.
 
-        A saved config or a bundled .so alone does not prove the game's loader
-        uses it. Call on demand only, while a test game is running.
+        Files existing on disk don't prove the game loaded them. The backend is
+        normally root in Decky and can inspect /proc, but sandboxing may limit
+        some reads, so the counts are evidence rather than a definitive error.
         """
         expected = str(experimental_library().resolve())
-        matches = 0
-        checked = 0
+        found_native = 0
+        found_other_hud = 0
+        layer_request = 0
+        config_request = 0
+        path_request = 0
+        process_count = 0
+        environment_accessible = 0
         for process in pathlib.Path("/proc").iterdir():
             if not process.name.isdecimal():
                 continue
+            process_count += 1
             try:
-                with (process / "maps").open("r", encoding="utf-8", errors="replace") as maps:
-                    checked += 1
-                    if any(expected in line for line in maps):
-                        matches += 1
+                with (process / "maps").open("r", encoding="utf-8", errors="replace") as mapping:
+                    paths = [line.split()[-1] for line in mapping if "libMangoHud.so" in line]
+                    if any(p == expected or p.startswith(expected + " ") for p in paths):
+                        found_native += 1
+                    elif paths:
+                        found_other_hud += 1
             except (OSError, PermissionError):
-                continue
-        return {"native_loaded": matches > 0, "process_count": matches,
-                "checked_processes": checked,
-                "note": ("Izmijenjeni MangoHud učitan je u procesu igre." if matches
-                         else "Nije pronađen učitani eksperimentalni renderer. "
-                              "Provjeri je li igra pokrenuta i koristi li Vulkan.")}
+                pass
+            try:
+                with (process / "environ").open("rb") as env_file:
+                    raw = env_file.read(262144)
+                environment_accessible += 1
+                envs = raw.split(b"\\0")
+                if any(x.startswith(b"VK_INSTANCE_LAYERS=") and
+                       EXPERIMENTAL_LAYER_NAME.encode() in x for x in envs):
+                    layer_request += 1
+                if any(x.startswith(b"MANGOHUD_CONFIGFILE=") and
+                       b"MangoHud-experimental.conf" in x for x in envs):
+                    config_request += 1
+                if any(x.startswith(b"VK_ADD_LAYER_PATH=") and
+                       b"ClawMetrics" in x for x in envs):
+                    path_request += 1
+            except (OSError, PermissionError):
+                pass
+        if found_native:
+            reason = "Aktivno: modificirana biblioteka učitana je u igri."
+        elif layer_request:
+            reason = ("Komanda je stigla do procesa, ali Vulkan sloj NIJE učitan. "
+                      "Mogući uzrok: Steam Runtime, duplikat sloja ili nedostajuća biblioteka.")
+        elif config_request:
+            reason = ("Proces vidi naš konfiguracijski profil, ali ne i zahtjev "
+                      "za prilagođenim Vulkan slojem.")
+        else:
+            reason = ("Nema dokaza da je eksperimentalna komanda stigla do igre. "
+                      "To može biti zbog Steam Runtime okruženja ili nedostupnih /proc podataka.")
+        return {
+            "native_loaded": found_native > 0,
+            "native_processes": found_native,
+            "stock_processes": found_other_hud,
+            "layer_requests": layer_request,
+            "config_requests": config_request,
+            "path_requests": path_request,
+            "processes_seen": process_count,
+            "environments_read": environment_accessible,
+            "manifest_in_user_location": user_vulkan_manifest().is_file(),
+            "reason": reason
+        }
 
     async def get_info(self):
         return {
@@ -343,7 +398,8 @@ class Plugin:
             ),
             "experimental_launch_option": (
                 "env VK_ADD_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
-                + " VK_INSTANCE_LAYERS=VK_LAYER_MANGOHUD_overlay_x86_64"
+                + " VK_INSTANCE_LAYERS=" + EXPERIMENTAL_LAYER_NAME
+                + " DISABLE_MANGOHUD=1"
                 + " MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path()))
                 + " %command%" if native_renderer_available() else ""
             ),
