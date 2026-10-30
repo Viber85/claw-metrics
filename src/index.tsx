@@ -35,6 +35,7 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
 type Info = {
   layout_spacing_supported: boolean;
   experimental_launch_option: string;
+  experimental_config_readable: boolean;
   font_path: string;
   font_ready: boolean;
   config_readable: boolean;
@@ -179,7 +180,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4 (razvojna grana)">
+      <PanelSection title="Claw Metrics · v0.2.4-test.2">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -234,7 +235,7 @@ function Content() {
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
-          ? "Podešavanja rade s provjerenim prilagođenim MangoHud rendererom."
+          ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
           : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Padding lijevo i desno (px)" value={settings.padding_x} min={0} max={24} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
@@ -257,6 +258,14 @@ function Content() {
           <FaCopy style={{marginRight: 8}} /> Kopiraj launch komandu
         </ButtonItem></PanelSectionRow>
         {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <Field label="VAŽNO: Testni prikaz"
+            description="Stara komanda učitava obični MangoHud i IGNORIRA 4 nova slidera. U Steamu zamijeni cijelu launch komandu ovom testnom, pa restartaj igru. Ako overlay prikazuje FPS* umjesto FPS, testna konfiguracija se učitala. Ako piše FPS, još se koristi stara konfiguracija." />
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <Field label="Eksperimentalna konfiguracija"
+            description={info.experimental_config_readable ? "Datoteka je spremljena. Ovo NE potvrđuje da je igra učitala eksperimentalni renderer." : "Datoteka nije čitljiva; ponovno pokreni Decky Loader."} />
+        </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="EKSPERIMENTALNI prikaz – samo Vulkan 64-bit"
             description={info.experimental_launch_option} />
