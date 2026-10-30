@@ -51,6 +51,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Frontend packaging hotfix: removes unsupported require() from Decky QAM JavaScript. Intended for SteamOS test on MSI Claw A8 Z2 Extreme. Not yet verified on hardware. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
+              --notes "Claw Metrics v0.1.2: adds a one-click Copy launch command button in the Decky QAM. Experimental SteamOS build; clipboard function requires on-device verification. Global launch-option-free overlay and Panel de Control TDP readback remain future work." \
               --prerelease
           fi
