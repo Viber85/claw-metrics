@@ -140,7 +140,7 @@ def write_atomic(path, content):
         if os.path.exists(temporary):
             os.unlink(temporary)
 
-def mango_config(settings):
+def mango_config(settings, native_spacing=False):
     d = normalize(settings)
     m = d["metrics"]
     active = lambda key: d["enabled"] and d[key]
@@ -184,6 +184,13 @@ def mango_config(settings):
         flag("battery_time", active("battery") and m["battery_time"]),
         "battery_watt=0",
     ]
+    if native_spacing:
+        # Experimental parameters ONLY understood by patched MangoHud v0.8.1.
+        # Stock SteamOS MangoHud ignores them; never write them by default.
+        lines.extend([
+            "claw_padding_x=" + str(d["padding_x"]),
+            "claw_element_gap=" + str(d["element_gap"]),
+        ])
     if d["sans"] and sans_font():
         lines += ["font_file=" + sans_font(), "font_file_text=" + sans_font()]
     display = {"fps": "fps", "frametime": "frame_timing", "cpu": "cpu_stats",
