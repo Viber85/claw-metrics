@@ -60,7 +60,12 @@ const defaults: Settings = {
 const load = callable<[], Settings>("get_settings");
 const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
-type RendererStatus = { native_loaded: boolean; process_count: number; checked_processes: number; note: string };
+type RendererStatus = {
+  native_loaded: boolean; native_processes: number; stock_processes: number;
+  layer_requests: number; config_requests: number; path_requests: number;
+  processes_seen: number; environments_read: number;
+  manifest_in_user_location: boolean; reason: string;
+};
 const getRendererStatus = callable<[], RendererStatus>("get_renderer_status");
 
 function withTimeout<T>(request: Promise<T>): Promise<T> {
@@ -82,9 +87,17 @@ function Content() {
     setRendererStatus("Provjeravam procese igre...");
     try {
       const result = await withTimeout(getRendererStatus());
-      setRendererStatus(result.native_loaded
-        ? "AKTIVNO: eksperimentalni MangoHud je učitan (" + result.process_count + " proces/a)."
-        : "NIJE AKTIVNO: u pokrenutim procesima nije pronađena eksperimentalna biblioteka.");
+      setRendererStatus(
+        (result.native_loaded ? "AKTIVNO" : "NIJE AKTIVNO") +
+        " · native: " + result.native_processes +
+        " · obični MangoHud: " + result.stock_processes +
+        " · zahtjev za slojem: " + result.layer_requests +
+        " · testni config: " + result.config_requests +
+        " · Vulkan path: " + result.path_requests +
+        " · pristup procesima: " + result.environments_read + "/" + result.processes_seen +
+        " · manifest: " + (result.manifest_in_user_location ? "DA" : "NE") +
+        ". " + result.reason
+      );
     } catch (error) {
       setRendererStatus("Provjera nije uspjela: " + String(error));
     } finally {
@@ -198,7 +211,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.2">
+      <PanelSection title="Claw Metrics · v0.2.4-test.3">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -278,7 +291,7 @@ function Content() {
         {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="VAŽNO: Testni prikaz"
-            description="Koristi testnu komandu u Steam Launch Options i ponovno pokreni igru. FPS* potvrđuje testnu KONFIGURACIJU, ali ne i izmijenjeni renderer. Dok igra radi, pritisni 'Provjeri koristi li igra eksperimentalni renderer'. Samo status AKTIVNO potvrđuje učitanu biblioteku." />
+            description="Koristi testnu komandu u Steam Launch Options i ponovno pokreni igru. FPS* potvrđuje testnu KONFIGURACIJU, ali ne i izmijenjeni renderer. Dok igra radi, pritisni 'Provjeri koristi li igra eksperimentalni renderer'. Samo status AKTIVNO potvrđuje učitanu biblioteku. Test.3 koristi vlastiti naziv Vulkan sloja i dodatnu provjeru Steam Runtime okruženja." />
         </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="Eksperimentalna konfiguracija"
