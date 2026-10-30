@@ -43,8 +43,16 @@ async def run():
             glx=main.BASE/'glx-fixture'
             subprocess.run(['gcc',str(pathlib.Path(__file__).with_name('glx_fixture.c')),'-lX11','-lGL','-o',str(glx)],check=True)
             result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,str(glx)],env=env,text=True,capture_output=True,timeout=60)
+            if result.returncode != 0:
+                debug=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24','gdb','--batch','-ex','set exec-wrapper '+wrapper,'-ex','run','-ex','thread apply all bt','-ex','info proc mappings','--args',str(glx)],env=env,text=True,capture_output=True,timeout=120)
+                print('OPENGL_DEBUG\n'+debug.stdout[-25000:]+'\n'+debug.stderr[-8000:])
             assert result.returncode==0, result.stdout+'\n'+result.stderr
             verify(result.stdout+'\n'+result.stderr,'PACKAGED OPENGL')
+            glx32=main.BASE/'glx-fixture32'
+            subprocess.run(['gcc','-m32',str(pathlib.Path(__file__).with_name('glx_fixture.c')),'-lX11','-lGL','-o',str(glx32)],check=True)
+            result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',wrapper,str(glx32)],env=env,text=True,capture_output=True,timeout=60)
+            assert result.returncode==0, result.stdout+'\n'+result.stderr
+            verify(result.stdout+'\n'+result.stderr,'PACKAGED OPENGL 32-BIT')
         finally:
             await plugin._unload()
     print('PASS packaged launcher: private Vulkan and OpenGL, architecture dispatch, FPS draw ratio and centering.')

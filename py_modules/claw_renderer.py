@@ -104,7 +104,7 @@ ROOT=ROOT_PLACEHOLDER
 export MANGOHUD_CONFIGFILE=CONFIG_PLACEHOLDER
 # Keep the system implicit layer off; this explicit private layer is separate.
 export DISABLE_MANGOHUD=1
-export VK_LAYER_PATH="$ROOT/layers${VK_LAYER_PATH:+:$VK_LAYER_PATH}:/usr/share/vulkan/explicit_layer.d:/etc/vulkan/explicit_layer.d"
+export VK_LAYER_PATH="$ROOT/layers${VK_LAYER_PATH:+:$VK_LAYER_PATH}${VK_ADD_LAYER_PATH:+:$VK_ADD_LAYER_PATH}:${XDG_DATA_HOME:-${HOME:-/tmp}/.local/share}/vulkan/explicit_layer.d:/usr/local/share/vulkan/explicit_layer.d:/usr/share/vulkan/explicit_layer.d:/etc/vulkan/explicit_layer.d"
 case ":${VK_INSTANCE_LAYERS-}:" in
   *:VK_LAYER_CLAW_METRICS_overlay:*) ;;
   *) export VK_INSTANCE_LAYERS="VK_LAYER_CLAW_METRICS_overlay${VK_INSTANCE_LAYERS:+:$VK_INSTANCE_LAYERS}" ;;

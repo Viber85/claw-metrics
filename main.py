@@ -159,7 +159,7 @@ def mango_config(settings):
         "cpu_color=37C9EF", "gpu_color=8BDA62", "ram_color=B077DF",
         "vram_color=D76AB8", "battery_color=30E5A0",
         "engine_color=30E5A0", "frametime_color=30E5A0",
-        "horizontal_separator_color=777C87", "fps_color_change=1",
+        "fps_color_change=1",
         "fps_value=30,60", "fps_color=30E5A0,30E5A0,30E5A0",
         "background_alpha=" + str(d["opacity"] / 100),
         "font_size=" + str(d["fontsize"]),
@@ -185,6 +185,8 @@ def mango_config(settings):
         flag("battery_time", active("battery") and m["battery_time"]),
         "battery_watt=0",
     ]
+    if not d["renderer"]:
+        lines.append("horizontal_separator_color=777C87")
     if d["renderer"]:
         lines += ["claw_renderer=1", flag("claw_center", d["center"]),
                   flag("claw_auto_fit", d["auto_fit"]),

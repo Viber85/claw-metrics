@@ -88,8 +88,9 @@ jobs:
         run: python3 tools/package_renderer.py
       - name: Install graphics integration test dependencies
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils xvfb libxkbcommon0 libgl1 libx11-dev libgl1-mesa-dev
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils xvfb libxkbcommon0 libgl1 libx11-dev libgl1-mesa-dev gcc-multilib libx11-dev:i386 libgl1-mesa-dev:i386 libgl1-mesa-dri:i386 gdb
       - name: Test packaged private launcher with Vulkan and OpenGL
         run: python3 tools/test_private_launch.py
       - name: Package plugin ZIP
