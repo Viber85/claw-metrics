@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
+  DialogButton,
+  Focusable,
   Field,
   PanelSection,
   PanelSectionRow,
@@ -10,23 +12,27 @@ import {
 } from "@decky/ui";
 import { FaChartLine, FaCopy } from "react-icons/fa";
 
-type Settings = {
-  enabled: boolean;
-  fontsize: number;
-  opacity: number;
-  fps: boolean;
-  frametime: boolean;
-  cpu: boolean;
-  gpu: boolean;
-  ram: boolean;
-  vram: boolean;
-  battery: boolean;
-  power: boolean;
-  time: boolean;
-  tdp: boolean;
+type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
+type Settings = Record<Group, boolean> & {
+  enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
+  sans: boolean; rounding: number; margin: number; order: Group[];
+  metrics: Record<string, boolean>;
+};
+const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
+const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
+  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "MangoHud koristi istu glavnu veličinu fonta za FPS i ostale vrijednosti."},
+  frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "Broj u ms prati FPS blok; strelice premještaju graf. Za ms uključi i FPS."},
+  gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock/temp prikazuju se u VRAM bloku i traže uključen VRAM. Ostali senzori ovise o dostupnosti na Z2 Extremeu."},
+  cpu: {label: "CPU", color: "#37c9ef", always: "CPU load", metrics: [["cpu_temp", "CPU temp"], ["cpu_mhz", "CPU clock"], ["cpu_power", "CPU watts"]]},
+  ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: []},
+  vram: {label: "VRAM", color: "#d76ab8", always: "VRAM usage", metrics: [], note: "MangoHud za VRAM koristi podatke GPU bloka; uključi i GPU."},
+  battery: {label: "Battery", color: "#30e5a0", always: "Battery level", metrics: [["battery_icon", "Battery icon (replaces %)"], ["battery_time", "Remaining time"]], note: "Ikona i postotak su alternativni načini prikaza u ovom MangoHud rendereru."},
+  draw: {label: "DRAW", color: "#ee6279", metrics: [], always: "Battery discharge watts", note: "Ukupno pražnjenje baterije. Na punjaču ili bez senzora prikazuje DRAW --, a ne izmišljenu potrošnju."},
+  time: {label: "Clock", color: "#f0f2f5", metrics: [], always: "Clock · 24 h"},
 };
 
 type Info = {
+  font_path: string;
   config_readable: boolean;
   config_path: string;
   launch_option: string;
@@ -35,19 +41,13 @@ type Info = {
 };
 
 const defaults: Settings = {
-  enabled: true,
-  fontsize: 18,
-  opacity: 65,
-  fps: true,
-  frametime: true,
-  cpu: true,
-  gpu: true,
-  ram: true,
-  vram: true,
-  battery: true,
-  power: true,
-  time: true,
-  tdp: false,
+  enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
+  cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
+  power: true, time: true, tdp: false, sans: true, rounding: 10, margin: 8, order,
+  metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
+    gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
+    gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
+    battery_icon: false, battery_time: true},
 };
 
 // Callable methods are provided by the Decky Python backend.
@@ -67,6 +67,8 @@ function Content() {
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Učitavanje…");
   const [copyStatus, setCopyStatus] = useState("");
+  const [expanded, setExpanded] = useState<Group | null>(null);
+  const [ready, setReady] = useState(false);
 
   const current = useRef<Settings>(defaults);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -82,6 +84,7 @@ function Content() {
         setSettings(saved);
       }
       setInfo(details);
+      setReady(true);
       setStatus(details.config_readable
         ? "Backend povezan · profil dostupan igri."
         : "Backend povezan, ali profil nije čitljiv. Ponovno pokreni Decky Loader.");
@@ -150,100 +153,88 @@ function Content() {
     );
   };
 
-  const toggle = (key: keyof Settings, label: string) => (
-    <PanelSectionRow>
-      <ToggleField
-        label={label}
-        checked={Boolean(settings[key])}
-        onChange={(checked: boolean) => update({ [key]: checked })}
-      />
-    </PanelSectionRow>
+  const toggle = (key: "enabled" | "sans", label: string) => (
+    <PanelSectionRow><ToggleField label={label} checked={settings[key]} disabled={!ready}
+      onChange={(value: boolean) => update({[key]: value})} /></PanelSectionRow>
   );
+  const move = (key: Group, direction: number) => {
+    const next = [...current.current.order];
+    const visible = next.filter(id => current.current[id]);
+    const at = visible.indexOf(key);
+    const other = visible[at + direction];
+    if (!other) return;
+    const a = next.indexOf(key), b = next.indexOf(other);
+    [next[a], next[b]] = [next[b], next[a]];
+    update({order: next});
+  };
+  const metric = (key: string, value: boolean) => update({metrics: {...current.current.metrics, [key]: value}});
+  const visible = settings.order.filter(key => settings[key]);
+  const hidden = settings.order.filter(key => !settings[key]);
+  const smallButton = {minWidth: 28, width: 28, padding: "6px 0", margin: 0, fontSize: 17, borderRadius: 6};
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.1.5">
+      <PanelSection title="Claw Metrics · v0.2.0">
         {toggle("enabled", "Uključi prikaz")}
-        <PanelSectionRow>
-          <Field label="Status" description={status} />
-        </PanelSectionRow>
+        <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
-
-      <PanelSection title="Metrike">
-        {toggle("fps", "FPS")}
-        {toggle("frametime", "Frametime (ms) + graf")}
-        {toggle("cpu", "CPU · % · MHz · °C")}
-        {toggle("gpu", "GPU · % · MHz · °C")}
-        {toggle("ram", "RAM · GB")}
-        {toggle("vram", "VRAM · GB")}
-        {toggle("battery", "Baterija · % · vrijeme")}
-        {toggle("power", "CPU/GPU power · W")}
-        {toggle("time", "Sat")}
-        <PanelSectionRow>
-          <Field
-            label="TDP (Panel de Control)"
-            description="Očitavanje primijenjenog limita još nije implementirano."
-          />
-        </PanelSectionRow>
+      <PanelSection title="ELEMENTS">
+        <PanelSectionRow><div style={{fontSize: 13, color: "#b8c7d5", marginBottom: 12}}>
+          Reorder with the arrows. Items with a chevron have their own settings.
+        </div></PanelSectionRow>
+        {visible.map((key, index) => {
+          const group = groups[key];
+          const open = expanded === key;
+          const total = group.metrics.length + (group.always ? 1 : 0);
+          const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
+          return <PanelSectionRow key={key}>
+            <div style={{background: "#17212ee8", borderRadius: 10, marginBottom: 6, overflow: "hidden", border: open ? "1px solid #18adf1" : "1px solid #334152"}}>
+              <Focusable style={{display: "flex", alignItems: "center", gap: 4, padding: 5}} flow-children="row">
+                <DialogButton disabled={!ready} onClick={() => setExpanded(open ? null : key)}
+                  style={{flex: 1, minWidth: 0, margin: 0, padding: "8px 5px", textAlign: "left", background: "transparent", color: "#f2f7fc", fontSize: 15}}>
+                  <span style={{color: "#42bfff", marginRight: 7}}>{open ? "⌄" : "›"}</span>
+                  <span style={{fontWeight: 700}}>{group.label}</span>
+                  {total > 1 && <span style={{float: "right", color: "#9bbad0", fontSize: 12}}>{count}/{total}</span>}
+                </DialogButton>
+                <DialogButton style={smallButton} disabled={!ready || index === 0} onClick={() => move(key, -1)}><span title="Move up">⌃</span></DialogButton>
+                <DialogButton style={smallButton} disabled={!ready || index === visible.length - 1} onClick={() => move(key, 1)}><span title="Move down">⌄</span></DialogButton>
+                <DialogButton style={smallButton} disabled={!ready} onClick={() => update({[key]: false})}><span title="Hide element">×</span></DialogButton>
+              </Focusable>
+              {open && <div style={{borderLeft: `3px solid ${group.color}`, margin: "4px 9px 12px", paddingLeft: 8}}>
+                <div style={{fontSize: 12, lineHeight: 1.5, color: "#b4c9d8", margin: "8px 0"}}>
+                  Toggle the metrics in this block; they show together on one row.
+                </div>
+                <div style={{fontSize: 12, color: "#70cdf7", margin: "12px 0 6px", letterSpacing: 0.5}}>GROUP METRICS</div>
+                {group.always && <Field label={group.always} padding="compact"><span style={{fontSize: 11, color: "#4acbff", background: "#123e59", borderRadius: 12, padding: "3px 7px"}}>Always</span></Field>}
+                {group.metrics.map(([id, label]) => <ToggleField key={id} label={label} checked={settings.metrics[id]} disabled={!ready}
+                  onChange={(checked: boolean) => metric(id, checked)} />)}
+                {group.note && <div style={{fontSize: 11, lineHeight: 1.5, color: "#a6b6c6", marginTop: 10}}>{group.note}</div>}
+              </div>}
+            </div>
+          </PanelSectionRow>;
+        })}
+        {hidden.length > 0 && <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>}
+        {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {groups[key].label}</ButtonItem></PanelSectionRow>)}
+        <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
       </PanelSection>
-
-      <PanelSection title="Izgled">
-        <PanelSectionRow>
-          <SliderField
-            label="Veličina fonta"
-            value={settings.fontsize}
-            min={12}
-            max={28}
-            step={1}
-            showValue
-            onChange={(value: number) => update({ fontsize: value })}
-          />
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <SliderField
-            label="Pozadina (%)"
-            value={settings.opacity}
-            min={0}
-            max={100}
-            step={5}
-            showValue
-            onChange={(value: number) => update({ opacity: value })}
-          />
-        </PanelSectionRow>
+      <PanelSection title="APPEARANCE">
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, margin: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
+        {toggle("sans", "Sans-serif font")}
+        <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_path || "MangoHud font — sistemski sans nije pronađen") : "MangoHud zadani font"} /></PanelSectionRow>
+        {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["margin", "Odmak od vrha / lijevo", 0, 24, 1] ] as const).map(([key, label, min, max, step]) =>
+          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
+            onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
+        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
       </PanelSection>
-
-      <PanelSection title="Testna aktivacija">
-        <PanelSectionRow>
-          <Field
-            label="Steam Launch Options"
-            description={info?.launch_option ?? "Učitavanje…"}
-          />
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <ButtonItem
-            layout="below"
-            disabled={!info?.launch_option}
-            onClick={() => { void copyLaunchCommand(); }}
-          >
-            <FaCopy style={{ marginRight: 8 }} /> Kopiraj launch komandu
-          </ButtonItem>
-        </PanelSectionRow>
-        {copyStatus && (
-          <PanelSectionRow>
-            <Field label="Međuspremnik" description={copyStatus} />
-          </PanelSectionRow>
-        )}
-        <PanelSectionRow>
-          <Field
-            label="Važno"
-            description="Ova verzija samo generira zaseban MangoHud profil. Automatski SteamOS Game Mode overlay bez Launch Options još nije implementiran."
-          />
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => { void refresh(); }}>
-            Provjeri vezu / ponovno učitaj
-          </ButtonItem>
-        </PanelSectionRow>
+      <PanelSection title="ACTIVATION">
+        <PanelSectionRow><Field label="Steam Launch Options" description={info?.launch_option ?? "Učitavanje…"} /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem layout="below" disabled={!info?.launch_option} onClick={() => { void copyLaunchCommand(); }}>
+          <FaCopy style={{marginRight: 8}} /> Kopiraj launch komandu
+        </ButtonItem></PanelSectionRow>
+        {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
+        <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Primjena" description="Nakon spremanja ponovno pokreni igru. Launch komanda ostaje ista. Sistemski Steam overlay drži isključenim." /></PanelSectionRow>
       </PanelSection>
     </>
   );
