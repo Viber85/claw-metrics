@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.5
+  group: claw-metrics-v0.2.4-test.6
   cancel-in-progress: true
 
 jobs:
@@ -46,6 +46,9 @@ jobs:
           cd native-source
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          grep -q 'params.horizontal_separator_color' src/overlay.cpp
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
@@ -72,7 +75,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.5.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.6.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -86,14 +89,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.5
-          path: ClawMetrics-v0.2.4-test.5.zip
+          name: ClawMetrics-v0.2.4-test.6
+          path: ClawMetrics-v0.2.4-test.6.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.5 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.5 ClawMetrics-v0.2.4-test.5.zip \
+          gh release delete v0.2.4-test.6 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.6 ClawMetrics-v0.2.4-test.6.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.5 – spacing experiment" \
-            --notes "Experimental Claw Metrics v0.2.4-test.5: fixes remaining CPU/GPU-style column gaps in FPS, RAM, VRAM and BATT; stronger numeric FPS faux-bold (same font size), one row. QAM controls preserved. CI compiled native Vulkan layer; real hardware test required. Built from v0.2.3; Panel de Control and system MangoHud unchanged."
+            --title "Claw Metrics v0.2.4-test.6 – spacing experiment" \
+            --notes "Claw Metrics v0.2.4-test.6: controller-friendly HSL color pickers for FPS, CPU, GPU, RAM, VRAM, battery labels, numeric values, frametime graph, and independently adjustable separator color. Same one-line layout as confirmed test.5; includes separate native MangoHud separator patch. SteamOS hardware test still required; default palette and Panel de Control unchanged."
