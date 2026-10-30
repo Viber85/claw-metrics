@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
+  ColorPickerModal,
+  showModal,
   DialogButton,
   Focusable,
   Field,
@@ -13,12 +15,60 @@ import {
 import { FaChartLine, FaCopy } from "react-icons/fa";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
+type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph";
+type ColorSettings = Record<ColorKey, string>;
+const defaultColors: ColorSettings = {
+  text: "F0F2F5", separator: "777C87", fps_label: "30E5A0", fps_value: "30E5A0",
+  cpu: "37C9EF", gpu: "8BDA62", ram: "B077DF", vram: "D76AB8",
+  battery: "30E5A0", graph: "30E5A0",
+};
+const colorRows: [ColorKey, string][] = [
+  ["text", "Vrijednosti, sat i DRAW"], ["separator", "Separatori između grupa"],
+  ["fps_label", "FPS naziv"], ["fps_value", "FPS broj"],
+  ["cpu", "CPU naziv"], ["gpu", "GPU naziv"], ["ram", "RAM naziv"],
+  ["vram", "VRAM naziv"], ["battery", "BATT naziv"], ["graph", "Frametime graf"],
+];
+
+// Decky picker uses HSL sliders; MangoHud accepts 6-digit RGB without '#'.
+function rgbToHsl(hex: string): [number, number, number] {
+  const parts = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = parts;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2, diff = max - min;
+  if (diff) {
+    s = diff / (1 - Math.abs(2 * l - 1));
+    switch (max) {
+      case r: h = ((g - b) / diff) % 6; break;
+      case g: h = (b - r) / diff + 2; break;
+      default: h = (r - g) / diff + 4;
+    }
+    h = ((h * 60) + 360) % 360;
+  }
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+function hslStringToHex(value: string): string | null {
+  const match = value.match(/^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%(?:\s*,\s*[\d.]+)?\s*\)$/);
+  if (!match) return null;
+  const hue = Number(match[1]), saturation = Number(match[2]), lightness = Number(match[3]);
+  if (![hue, saturation, lightness].every(Number.isFinite)) return null;
+  const h = ((hue % 360) + 360) % 360, s = Math.max(0, Math.min(100, saturation)) / 100,
+    l = Math.max(0, Math.min(100, lightness)) / 100;
+  const a = s * Math.min(l, 1 - l);
+  const channel = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))))
+      .toString(16).padStart(2, "0").toUpperCase();
+  };
+  return channel(0) + channel(8) + channel(4);
+}
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; order: Group[];
   metrics: Record<string, boolean>;
+  colors: ColorSettings;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
 const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
@@ -56,6 +106,7 @@ const defaults: Settings = {
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
     battery_icon: false, battery_time: true},
+  colors: {...defaultColors},
 };
 
 // Callable methods are provided by the Decky Python backend.
@@ -192,6 +243,18 @@ function Content() {
     );
   };
 
+  const openColorPicker = (key: ColorKey, label: string) => {
+    const [h, sat, light] = rgbToHsl(current.current.colors[key] ?? defaultColors[key]);
+    const dialog = showModal(<ColorPickerModal
+      title={label} defaultH={h} defaultS={sat} defaultL={light} defaultA={1}
+      closeModal={() => dialog.Close()}
+      onConfirm={(hsl: string) => {
+        const hex = hslStringToHex(hsl);
+        if (hex) update({colors: {...current.current.colors, [key]: hex}});
+      }}
+    />);
+  };
+
   const toggle = (key: "enabled" | "sans", label: string) => (
     <PanelSectionRow><ToggleField label={label} checked={settings[key]} disabled={!ready}
       onChange={(value: boolean) => update({[key]: value})} /></PanelSectionRow>
@@ -213,7 +276,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.5">
+      <PanelSection title="Claw Metrics · v0.2.4-test.6">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -293,6 +356,24 @@ function Content() {
         </ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
+      </PanelSection>
+      <PanelSection title="BOJE / COLORS">
+        <PanelSectionRow><Field label="Birač boja" description="Odaberi element i prilagodi nijansu, zasićenost i svjetlinu kontrolerom. Nazivi kategorija, brojčane vrijednosti i separatori imaju odvojene boje. Promjene se spremaju za oba MangoHud profila." /></PanelSectionRow>
+        {colorRows.map(([key, label]) => (
+          <PanelSectionRow key={key}>
+            <ButtonItem layout="below" disabled={!ready} onClick={() => openColorPicker(key, label)}>
+              <span style={{display: "inline-flex", alignItems: "center", gap: 9}}>
+                <span style={{display: "inline-block", width: 22, height: 22, borderRadius: 5,
+                  border: "1px solid #a9b6c8", background: "#" + (settings.colors?.[key] ?? defaultColors[key])}} />
+                <span>{label}</span>
+                <span style={{opacity: 0.7, fontSize: 12}}>#{settings.colors?.[key] ?? defaultColors[key]}</span>
+              </span>
+            </ButtonItem>
+          </PanelSectionRow>
+        ))}
+        <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => update({colors: {...defaultColors}})}>
+          Vrati zadane boje
+        </ButtonItem></PanelSectionRow>
       </PanelSection>
       <PanelSection title="ACTIVATION">
         <PanelSectionRow><Field label="Steam Launch Options" description={info?.launch_option ?? "Učitavanje…"} /></PanelSectionRow>
