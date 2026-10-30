@@ -13,10 +13,12 @@ There is no stock `cellpadding_x` or equivalent horizontal spacing parameter in 
 
 ## Prototype
 
-The QAM offers two **disabled** controls pending native verification:
+The QAM offers two **disabled** controls pending native verification; additionally, the experimental patched renderer supports narrower internal columns and a shorter graph:
 
 1. **Padding lijevo i desno**: symmetric side padding, 0–24 px, default 5 px.
 2. **Razmak između elemenata**: horizontal spacing, 0–20 px, default 8 px.
+
+The unequal blank space is **not** one setting: MangoHud uses fixed 150px frametime plots, 8px horizontal item spacing, 4px table-cell padding, plus separators. The isolated patch adds `claw_table_padding_x` (stock 4px) and `claw_graph_width` (stock 150px) as separate experimental native parameters. A future compact experimental combination would be, for example, graph 110px, item spacing 4px, table-cell padding 2px while preserving all metrics. These are not deployed or user-facing working controls.
 
 Settings are persisted and bounded, but the stock MangoHud config remains identical. There is no change to TDP, Panel de Control, existing game launch commands, or the 0.2.3 release. A separate minimal source patch under `experiments/mangohud-v0.8.1-spacing.patch` defines `claw_padding_x` and `claw_element_gap` parameters for investigation only. A `mango_config(settings, native_spacing=True)` test mode writes them **only** when explicitly requested by tests; normal execution never enables that mode.
 
