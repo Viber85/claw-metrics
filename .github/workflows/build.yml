@@ -1,14 +1,53 @@
 name: Build and release Decky plugin
 on:
   push:
-    branches: [main]
+    branches: [main, renderer-native]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  native:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, i386]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: native-cache
+        with:
+          path: native-dist
+          key: claw-native-v081-${{ matrix.arch }}-${{ hashFiles('renderer/claw-metrics.patch', 'renderer/claw_layout.h', 'tools/build_renderer.sh') }}
+      - name: Install runtime verification tools
+        if: matrix.arch == 'x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb libxkbcommon0 libgl1
+      - name: Install native compiler and headers
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y g++ g++-multilib ninja-build python3-mako python3-pip glslang-tools pkg-config nlohmann-json3-dev libx11-dev libxkbcommon-dev libgl1-mesa-dev
+          if [ "${{ matrix.arch }}" = i386 ]; then
+            sudo apt-get install -y libx11-dev:i386 libxkbcommon-dev:i386 libgl1-mesa-dev:i386
+          fi
+          python3 -m pip install meson==1.3.2
+      - name: Build isolated renderer
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: bash tools/build_renderer.sh "${{ matrix.arch }}"
+      - name: Test actual Vulkan rendering
+        if: matrix.arch == 'x86_64'
+        run: python3 tools/test_native_vulkan.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.arch }}
+          path: native-dist/
   build:
+    needs: native
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +75,12 @@ jobs:
           python3 -m unittest discover -s tests
       - name: Check native ImGui layout and bundled font
         run: python3 tools/check_native_layout.py
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: native-packages
+      - name: Prepare native bundle
+        run: python3 tools/package_renderer.py
       - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
@@ -59,6 +104,7 @@ jobs:
           name: ClawMetrics-v${{ steps.version.outputs.number }}
           path: ClawMetrics-v${{ steps.version.outputs.number }}.zip
       - name: Publish experimental GitHub Release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.number }}
