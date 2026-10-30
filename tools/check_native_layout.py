@@ -94,6 +94,12 @@ def run(imgui_dir=None, render_dir=None):
             assert x >= 0 and x + width < screen and height < 120, output
             spans = re.findall(r'label .*? at ([\d.-]+)\.\.([\d.-]+)', output)
             assert spans and all(x <= float(a) < float(b) <= x + width for a, b in spans), output
+            # Stock MangoHud v0.8.1 pushes a symmetric 5px WindowPadding.
+            # Protect the actual content inset rather than exposing a fake slider.
+            leftmost_text = min(float(a) for a, _ in spans)
+            assert leftmost_text - x >= 5 - 0.1, (
+                f'Left label too close to the window edge: {leftmost_text-x}px')
+
             assert all(float(spans[i][1]) <= float(spans[i+1][0]) + 0.01 for i in range(len(spans)-1)), output
             results[name] = (width, height)
             print(f'PASS native ImGui fixture {name}: x={x:g}, y={y:g}, width={width:g}, height={height:g}, font={fs}, padding={pad}; labels fit.')
