@@ -7,6 +7,11 @@ on:
 permissions:
   contents: write
 
+# Multiple rapid pushes must not race to overwrite the same test Release.
+concurrency:
+  group: claw-metrics-v0.2.4-test.2
+  cancel-in-progress: true
+
 jobs:
   layout-experiment:
     runs-on: ubuntu-24.04
