@@ -1,6 +1,12 @@
-# Claw Metrics v0.1.0 — SteamOS experimental prototype
+# Claw Metrics v0.1.1 — SteamOS experimental prototype
 
 A Decky QAM control panel for a compact MangoHud performance row. Target: **MSI Claw A8 Z2 Extreme running official SteamOS**. This is a prototype: not yet a pixel-perfect replica of the agreed mockup, and **not yet device-tested**.
+
+## v0.1.1 hotfix
+
+Fixed the frontend packaging responsible for `ReferenceError: require is not defined` in QAM by adopting the official `@decky/rollup` pipeline and matching Decky plugin export format (`titleView`). This fixes a known build-time incompatibility; verification on real hardware is still required.
+
+**Do not reinstall v0.1.0** if you saw that error. Download the new v0.1.1 ZIP under Releases once the GitHub Actions build finishes successfully.
 
 ## Status
 
@@ -18,7 +24,7 @@ No changes to sleep/resume, SD card, OS partitions, or kernel settings are made 
 
 ## Installation (experimental)
 
-1. Open the repository's **Actions** tab and choose a successful *Build Decky plugin* run. Download the `ClawMetrics-v0.1.0` artifact.
+1. Open the repository's **Actions** tab and choose a successful *Build Decky plugin* run. Download the `ClawMetrics-v0.1.1` artifact.
 2. Find the ZIP package inside the artifact. If your Decky Loader version supports install-from-ZIP, install this ZIP using its developer settings; otherwise use the documented Decky plugin development installation procedure.
 3. Open Decky QAM → Claw Metrics. Adjust metrics and note the **exact** MangoHud config path and launch option displayed.
 4. For a first test, pick one game and only use the launch option shown in QAM if the system's native performance overlay is disabled. Restart the game after changing settings.
