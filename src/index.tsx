@@ -16,7 +16,8 @@ type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | 
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
-  padding_x: number; element_gap: number; table_gap: number; graph_width: number; order: Group[];
+  padding_x: number; element_gap: number; table_gap: number; graph_width: number;
+  inner_gap: number; inline_metrics: boolean; fps_bold: boolean; order: Group[];
   metrics: Record<string, boolean>;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
@@ -49,7 +50,8 @@ const defaults: Settings = {
   enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
-  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, order,
+  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150,
+  inner_gap: 4, inline_metrics: true, fps_bold: true, order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
@@ -211,7 +213,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.3">
+      <PanelSection title="Claw Metrics · v0.2.4-test.4">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -274,10 +276,19 @@ function Content() {
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><ToggleField label="CPU/GPU vrijednosti u jednom redu (jednak razmak)"
+          checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Razmak unutar CPU/GPU (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
+          onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><ToggleField label="Podebljani FPS broj (ista veličina)"
+          checked={settings.fps_bold} disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(v: boolean) => update({fps_bold: v})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready || !info?.layout_spacing_supported} layout="below"
-          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110})}>
+          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110, inner_gap: 4, inline_metrics: true, fps_bold: true})}>
           Test: kompaktan prikaz (graf 110px, razmaci 4/2px)
         </ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
