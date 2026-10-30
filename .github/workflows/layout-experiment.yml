@@ -61,7 +61,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.1.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.2.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -75,14 +75,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.1
-          path: ClawMetrics-v0.2.4-test.1.zip
+          name: ClawMetrics-v0.2.4-test.2
+          path: ClawMetrics-v0.2.4-test.2.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.1 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.1 ClawMetrics-v0.2.4-test.1.zip \
+          gh release delete v0.2.4-test.2 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.2 ClawMetrics-v0.2.4-test.2.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.1 – spacing experiment" \
-            --notes "Experimental isolated 64-bit Vulkan renderer. The normal v0.2.3 launch command and system MangoHud are unchanged. Try only in a 64-bit Vulkan title using the separately marked experimental QAM launch command. If the game does not launch, restore the original v0.2.3 launch command. Not tested on MSI Claw hardware. Panel de Control is unaffected."
+            --title "Claw Metrics v0.2.4-test.2 – spacing experiment" \
+            --notes "Experimental isolated 64-bit Vulkan renderer. Fixes Vulkan layer discovery by registering an explicit layer via VK_ADD_LAYER_PATH. Shows FPS* when test config is loaded and adds on-demand active renderer detection in QAM; FPS* alone does not prove the library is loaded. Try in a 64-bit Vulkan title, restart game after changes. Normal v0.2.3 configuration and Panel de Control unchanged. Not yet hardware tested."
