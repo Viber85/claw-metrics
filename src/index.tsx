@@ -8,7 +8,7 @@ import {
   SliderField,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine } from "react-icons/fa";
+import { FaChartLine, FaCopy } from "react-icons/fa";
 
 type Settings = {
   enabled: boolean;
@@ -58,6 +58,7 @@ function Content() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Učitavanje…");
+  const [copyStatus, setCopyStatus] = useState("");
 
   useEffect(() => {
     Promise.all([load(), getInfo()])
@@ -84,6 +85,48 @@ function Content() {
       });
   };
 
+  // Copy synchronously from a button click: SteamOS Game Mode often does
+  // not expose the modern Clipboard API to Decky panels.
+  const copyLaunchCommand = async () => {
+    const command = info?.launch_option;
+    if (!command) {
+      setCopyStatus("Naredba još nije dostupna.");
+      return;
+    }
+
+    let copied = false;
+    const input = document.createElement("textarea");
+    input.value = command;
+    input.readOnly = true;
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    input.style.top = "-9999px";
+    document.body.appendChild(input);
+    try {
+      input.focus();
+      input.select();
+      copied = document.execCommand("copy");
+    } catch (error) {
+      console.warn("Claw Metrics: execCommand copy failed", error);
+    } finally {
+      input.remove();
+    }
+
+    if (!copied && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(command);
+        copied = true;
+      } catch (error) {
+        console.warn("Claw Metrics: Clipboard API copy failed", error);
+      }
+    }
+    setCopyStatus(
+      copied
+        ? "Kopirano! Zalijepi naredbu u Steam Launch Options."
+        : "Kopiranje nije uspjelo. Provjeri dopušta li SteamOS kopiranje u Game Modeu."
+    );
+  };
+
   const toggle = (key: keyof Settings, label: string) => (
     <PanelSectionRow>
       <ToggleField
@@ -96,7 +139,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.1.1">
+      <PanelSection title="Claw Metrics · v0.1.2">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow>
           <Field label="Status" description={status} />
@@ -153,6 +196,20 @@ function Content() {
             description={info?.launch_option ?? "Učitavanje…"}
           />
         </PanelSectionRow>
+        <PanelSectionRow>
+          <ButtonItem
+            layout="below"
+            disabled={!info?.launch_option}
+            onClick={() => { void copyLaunchCommand(); }}
+          >
+            <FaCopy style={{ marginRight: 8 }} /> Kopiraj launch komandu
+          </ButtonItem>
+        </PanelSectionRow>
+        {copyStatus && (
+          <PanelSectionRow>
+            <Field label="Međuspremnik" description={copyStatus} />
+          </PanelSectionRow>
+        )}
         <PanelSectionRow>
           <Field
             label="Važno"
