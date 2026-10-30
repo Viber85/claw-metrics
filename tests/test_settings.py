@@ -76,8 +76,8 @@ class Settings(unittest.TestCase):
             binary = root / "libMangoHud.so"
             binary.write_bytes(b"X" * 110000)
             manifest = root / "layers" / "ClawMetrics.x86_64.json"
-            fallback = root / "share/vulkan/explicit_layer.d/ClawMetrics.test3.x86_64.json"
-            with patch.object(main, "BASE", root), patch.object(main, "experimental_library", return_value=binary), patch.object(main, "experimental_manifest", return_value=manifest), patch.object(main, "user_vulkan_manifest", return_value=fallback):
+            fallback = root / ".local/share/vulkan/explicit_layer.d/ClawMetrics.test3.x86_64.json"
+            with patch.object(main, "BASE", root), patch.object(main, "user_home", return_value=root), patch.object(main, "experimental_library", return_value=binary), patch.object(main, "experimental_manifest", return_value=manifest), patch.object(main, "user_vulkan_manifest", return_value=fallback):
                 main.install_native_manifest()
                 layer = json.loads(manifest.read_text())["layer"]
                 self.assertEqual(layer["name"], main.EXPERIMENTAL_LAYER_NAME)
