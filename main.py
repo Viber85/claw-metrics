@@ -29,7 +29,7 @@ DEFAULTS = {
     "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 8,
     # Native MangoHud 0.8.1 hard-codes these; retain the desired values
     # until a separately validated compatible renderer is installed.
-    "padding_x": 5, "element_gap": 8,
+    "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -86,7 +86,8 @@ def normalize(payload):
     for key, low, high in (("fontsize", 12, 28), ("opacity", 0, 100),
                            ("rounding", 0, 20), ("offset_x", -1920, 1920),
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
-                           ("padding_x", 0, 24), ("element_gap", 0, 20)):
+                           ("padding_x", 0, 24), ("element_gap", 0, 20),
+                           ("table_gap", 0, 12), ("graph_width", 80, 200)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
@@ -190,6 +191,8 @@ def mango_config(settings, native_spacing=False):
         lines.extend([
             "claw_padding_x=" + str(d["padding_x"]),
             "claw_element_gap=" + str(d["element_gap"]),
+            "claw_table_padding_x=" + str(d["table_gap"]),
+            "claw_graph_width=" + str(d["graph_width"]),
         ])
     if d["sans"] and sans_font():
         lines += ["font_file=" + sans_font(), "font_file_text=" + sans_font()]
