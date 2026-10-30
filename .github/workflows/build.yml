@@ -1,0 +1,26 @@
+name: Build Decky plugin
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: python3 -m py_compile main.py
+      - name: Package Decky plugin
+        run: |
+          mkdir -p artifact/ClawMetrics
+          cp plugin.json package.json main.py artifact/ClawMetrics/
+          cp -r dist artifact/ClawMetrics/
+          cd artifact && zip -r ../ClawMetrics-v0.1.0.zip ClawMetrics
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClawMetrics-v0.1.0
+          path: ClawMetrics-v0.1.0.zip
