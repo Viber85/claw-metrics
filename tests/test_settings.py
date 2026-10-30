@@ -46,6 +46,18 @@ class Settings(unittest.TestCase):
             self.assertEqual(opts['offset_x'], '-100')
             self.assertEqual(opts['offset_y'], '60')
 
+    def test_future_spacing_settings_are_bounded_and_keep_stock_renderer_safe(self):
+        # Stock MangoHud does not support adjustable horizontal padding or gap.
+        settings = main.normalize({'padding_x': 999, 'element_gap': -20})
+        self.assertEqual(settings['padding_x'], 24)
+        self.assertEqual(settings['element_gap'], 0)
+        options = main.mango_config(settings)
+        self.assertNotIn('claw_padding_x=', options)
+        self.assertNotIn('claw_element_gap=', options)
+        self.assertIn('hud_compact=0\\n', options)
+        self.assertEqual(main.normalize({})['padding_x'], 5)
+        self.assertEqual(main.normalize({})['element_gap'], 8)
+
     def test_corrupt_bundled_font_is_rejected(self):
         from unittest.mock import patch
         import base64, gzip
