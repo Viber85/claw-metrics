@@ -16,6 +16,33 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
+type WeightSelection = "inherit" | FontWeight;
+type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time";
+type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value";
+type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
+const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
+  fps: [{key:"fps.label", label:"FPS naziv", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS broj", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}],
+  cpu: [{key:"cpu.label", label:"CPU naziv", defaultColor:"cpu"}, {key:"cpu.load", label:"Opterećenje (%)", defaultColor:"text"}, {key:"cpu.temp", label:"Temperatura (°C)", defaultColor:"text"}, {key:"cpu.clock", label:"Takt (MHz)", defaultColor:"text"}, {key:"cpu.power", label:"Potrošnja (W)", defaultColor:"text"}],
+  gpu: [{key:"gpu.label", label:"GPU naziv", defaultColor:"gpu"}, {key:"gpu.load", label:"Opterećenje (%)", defaultColor:"text"}, {key:"gpu.temp", label:"Temperatura (°C)", defaultColor:"text"}, {key:"gpu.clock", label:"Takt (MHz)", defaultColor:"text"}, {key:"gpu.power", label:"Potrošnja (W)", defaultColor:"text"}, {key:"gpu.junction", label:"Junction temperatura", defaultColor:"text"}, {key:"gpu.fan", label:"Ventilator", defaultColor:"text"}, {key:"gpu.voltage", label:"Napon", defaultColor:"text"}],
+  ram: [{key:"ram.label", label:"RAM naziv", defaultColor:"ram"}, {key:"ram.value", label:"Zauzeće (GiB)", defaultColor:"text"}],
+  vram: [{key:"vram.label", label:"VRAM naziv", defaultColor:"vram"}, {key:"vram.value", label:"Zauzeće (GiB)", defaultColor:"text"}, {key:"vram.temp", label:"Temperatura memorije", defaultColor:"text"}, {key:"vram.clock", label:"Takt memorije", defaultColor:"text"}],
+  battery: [{key:"battery.label", label:"BATT naziv", defaultColor:"battery"}, {key:"battery.value", label:"Baterija (%) / ikona", defaultColor:"text"}, {key:"battery.time", label:"Preostalo vrijeme", defaultColor:"text"}, {key:"battery.power", label:"Baterija (W)", defaultColor:"text"}],
+  time: [{key:"time.value", label:"Sat", defaultColor:"text"}],
+};
+const weightOptions: WeightSelection[] = ["inherit", "light", "regular", "semibold", "bold"];
+const weightLabel: Record<WeightSelection, string> = {
+  inherit: "Global", light: "Light", regular: "Regular", semibold: "SemiBold", bold: "Bold",
+};
+const styleTabs: [StyleCategory,string][] = [
+  ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
+  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],
+];
+type SavedStyle = {
+  colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
+  token_weights: Partial<Record<TokenKey, FontWeight>>;
+  token_colors: Partial<Record<TokenKey, string>>;
+};
+
 type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph";
 type ColorSettings = Record<ColorKey, string>;
 const defaultColors: ColorSettings = {
@@ -101,6 +128,9 @@ type Settings = Record<Group, boolean> & {
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
   metrics: Record<string, boolean>;
   colors: ColorSettings;
+  token_weights: Partial<Record<TokenKey, FontWeight>>;
+  token_colors: Partial<Record<TokenKey, string>>;
+  style_presets: Record<string, SavedStyle>;
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
 const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
@@ -139,7 +169,7 @@ const defaults: Settings = {
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
     battery_icon: false, battery_time: true},
-  colors: {...defaultColors},
+  colors: {...defaultColors}, token_weights: {}, token_colors: {}, style_presets: {},
 };
 
 // Callable methods are provided by the Decky Python backend.
@@ -247,6 +277,7 @@ function Content() {
   };
   const [expanded, setExpanded] = useState<Group | null>(() => lastExpandedMetric);
   const [openSection, setOpenSection] = useState<SectionKey | null>(() => lastOpenSection);
+  const [styleCategory, setStyleCategory] = useState<StyleCategory>(() => lastStyleCategory as StyleCategory);
   const toggleSection = (id: SectionKey) => {
     const next = lastOpenSection === id ? null : id;
     lastOpenSection = next;
@@ -341,6 +372,49 @@ function Content() {
     );
   };
 
+  const chooseStyleCategory = (id: StyleCategory) => {
+    lastStyleCategory = id;
+    setStyleCategory(id);
+  };
+  const cycleTokenWeight = (key: TokenKey) => {
+    const old: WeightSelection = current.current.token_weights?.[key] ?? "inherit";
+    const next = weightOptions[(weightOptions.indexOf(old) + 1) % weightOptions.length];
+    const updated = {...current.current.token_weights};
+    if (next === "inherit") delete updated[key];
+    else updated[key] = next;
+    update({token_weights: updated});
+  };
+  const openTokenColorPicker = (token: MetricToken) => {
+    const hex = current.current.token_colors?.[token.key] ??
+      current.current.colors[token.defaultColor] ?? defaultColors[token.defaultColor];
+    const dialog = showModal(<OpaqueColorPicker
+      title={token.label} hex={hex} closeModal={() => dialog.Close()}
+      onConfirm={(value: string) => update({
+        token_colors: {...current.current.token_colors, [token.key]: value}
+      })}
+    />);
+  };
+  const resetTokenColor = (key: TokenKey) => {
+    const next = {...current.current.token_colors};
+    delete next[key];
+    update({token_colors: next});
+  };
+  const savePreset = (slot: string) => {
+    const d = current.current;
+    const preset: SavedStyle = {
+      colors: {...d.colors}, font_weight: d.font_weight, fps_bold: d.fps_bold,
+      token_weights: {...d.token_weights}, token_colors: {...d.token_colors},
+    };
+    update({style_presets: {...d.style_presets, [slot]: preset}});
+  };
+  const loadPreset = (slot: string) => {
+    const preset = current.current.style_presets?.[slot];
+    if (!preset) return;
+    update({colors: {...preset.colors}, font_weight: preset.font_weight,
+      fps_bold: preset.fps_bold, token_weights: {...preset.token_weights},
+      token_colors: {...preset.token_colors}});
+  };
+
   const openColorPicker = (key: ColorKey, label: string) => {
     const dialog = showModal(<OpaqueColorPicker
       title={label} hex={current.current.colors[key] ?? defaultColors[key]}
@@ -370,7 +444,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.9">
+      <PanelSection title="Claw Metrics · v0.2.4-test.10">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -440,7 +514,7 @@ function Content() {
           return <PanelSectionRow key={key}>
             <div style={{background: "#17212ee8", borderRadius: 10, marginBottom: 6, overflow: "hidden", border: open ? "1px solid #18adf1" : "1px solid #334152"}}>
               <Focusable style={{display: "flex", alignItems: "center", gap: 4, padding: 5}} flow-children="row">
-                <DialogButton disabled={!ready} onClick={() => setExpanded(open ? null : key)}
+                <DialogButton disabled={!ready} onClick={() => expandMetric(open ? null : key)}
                   style={{flex: 1, minWidth: 0, margin: 0, padding: "8px 5px", textAlign: "left", background: "transparent", color: "#f2f7fc", fontSize: 15}}>
                   <span style={{color: "#42bfff", marginRight: 7}}>{open ? "⌄" : "›"}</span>
                   <span style={{fontWeight: 700}}>{group.label}</span>
@@ -470,51 +544,96 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="colors" title="Colors & Font" subtitle="Paleta, separatori, Light / Regular / SemiBold / Bold"
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
-          <PanelSectionRow><Field label="TIPOGRAFIJA" description="Odaberi font i debljinu prikaza." /></PanelSectionRow>
-
-        {toggle("sans", "Sans-serif font")}
-        <PanelSectionRow><Field label="Font" description={settings.sans
-          ? (info?.condensed_fonts_ready
-              ? "Barlow Semi Condensed · Light / Regular / SemiBold / Bold dostupni"
-              : "Fontovi nisu pronađeni u instalacijskom ZIP-u ili ne prolaze provjeru. Ostaje Claw Sans. Ponovno instaliraj paket s ugrađenim fontovima.")
-          : "MangoHud zadani font"} /></PanelSectionRow>
-        <PanelSectionRow><Field label="Debljina fonta" description="Odaberi Light, Regular, SemiBold ili Bold. Regular je početni odabir; FPS može zasebno koristiti pravi Bold. Za promjenu fonta možda treba ponovno pokrenuti igru." /></PanelSectionRow>
-        <PanelSectionRow>
-          <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
-            {(["light", "regular", "semibold", "bold"] as FontWeight[]).map(weight => (
-              <DialogButton key={weight} disabled={!ready || !settings.sans} onClick={() => update({font_weight: weight})}
-                style={{minWidth: 94, padding: "8px", background: settings.font_weight === weight ? "#22678d" : "#303e4f",
-                  fontWeight: weight === "bold" ? 700 : weight === "semibold" ? 600 : weight === "light" ? 300 : 400}}>
-                {weight === "light" ? "Light" : weight === "regular" ? "Regular" : weight === "semibold" ? "SemiBold" : "Bold"}
-              </DialogButton>
-            ))}
+          <PanelSectionRow><Field label="BOJE & FONT"
+            description="Globalne postavke ili zasebne postavke naziva i vrijednosti svake metrike." /></PanelSectionRow>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",padding:"5px 0 12px"}}>
+            {styleTabs.map(([key,name])=><DialogButton key={key} disabled={!ready}
+              onClick={()=>chooseStyleCategory(key)}
+              style={{minWidth:78,margin:0,padding:8,
+                background:styleCategory===key?"#087daf":"#263d5b",
+                border:styleCategory===key?"1px solid #29dcff":"1px solid #476687"}}>
+              {name}
+            </DialogButton>)}
           </div>
-        </PanelSectionRow>
-        <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => {void refresh();}}>
-          Provjeri dostupnost fonta
-        </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="FPS broj Bold (stvarni font kad je dostupan)"
-          checked={settings.fps_bold} disabled={!ready || !info?.layout_spacing_supported}
-          onChange={(v: boolean) => update({fps_bold: v})} /></PanelSectionRow>
-
-          <PanelSectionRow><Field label="BOJE" description="Neprozirne RGB boje, bez Alpha klizača." /></PanelSectionRow>
-        <PanelSectionRow><Field label="Birač boja" description="Odaberi element i prilagodi nijansu, zasićenost i svjetlinu kontrolerom. Alpha je zaključana na 100% i više nema klizača za nju, jer MangoHud u ovom profilu koristi samo RGB. Promjene se spremaju za oba profila." /></PanelSectionRow>
-        {colorRows.map(([key, label]) => (
-          <PanelSectionRow key={key}>
-            <ButtonItem layout="below" disabled={!ready} onClick={() => openColorPicker(key, label)}>
-              <span style={{display: "inline-flex", alignItems: "center", gap: 9}}>
-                <span style={{display: "inline-block", width: 22, height: 22, borderRadius: 5,
-                  border: "1px solid #a9b6c8", background: "#" + (settings.colors?.[key] ?? defaultColors[key])}} />
-                <span>{label}</span>
-                <span style={{opacity: 0.7, fontSize: 12}}>#{settings.colors?.[key] ?? defaultColors[key]}</span>
+          {styleCategory==="global" ? <>
+          <PanelSectionRow><Field label="GLOBALNO" description="Font i zadane boje koje ostale vrijednosti nasljeđuju." /></PanelSectionRow>
+          {toggle("sans", "Sans-serif font")}
+          <PanelSectionRow><Field label="Barlow Semi Condensed" description={
+            info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold učitani."
+              : "Fontovi nisu dostupni; koristi se Claw Sans."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Osnovna debljina" description="Promjena osnovnog fonta može zahtijevati ponovno pokretanje igre." /></PanelSectionRow>
+          <PanelSectionRow><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {(["light","regular","semibold","bold"] as FontWeight[]).map(weight=>
+              <DialogButton key={weight} disabled={!ready || !settings.sans}
+                onClick={()=>update({font_weight:weight})}
+                style={{minWidth:82,margin:0,background:settings.font_weight===weight?"#096e9e":"#23364c",
+                  fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
+                {weightLabel[weight]}
+              </DialogButton>)}
+          </div></PanelSectionRow>
+          <PanelSectionRow><ToggleField label="FPS Bold (ako nije ručno postavljen)"
+            checked={settings.fps_bold} disabled={!ready} onChange={v=>update({fps_bold:v})}/></PanelSectionRow>
+          {colorRows.map(([key,label])=><PanelSectionRow key={key}>
+            <ButtonItem layout="below" disabled={!ready} onClick={()=>openColorPicker(key,label)}>
+              <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
+                <span style={{width:20,height:20,borderRadius:5,background:"#"+(settings.colors[key]??defaultColors[key]),border:"1px solid #b8c7d9"}}/>
+                {label}
               </span>
             </ButtonItem>
-          </PanelSectionRow>
-        ))}
-        <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => update({colors: {...defaultColors}})}>
-          Vrati zadane boje
-        </ButtonItem></PanelSectionRow>
-
+          </PanelSectionRow>)}
+          <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
+            onClick={()=>update({colors:{...defaultColors}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
+          <PanelSectionRow><Field label="MOJI STILOVI"
+            description="Tri spremišta za vlastite kombinacije fontova i boja. Spremanje ne mijenja postojeću konfiguraciju." /></PanelSectionRow>
+          {(["1","2","3"] as const).map(slot=><PanelSectionRow key={slot}>
+            <div style={{display:"flex",gap:6}}>
+              <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
+                style={{flex:1,margin:0}}>Spremi {slot}</DialogButton>
+              <DialogButton disabled={!ready||!settings.style_presets?.[slot]}
+                onClick={()=>loadPreset(slot)} style={{flex:1,margin:0}}>Učitaj {slot}</DialogButton>
+            </div>
+          </PanelSectionRow>)}
+          </> : <>
+          <PanelSectionRow><Field label={styleCategory.toUpperCase()}
+            description="Svaka stavka ima svoju boju i težinu fonta. Global znači naslijedi osnovnu postavku." /></PanelSectionRow>
+          {tokenGroups[styleCategory as Exclude<StyleCategory,"global">].map(token=>(
+            <div key={token.key} style={{padding:"8px 4px",marginBottom:8,
+              background:"#1a2c43",border:"1px solid #375878",borderRadius:8}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:5}}>{token.label}</div>
+              <PanelSectionRow>
+                <ButtonItem disabled={!ready} layout="below" onClick={()=>cycleTokenWeight(token.key)}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span>Font: {weightLabel[settings.token_weights?.[token.key]??"inherit"]}</span>
+                    <span style={{opacity:.7}}>Promijeni <FaChevronRight /></span>
+                  </span>
+                </ButtonItem>
+              </PanelSectionRow>
+              <PanelSectionRow><div style={{display:"flex",gap:5}}>
+                <DialogButton disabled={!ready} onClick={()=>openTokenColorPicker(token)}
+                  style={{flex:1,margin:0,padding:8}}>
+                  <span style={{display:"flex",alignItems:"center",gap:7}}>
+                    <span style={{width:17,height:17,borderRadius:4,
+                      background:"#"+(settings.token_colors?.[token.key]??
+                        settings.colors[token.defaultColor]??defaultColors[token.defaultColor]),
+                      border:"1px solid #adc7e7"}}/>
+                    {settings.token_colors?.[token.key]?"Vlastita boja":"Boja: globalna"}
+                  </span>
+                </DialogButton>
+                <DialogButton disabled={!ready || !settings.token_colors?.[token.key]}
+                  onClick={()=>resetTokenColor(token.key)}
+                  style={{minWidth:70,padding:7,margin:0}}>Vrati</DialogButton>
+              </div></PanelSectionRow>
+            </div>
+          ))}
+          <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
+            onClick={()=>{
+              const nw={...current.current.token_weights},nc={...current.current.token_colors};
+              for(const t of tokenGroups[styleCategory as Exclude<StyleCategory,"global">]){
+                delete nw[t.key]; delete nc[t.key];
+              }
+              update({token_weights:nw,token_colors:nc});
+            }}>Vrati kategoriju na globalni izgled</ButtonItem></PanelSectionRow>
+          </>}
         </AccordionCard>
         <AccordionCard id="activation" title="Activation" subtitle="Steam launch komanda i pokretanje"
           icon={<FaPlayCircle />} open={openSection === "activation"} onToggle={() => toggleSection("activation")}>
