@@ -68,13 +68,13 @@ def normalize_token_colors(payload):
 
 
 STYLE_LAYOUT_RANGES = {
-    "fontsize": (12, 28), "opacity": (0, 100), "rounding": (0, 20),
+    "fontsize": (12, 28), "fps_scale": (100, 200), "opacity": (0, 100), "rounding": (0, 20),
     "padding_x": (0, 24), "padding_y": (0, 24),
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12),
     "inner_gap": (0, 16), "graph_width": (80, 200),
 }
-STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics")
+STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 
 
 def normalize_custom_labels(payload):
@@ -138,7 +138,7 @@ def normalize_color_overrides(payload):
 
 
 DEFAULTS = {
-    "enabled": True, "fontsize": 18, "opacity": 80,
+    "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -575,7 +575,7 @@ def normalize(payload):
         v = payload.get(key)
         if type(default) is bool and type(v) is bool:
             d[key] = v
-    for key, low, high in (("fontsize", 12, 28), ("opacity", 0, 100),
+    for key, low, high in (("fontsize", 12, 28), ("fps_scale", 100, 200), ("opacity", 0, 100),
                            ("rounding", 0, 20), ("offset_x", -1920, 1920),
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
@@ -780,6 +780,8 @@ def mango_config(settings, native_spacing=False):
             "claw_inner_gap=" + str(d["inner_gap"]),
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
+            "claw_fps_scale=" + str(d["fps_scale"]),
+            "claw_center_horizontal=" + str(int(d["center_horizontal"])),
             "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
             "claw_color_map=" + ":".join(
                 d["token_colors"].get(slot, c["time"] if slot == "time.value" else
