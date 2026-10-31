@@ -290,7 +290,7 @@ def short_launcher_ready():
 
 
 # TDP monitoring is read-only. Never invoke ryzenadj with write flags.
-STAPM_LIMIT_RE = re.compile(r"(?im)^\s*STAPM LIMIT\s*\|\s*([0-9]+(?:\.[0-9]+)?)")
+STAPM_LIMIT_RE = re.compile(r"(?im)^\s*\|?\s*STAPM LIMIT\s*\|\s*([0-9]+(?:\.[0-9]+)?)")
 TDP_MIN_W, TDP_MAX_W = 3, 100
 
 
