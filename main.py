@@ -368,7 +368,7 @@ def read_panel_setpoint(roots=None, appid=None, context_known=False):
                 if not context_known:
                     if any(isinstance(p, dict) and not p.get("follow_global")
                            for p in games.values()):
-                        return None, "PDC: čekam potvrdu aktivne igre"
+                        return None, "PDC: različiti profili igara, čekam potvrdu aktivne igre"
                     selected, scope = global_profile, "globalno"
                 elif appid is not None:
                     if not isinstance(appid, str) or not (0 < len(appid) <= 160):
@@ -397,7 +397,7 @@ def read_panel_setpoint(roots=None, appid=None, context_known=False):
                                "(nije hardverski potvrđeno)")
             except (OSError, ValueError, TypeError, AttributeError):
                 continue
-    return None, "PDC: profil nije dostupan"
+    return None, "Nije dostupno"
 
 
 def valid_tdp_w(value):
