@@ -126,7 +126,7 @@ static void ClawText(int token, ImVec4 color, const char* fmt, Args... args) {
     if (font) ImGui::PopFont();
 }
 """
-s = replace_once(s, "static void ClawMetricGap() {", helpers + "\nstatic void ClawMetricGap() {", "inline helper")
+s = replace_once(s, "void HudElements::time(){", helpers + "\nvoid HudElements::time(){", "font helpers before clock rendering")
 
 # Only alter our custom one-line rendering branches, never upstream fallback.
 def update_inline(func, changes):
