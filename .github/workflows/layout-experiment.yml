@@ -1,11 +1,11 @@
-name: Claw Metrics v0.2.4-test.17 full validation (no release)
+name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
     branches: [feature/tdp-readback-font-test.17]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
@@ -139,3 +139,12 @@ jobs:
         with:
           name: ClawMetrics-v0.2.4-test.17
           path: ClawMetrics-v0.2.4-test.17.zip
+      - name: Publish isolated prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete v0.2.4-test.17 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.17 ClawMetrics-v0.2.4-test.17.zip \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Claw Metrics v0.2.4-test.17 – TDP readback and power font fix" \
+            --notes "TDP readback: find Panel de Control's bundled RyzenAdj at its actual path, read STAPM despite unrelated nonzero probe errors, and fall back to its saved fixed global PL1 when hardware readback fails. Saved setpoints are labeled not hardware-verified; ambiguous per-game or automatic modes show TDP --. Fix tiny DRAW/TDP text in native one-row Vulkan HUD by using regular font size. Includes Decky native TextField rename keyboard and test.15 compact grid. Python, TypeScript, ImGui, and native build verified; SteamOS device readback still requires a real-device test."
