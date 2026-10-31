@@ -226,7 +226,7 @@ def condensed_font_path(weight):
 
 def valid_git_font(blob, expected):
     return (len(blob) > 20000 and blob[:4] in (bytes([0, 1, 0, 0]), b"OTTO") and
-            hashlib.sha1(b"blob " + str(len(blob)).encode() + b"\\0" + blob).hexdigest() == expected)
+            hashlib.sha1(b"blob " + str(len(blob)).encode() + bytes([0]) + blob).hexdigest() == expected)
 
 
 def install_condensed_fonts():
