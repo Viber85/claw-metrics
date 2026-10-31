@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
@@ -12,7 +12,7 @@ import {
   SliderField,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaCopy } from "react-icons/fa";
+import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy } from "react-icons/fa";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
@@ -161,6 +161,55 @@ function withTimeout<T>(request: Promise<T>): Promise<T> {
   });
 }
 
+type SectionKey = "overlay" | "layout" | "metrics" | "colors" | "activation" | "advanced";
+type AccordionCardProps = {
+  id: SectionKey;
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+};
+
+function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: AccordionCardProps) {
+  return (
+    <div data-section={id} style={{
+      background: "#111e30",
+      border: open ? "1px solid #04b7ed" : "1px solid #395579",
+      borderLeft: open ? "4px solid #08d3fa" : "4px solid #8b65e7",
+      borderRadius: 12,
+      overflow: "hidden",
+      marginBottom: 10,
+      boxShadow: open ? "0 0 15px #0285ca55" : "none",
+    }}>
+      <DialogButton onClick={onToggle} style={{
+        width: "100%", display: "flex", alignItems: "center",
+        textAlign: "left", margin: 0, padding: "12px 10px",
+        background: open ? "#073858" : "#14243b",
+        border: "none", borderRadius: 0, minHeight: 66, whiteSpace: "normal",
+      }}>
+        <span style={{display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0}}>
+          <span style={{display: "flex", alignItems: "center", justifyContent: "center",
+            background: open ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
+            fontSize: 20, color: open ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
+          <span style={{display: "flex", flex: 1, minWidth: 0, flexDirection: "column", gap: 3}}>
+            <span style={{fontWeight: 700, fontSize: 16, color: "#f1f7ff"}}>{title}</span>
+            <span style={{fontWeight: 400, fontSize: 11, lineHeight: 1.35,
+              color: "#a9c7e8", overflowWrap: "anywhere"}}>{subtitle}</span>
+          </span>
+          <span style={{display: "flex", color: "#9edbff", fontSize: 16, flexShrink: 0}}>
+            {open ? <FaChevronDown /> : <FaChevronRight />}
+          </span>
+        </span>
+      </DialogButton>
+      {open && <div style={{padding: "10px 8px 12px", borderTop: "1px solid #235b81"}}>
+        {children}
+      </div>}
+    </div>
+  );
+}
+
 function Content() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
@@ -191,6 +240,8 @@ function Content() {
     }
   };
   const [expanded, setExpanded] = useState<Group | null>(null);
+  const [openSection, setOpenSection] = useState<SectionKey | null>("metrics");
+  const toggleSection = (id: SectionKey) => setOpenSection(old => old === id ? null : id);
   const [ready, setReady] = useState(false);
 
   const current = useRef<Settings>(defaults);
@@ -305,11 +356,65 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.8">
-        {toggle("enabled", "Uključi prikaz")}
-        <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
+      <PanelSection title="Claw Metrics · v0.2.4-test.9">
+        <PanelSectionRow>
+          <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
+            <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
+              width: 38, height: 38, borderRadius: 10, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 22}}><FaChartBar /></div>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: 18, fontWeight: 700, lineHeight: 1.2}}>Claw Metrics</div>
+              <div style={{fontSize: 12, color: "#a7c4dd", marginTop: 3}}>Performance overlay · MSI Claw</div>
+            </div>
+          </div>
+        </PanelSectionRow>
       </PanelSection>
-      <PanelSection title="ELEMENTS">
+      <div style={{padding: "0 7px 14px"}}>
+        <AccordionCard id="overlay" title="Overlay" subtitle="Uključi i provjeri prikaz na ekranu"
+          icon={<FaDesktop />} open={openSection === "overlay"} onToggle={() => toggleSection("overlay")}>
+          {toggle("enabled", "Uključi prikaz")}
+          <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Profil" description={info?.config_readable
+            ? "Konfiguracija je dostupna igri." : "Konfiguracija nije čitljiva ili se učitava."} /></PanelSectionRow>
+        </AccordionCard>
+        <AccordionCard id="layout" title="Layout" subtitle="Pozicija, veličina, širina i razmaci"
+          icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
+        {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
+          ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
+          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
+            onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
+          ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
+          : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Padding lijevo i desno (px)" value={settings.padding_x} min={0} max={24} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Razmak između elemenata (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><ToggleField label="Jednaki razmaci: FPS, CPU, GPU, RAM, VRAM, BATT"
+          checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
+        <PanelSectionRow><SliderField label="Razmak unutar grupa (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
+          onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
+
+        <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready || !info?.layout_spacing_supported} layout="below"
+          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110, inner_gap: 4, inline_metrics: true, fps_bold: true})}>
+          Test: kompaktan prikaz (graf 110px, razmaci 4/2px)
+        </ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
+
+        </AccordionCard>
+        <AccordionCard id="metrics" title="Metrics" subtitle="Prikazane metrike i njihov redoslijed"
+          icon={<FaChartBar />} open={openSection === "metrics"} onToggle={() => toggleSection("metrics")}>
         <PanelSectionRow><div style={{fontSize: 13, color: "#b8c7d5", marginBottom: 12}}>
           Reorder with the arrows. Items with a chevron have their own settings.
         </div></PanelSectionRow>
@@ -346,10 +451,13 @@ function Content() {
         })}
         {hidden.length > 0 && <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>}
         {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {groups[key].label}</ButtonItem></PanelSectionRow>)}
-        <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
-      </PanelSection>
-      <PanelSection title="APPEARANCE">
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
+
+
+        </AccordionCard>
+        <AccordionCard id="colors" title="Colors & Font" subtitle="Paleta, separatori, Light / Regular / SemiBold / Bold"
+          icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
+          <PanelSectionRow><Field label="TIPOGRAFIJA" description="Odaberi font i debljinu prikaza." /></PanelSectionRow>
+
         {toggle("sans", "Sans-serif font")}
         <PanelSectionRow><Field label="Font" description={settings.sans
           ? (info?.condensed_fonts_ready
@@ -371,41 +479,11 @@ function Content() {
         <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => {void refresh();}}>
           Provjeri dostupnost fonta
         </ButtonItem></PanelSectionRow>
-        {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
-          ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
-          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
-            onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
-          ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
-          : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Padding lijevo i desno (px)" value={settings.padding_x} min={0} max={24} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Razmak između elemenata (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="Jednaki razmaci: FPS, CPU, GPU, RAM, VRAM, BATT"
-          checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
-          onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Razmak unutar grupa (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
-          onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
         <PanelSectionRow><ToggleField label="FPS broj Bold (stvarni font kad je dostupan)"
           checked={settings.fps_bold} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({fps_bold: v})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
-        <PanelSectionRow><ButtonItem disabled={!ready || !info?.layout_spacing_supported} layout="below"
-          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110, inner_gap: 4, inline_metrics: true, fps_bold: true})}>
-          Test: kompaktan prikaz (graf 110px, razmaci 4/2px)
-        </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
-        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
-      </PanelSection>
-      <PanelSection title="BOJE / COLORS">
+
+          <PanelSectionRow><Field label="BOJE" description="Neprozirne RGB boje, bez Alpha klizača." /></PanelSectionRow>
         <PanelSectionRow><Field label="Birač boja" description="Odaberi element i prilagodi nijansu, zasićenost i svjetlinu kontrolerom. Alpha je zaključana na 100% i više nema klizača za nju, jer MangoHud u ovom profilu koristi samo RGB. Promjene se spremaju za oba profila." /></PanelSectionRow>
         {colorRows.map(([key, label]) => (
           <PanelSectionRow key={key}>
@@ -422,8 +500,10 @@ function Content() {
         <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => update({colors: {...defaultColors}})}>
           Vrati zadane boje
         </ButtonItem></PanelSectionRow>
-      </PanelSection>
-      <PanelSection title="ACTIVATION">
+
+        </AccordionCard>
+        <AccordionCard id="activation" title="Activation" subtitle="Steam launch komanda i pokretanje"
+          icon={<FaPlayCircle />} open={openSection === "activation"} onToggle={() => toggleSection("activation")}>
         <PanelSectionRow><Field label="Steam Launch Options" description={info?.launch_option ?? "Učitavanje…"} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem layout="below" disabled={!info?.launch_option} onClick={() => { void copyLaunchCommand(); }}>
           <FaCopy style={{marginRight: 8}} /> Kopiraj launch komandu
@@ -446,6 +526,15 @@ function Content() {
             <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (Vulkan 64-bit)
           </ButtonItem>
         </PanelSectionRow>}
+        <PanelSectionRow><Field label="Siguran povratak"
+          description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Primjena" description="Nakon spremanja ponovno pokreni igru. Launch komanda ostaje ista. Sistemski Steam overlay drži isključenim." /></PanelSectionRow>
+
+        </AccordionCard>
+        <AccordionCard id="advanced" title="Advanced" subtitle="Dijagnostika, senzori i tehničke informacije"
+          icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
+        <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
         {info?.layout_spacing_supported && <PanelSectionRow>
           <ButtonItem layout="below" disabled={rendererBusy} onClick={() => { void verifyRenderer(); }}>
             Provjeri koristi li igra eksperimentalni renderer
@@ -454,11 +543,13 @@ function Content() {
         {info?.layout_spacing_supported && <PanelSectionRow>
           <Field label="Stvarno učitana biblioteka" description={rendererStatus} />
         </PanelSectionRow>}
-        <PanelSectionRow><Field label="Siguran povratak"
-          description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
-        <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Primjena" description="Nakon spremanja ponovno pokreni igru. Launch komanda ostaje ista. Sistemski Steam overlay drži isključenim." /></PanelSectionRow>
-      </PanelSection>
+
+          <PanelSectionRow><Field label="Stanje konfiguracije" description={info?.config_path ?? "Nije učitano"} /></PanelSectionRow>
+          <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "Nije dostupno očitanje Panel de Control limita."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="DRAW" description={info?.power_note ?? "Očitavanje ovisi o baterijskom senzoru."} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => { void refresh(); }}>Ponovno učitaj status</ButtonItem></PanelSectionRow>
+        </AccordionCard>
+      </div>
     </>
   );
 }
