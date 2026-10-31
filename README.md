@@ -1,3 +1,26 @@
+# Claw Metrics v0.2.4-test.9 — grouped QAM redesign
+
+**UI-only changes based on the user-tested v0.2.4-test.8 native renderer.** All existing overlay functionality, the one-line HUD, fonts, metric preferences, colors, copyable launch commands and diagnostic functions are retained.
+
+The Decky QAM now displays six controller-accessible, collapsible icon cards. Only one top-level card opens at once; **Metrics** opens by default:
+
+1. **Overlay** — enable/disable and backend status
+2. **Layout** — x/y position, text size, graph width, padding, separation and compact presets
+3. **Metrics** — metric visibility, in-group switches, reorder buttons, hide/restore groups
+4. **Colors & Font** — fully opaque HSL color picker, reset palette, Barlow Semi Condensed Light / Regular / SemiBold / Bold and FPS Bold
+5. **Activation** — Steam launch options and one-click copying for normal/experimental Vulkan commands
+6. **Advanced** — renderer diagnostics, unavailable TDP readback notice, battery DRAW notes and reconnect
+
+The cards are styled with a restrained dark blue background, cyan accents for the open card and purple accents when collapsed; icons use packaged react-icons (no network dependency). Each heading is a Decky `DialogButton` for gamepad focus and selection.
+
+No new backend calls, new sensors, live overlay renderer changes, TDP integrations, OS modifications or launch command changes were introduced by this UI update. Users can return to v0.2.4-test.8 directly if the QAM layout does not work well on their MSI Claw A8.
+
+## Suggested smoke test on MSI Claw
+
+Open the Decky plugin, switch between each card and verify only the chosen card is expanded. In **Metrics**, reorder CPU/GPU and change a sensor toggle, then restore it. Under **Colors & Font**, change a separator color and switch Regular/SemiBold. Under **Activation**, check that the experimental launch option can still be copied. Finally, make sure the in-game HUD remains on one line, with no changes to the saved profile.
+
+---
+
 # Claw Metrics v0.2.4-test.8 — four offline font weights and alpha-safe colors
 
 This test build retains the working v0.2.4-test.7 Vulkan renderer, single-row overlay, all sensors, all spacing controls and separate separator-color configuration.
