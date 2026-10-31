@@ -165,6 +165,58 @@ class Settings(unittest.TestCase):
                 self.assertTrue(main.condensed_fonts_ready())
                 # No file requires network access during startup.
 
+    def test_per_metric_colors_weights_persist_and_are_bounded(self):
+        self.assertEqual(len(main.TOKEN_SLOTS), 27)
+        config = {
+            "token_weights": {
+                "cpu.label": "semibold", "cpu.load": "bold",
+                "gpu.temp": "light", "unknown": "bold", "ram.label": "invalid"
+            },
+            "token_colors": {
+                "cpu.temp": "#ffac12", "gpu.load": "00bbee",
+                "cpu.clock": "not-a-color", "unknown": "000000"
+            },
+        }
+        d = main.normalize(config)
+        self.assertEqual(d["token_weights"], {
+            "cpu.label": "semibold", "cpu.load": "bold", "gpu.temp": "light"
+        })
+        self.assertEqual(d["token_colors"], {"cpu.temp": "FFAC12", "gpu.load": "00BBEE"})
+        native = main.mango_config(d, native_spacing=True)
+        options = dict(line.split("=", 1) for line in native.splitlines() if "=" in line)
+        weights = options["claw_weight_map"]
+        colors = options["claw_color_map"].split(":")
+        self.assertEqual(len(weights), 27)
+        self.assertEqual(len(colors), 27)
+        for slot, weight in d["token_weights"].items():
+            self.assertEqual(weights[main.TOKEN_SLOTS.index(slot)], main.FONT_DIGITS[weight])
+        self.assertEqual(colors[main.TOKEN_SLOTS.index("cpu.temp")], "FFAC12")
+        self.assertEqual(colors[main.TOKEN_SLOTS.index("gpu.load")], "00BBEE")
+        self.assertEqual(colors[main.TOKEN_SLOTS.index("fps.value")], "------")
+        stock = main.mango_config(d)
+        self.assertNotIn("claw_weight_map=", stock)
+        self.assertNotIn("claw_color_map=", stock)
+
+    def test_style_presets_validate_before_reuse(self):
+        payload = {"style_presets": {
+            "1": {"font_weight": "semibold", "fps_bold": False,
+                   "token_weights": {"cpu.power": "bold", "bogus": "bold"},
+                   "token_colors": {"cpu.power": "#AABBCC"},
+                   "colors": {"separator": "12ABEF"}},
+            "2": {"font_weight": "invalid", "colors": {"text": "BAD"}},
+            "4": {"font_weight": "bold"},
+        }}
+        d = main.normalize(payload)
+        self.assertEqual(sorted(d["style_presets"]), ["1", "2"])
+        self.assertEqual(d["style_presets"]["1"]["token_weights"], {"cpu.power": "bold"})
+        self.assertEqual(d["style_presets"]["1"]["token_colors"], {"cpu.power": "AABBCC"})
+        self.assertFalse(d["style_presets"]["1"]["fps_bold"])
+        self.assertEqual(d["style_presets"]["1"]["colors"]["separator"], "12ABEF")
+        self.assertEqual(d["style_presets"]["2"]["font_weight"], "regular")
+        self.assertEqual(d["style_presets"]["2"]["colors"]["text"], main.COLORS["text"])
+        d["style_presets"]["1"]["token_weights"]["cpu.power"] = "light"
+        self.assertEqual(main.normalize({})["style_presets"], {})
+
     def test_experimental_layer_manifest_is_explicit(self):
         from unittest.mock import patch
         import json
