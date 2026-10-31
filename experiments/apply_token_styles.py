@@ -150,7 +150,7 @@ update_inline("fps", [
      '                ClawText(1, color, "%.0f", HUDElements.sw_stats->fps);\n'
      '            } else if (HUDElements.params->claw_fps_bold) {'),
     ('ClawBoldFpsNumber(color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);',
-     'ImVec4 selected_color = ClawColorForToken(1, color);\\n'
+     'ImVec4 selected_color = ClawColorForToken(1, color);\n'
      '                ClawBoldFpsNumber(selected_color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);'),
     ('HUDElements.TextColored(color, "%.0f", HUDElements.sw_stats->fps);',
      'ClawText(1, color, "%.0f", HUDElements.sw_stats->fps);'),
