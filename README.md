@@ -1,3 +1,8 @@
+# v0.2.4-test.12 — stability only
+
+The short launcher now publishes executable content atomically and avoids rewriting itself when already valid. If the renderer library, Vulkan manifest or custom HUD configuration is missing during an update, it launches the game normally without the custom HUD. It does not try to inject or fix an incompatible present layer. No TDP additions, SteamOS native integrations or native renderer changes in this build.
+
+---
 # Claw Metrics v0.2.4-test.11 — short launcher for experimental Vulkan
 
 This is a minimal follow-up to test.10. The custom Vulkan renderer, font atlas, metric styles and QAM visuals have not changed. A small POSIX shell launcher is now written automatically to the persistent user config directory at startup (and regenerated after settings updates), with executable permissions. The launcher exports **exactly the same** `VK_ADD_LAYER_PATH`, `VK_INSTANCE_LAYERS`, `DISABLE_MANGOHUD` and `MANGOHUD_CONFIGFILE` variables as the long experimental command, then uses `exec "$@"` to start the Steam game without changing its arguments or exit status.
