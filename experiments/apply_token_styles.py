@@ -24,12 +24,16 @@ s = replace_once(s, "   OVERLAY_PARAM_CUSTOM(claw_bold_font_file)          \\",
    OVERLAY_PARAM_CUSTOM(claw_regular_font_file)       \\
    OVERLAY_PARAM_CUSTOM(claw_semibold_font_file)      \\
    OVERLAY_PARAM_CUSTOM(claw_weight_map)              \\
-   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\""", "params registration")
+   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\
+   OVERLAY_PARAM_CUSTOM(claw_ram_label)               \\
+   OVERLAY_PARAM_CUSTOM(claw_vram_label)              \\
+   OVERLAY_PARAM_CUSTOM(claw_battery_label)           \\""", "params registration")
 s = replace_once(s,
     "   std::string font_file, font_file_text, claw_bold_font_file;",
     """   std::string font_file, font_file_text, claw_bold_font_file;
    std::string claw_light_font_file, claw_regular_font_file, claw_semibold_font_file;
-   std::string claw_weight_map, claw_color_map;""",
+   std::string claw_weight_map, claw_color_map;
+   std::string claw_ram_label, claw_vram_label, claw_battery_label;""",
     "params fields")
 params_h.write_text(s)
 
@@ -41,7 +45,10 @@ s = replace_once(s, "#define parse_claw_bold_font_file(s) parse_path(s)",
 #define parse_claw_regular_font_file(s) parse_path(s)
 #define parse_claw_semibold_font_file(s) parse_path(s)
 #define parse_claw_weight_map(s) parse_str(s)
-#define parse_claw_color_map(s) parse_str(s)""", "parser registration")
+#define parse_claw_color_map(s) parse_str(s)
+#define parse_claw_ram_label(s) parse_str(s)
+#define parse_claw_vram_label(s) parse_str(s)
+#define parse_claw_battery_label(s) parse_str(s)""", "parser registration")
 params_cpp.write_text(s)
 
 font_cpp = root / "font.cpp"
@@ -253,5 +260,23 @@ s = replace_once(s,
     '            ClawText(26, HUDElements.colors.text, "%s", HUDElements.sw_stats->time.c_str());',
     "clock value in one-row layout")
 
+# Preserve native token styling while enabling the custom names from DevLab.
+# These substitutions apply only to our patched inline HUD.
+s = replace_once(s,
+    'ClawText(16, HUDElements.colors.ram, "RAM");',
+    'ClawText(16, HUDElements.colors.ram, "%s", HUDElements.params->claw_ram_label.empty() ? "RAM" : HUDElements.params->claw_ram_label.c_str());',
+    "native RAM label")
+s = replace_once(s,
+    'ClawText(18, HUDElements.colors.vram, "%s", gpu->vram_text().c_str());',
+    'ClawText(18, HUDElements.colors.vram, "%s", HUDElements.params->claw_vram_label.empty() ? gpu->vram_text().c_str() : HUDElements.params->claw_vram_label.c_str());',
+    "native VRAM label")
+s = replace_once(s,
+    'ClawText(22, HUDElements.colors.battery, "BATT");',
+    'ClawText(22, HUDElements.colors.battery, "%s", HUDElements.params->claw_battery_label.empty() ? "BATT" : HUDElements.params->claw_battery_label.c_str());',
+    "native battery label")
+s = replace_once(s,
+    'if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])\\n                HUDElements.TextColored(HUDElements.colors.text, "%s",item.ret.c_str());'.replace('\\n','\\n'),
+    'if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])\\n                ClawText(25, HUDElements.colors.text, "%s",item.ret.c_str());'.replace('\\n','\\n'),
+    "native DRAW token style")
 hud.write_text(s)
 print("Applied per-token font/color renderer:", root)

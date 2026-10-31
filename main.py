@@ -82,7 +82,7 @@ def normalize_custom_labels(payload):
         if not isinstance(value, str):
             continue
         # Safe single-line labels for both MangoHud config and text output.
-        label = re.sub(r"\\s+", " ", re.sub(r"[\\x00-\\x1f\\x7f=]", " ", value)).strip()[:24]
+        label = re.sub(r"\s+", " ", re.sub(r"[\x00-\x1f\x7f=]", " ", value)).strip()[:24]
         if label:
             result[key] = label
     return result
