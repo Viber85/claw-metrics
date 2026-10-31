@@ -10,6 +10,7 @@ import {
   PanelSection,
   PanelSectionRow,
   SliderField,
+  TextField,
   ToggleField,
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
@@ -132,10 +133,19 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
 const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,tdp:<FaBolt/>,draw:<FaBolt/>,values:<FaHashtag/>};
 function RenameMetricModal({name,original,onConfirm,onCancel}:any){
  const [value,setValue]=useState(name);
- return <ConfirmModal strTitle="Promijeni naziv metrike" onCancel={onCancel} onOK={()=>onConfirm(cleanName(value))}>
-  <label className="rename-field">Naziv stavke<input autoFocus aria-label="Naziv stavke" maxLength={24} value={value} placeholder={original} onChange={e=>setValue(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();onConfirm(cleanName(value))}if(e.key==='Escape')onCancel()}}/></label>
-  <p className="description">Naziv se koristi u Metrics, Colors & Font i HUD prikazu. Prazan naziv vraća zadani naziv.</p>
-  <DialogButton onClick={()=>setValue('')}>Vrati zadani naziv</DialogButton>
+ return <ConfirmModal strTitle="Promijeni naziv metrike" onCancel={onCancel}
+   onOK={()=>onConfirm(cleanName(value))}>
+  <div className="claw-rename-modal" style={{padding:"8px 2px",minWidth:0}}>
+    <TextField label="Naziv stavke" focusOnMount placeholder={original}
+      value={value} onChange={(event)=>setValue(event.currentTarget.value.slice(0,24))}
+      description="Odaberi polje tipkom A za SteamOS tipkovnicu. Maksimalno 24 znaka." />
+    <p className="description" style={{fontSize:12,lineHeight:1.4,margin:"12px 0"}}>
+      Naziv se koristi u Metrics, Colors & Font i HUD prikazu. Prazan naziv vraća zadani naziv.
+    </p>
+    <DialogButton style={{width:"100%",margin:0,minWidth:0}} onClick={()=>setValue("")}>
+      Vrati zadani naziv
+    </DialogButton>
+  </div>
  </ConfirmModal>;
 }
 
@@ -542,14 +552,10 @@ function Content() {
           border: 1px solid #306689; border-radius: 5px;
           font-size: 12px; color: #d8edff;
         }
-        .rename-field { display: block; font-size: 14px; }
-        .rename-field input {
-          display: block; width: 100%; margin: 10px 0 16px; padding: 12px;
-          background: #0c1727; border: 1px solid #6182a5;
-          border-radius: 4px; color: #fff;
-        }
+        .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
+        .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.15">
+      <PanelSection title="Claw Metrics · v0.2.4-test.16">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",

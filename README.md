@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.16 — SteamOS virtual keyboard fix (experimental)
+
+The Rename Metric modal now uses Decky's Steam-native `TextField` rather than a raw browser `<input>`. In Game Mode, highlight "Naziv stavke" and press A to invoke the SteamOS text keyboard. The built-in focus behavior is used rather than DOM `autoFocus` or unsupported keyboard APIs. Renaming stays limited to 24 characters; Confirm, Cancel, and Restore Default keep their prior behavior.
+
+The test.15 compact three-column layout and the existing custom MangoHud/TDP/DRAW renderer are unchanged.
+
+This was compiled/tested in CI. Game Mode virtual keyboard behavior on MSI Claw A8 must be confirmed on the handheld.
+
+---
+
 # Claw Metrics v0.2.4-test.15 — Decky Game Mode compact UI
 
 UI-only prerelease based on v0.2.4-test.14 (official SteamOS, MSI Claw A8 Z2 Extreme).

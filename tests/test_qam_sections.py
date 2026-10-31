@@ -80,6 +80,16 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("openColorPicker(key,label)", SOURCE)
         self.assertIn("styleModified", SOURCE)
 
+    def test_rename_modal_uses_steam_native_gamepad_textfield(self):
+        # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
+        self.assertIn("  TextField,", SOURCE)
+        self.assertIn('<TextField label="Naziv stavke" focusOnMount', SOURCE)
+        self.assertIn("event.currentTarget.value.slice(0,24)", SOURCE)
+        self.assertIn("Vrati zadani naziv", SOURCE)
+        self.assertIn('onOK={()=>onConfirm(cleanName(value))}', SOURCE)
+        self.assertNotIn('<input autoFocus aria-label="Naziv stavke"', SOURCE)
+        self.assertNotIn('e.key===\'Enter\'', SOURCE)
+
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
         self.assertIn("copyLaunchCommand(true)", SOURCE)
