@@ -75,7 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "inner_gap": (0, 16), "graph_width": (80, 200),
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
-GRAPH_STYLES = ("area", "line", "bars", "dual")
+GRAPH_STYLES = ("line", "area", "bars", "dual")
 
 
 def normalize_custom_labels(payload):
