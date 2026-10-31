@@ -1,3 +1,37 @@
+# Claw Metrics v0.2.4-test.10 — individual typography and persistent QAM navigation
+
+This experimental build preserves the exact QAM design from v0.2.4-test.9: dark blue cards, cyan active border, purple inactive accents, and six collapsible sections. The existing one-row Claw Metrics overlay, Vulkan launch method, Barlow Semi Condensed fonts, metrics and slider settings remain unchanged by default.
+
+## Navigation correction
+
+Decky can remount the React plugin panel when a setting is saved. The expanded QAM section, current metric submenu, and selected Colors & Font category now survive a remount while the plugin remains loaded. The Colors & Font tab does not jump back to Metrics after every edit.
+
+## Colors & Font
+
+Within the existing **Colors & Font** accordion there are compact tabs:
+- **Global**: current default font, separator/label/value colors, FPS Bold toggle, three independent style-preset slots
+- **FPS**: FPS label, FPS number and frametime in ms
+- **CPU**: label, load, temperature, clock, power
+- **GPU**: label, load, temperature, clock, power, junction, fan and voltage (where supported)
+- **RAM**: label and GiB usage
+- **VRAM**: label, usage, temperature and clock
+- **Battery**: label, percent/icon, remaining time and watts
+- **Clock**: time value
+
+Each supported text token has a font-weight action that cycles **Global → Light → Regular → SemiBold → Bold → Global**. The same token may optionally override its inherited text color via the opaque-only HSL picker; **Vrati** removes that override. Text defaults to **Global**, preserving the user-tested look until deliberately changed. The three style slots each save/reload the complete palette and weight overrides.
+
+### Native renderer
+
+New experimental MangoHud configuration keys `claw_weight_map` (one character per token) and `claw_color_map` (opaque hex RGB or inherit for each token) drive actual ImGui font push/pop and token colors in the custom **64-bit Vulkan** renderer. The four bundled Barlow font weights are loaded into the font atlas. No changes are made to system MangoHud, Panel de Control, or the stable v0.2.3 release. DRAW (battery discharge read from an external command) and native frametime graph plotting use the existing **global** text/graph controls, not individual text-font overrides.
+
+On-game font weight changes might need a game restart if the font atlas has not refreshed. Color changes should follow the existing live settings path. This release requires on-device verification before declaring these new renderer paths stable.
+
+## Suggested Claw smoke test
+
+Install as a test over the Decky plugin. Open **Colors & Font → CPU**, change `Temperatura` to SemiBold and its color, and verify the CPU temperature changes without affecting load, clock or GPU. Then open **GPU**, change the temperature to Light and check it stays open during save. Finally save Style 1, make a change and restore Style 1. Confirm that all metrics remain on one row and unchanged when overrides return to Global. If the game fails to start or text disappears, return to the previous working v0.2.4-test.9 package.
+
+---
+
 # Claw Metrics v0.2.4-test.9 — grouped QAM redesign
 
 **UI-only changes based on the user-tested v0.2.4-test.8 native renderer.** All existing overlay functionality, the one-line HUD, fonts, metric preferences, colors, copyable launch commands and diagnostic functions are retained.
