@@ -275,11 +275,14 @@ s = replace_once(s,
     'ClawText(22, HUDElements.colors.battery, "%s", HUDElements.params->claw_battery_label.empty() ? "BATT" : HUDElements.params->claw_battery_label.c_str());',
     "native battery label")
 s = replace_once(s,
+    '            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])\n'
     '                HUDElements.TextColored(HUDElements.colors.text, "%s",item.ret.c_str());',
-    '                if (item.value.find("tdp.txt") != std::string::npos)\\n'
-    '                    ClawText(27, HUDElements.colors.text, "%s", item.ret.c_str());\\n'
-    '                else\\n'
-    '                    ClawText(25, HUDElements.colors.text, "%s", item.ret.c_str());',
+    '            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {\n'
+    '                if (item.value.find("tdp.txt") != std::string::npos)\n'
+    '                    ClawText(27, HUDElements.colors.text, "%s", item.ret.c_str());\n'
+    '                else\n'
+    '                    ClawText(25, HUDElements.colors.text, "%s", item.ret.c_str());\n'
+    '            }',
     "native DRAW and TDP token style")
 hud.write_text(s)
 print("Applied per-token font/color renderer:", root)
