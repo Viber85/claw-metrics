@@ -210,6 +210,12 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
   );
 }
 
+// Decky can remount Content after backend saves. Keep navigation state
+// outside the React instance, so saving never jumps back to Metrics.
+let lastOpenSection: SectionKey | null = "metrics";
+let lastExpandedMetric: Group | null = null;
+let lastStyleCategory = "global";
+
 function Content() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
@@ -239,9 +245,17 @@ function Content() {
       setRendererBusy(false);
     }
   };
-  const [expanded, setExpanded] = useState<Group | null>(null);
-  const [openSection, setOpenSection] = useState<SectionKey | null>("metrics");
-  const toggleSection = (id: SectionKey) => setOpenSection(old => old === id ? null : id);
+  const [expanded, setExpanded] = useState<Group | null>(() => lastExpandedMetric);
+  const [openSection, setOpenSection] = useState<SectionKey | null>(() => lastOpenSection);
+  const toggleSection = (id: SectionKey) => {
+    const next = lastOpenSection === id ? null : id;
+    lastOpenSection = next;
+    setOpenSection(next);
+  };
+  const expandMetric = (key: Group | null) => {
+    lastExpandedMetric = key;
+    setExpanded(key);
+  };
   const [ready, setReady] = useState(false);
 
   const current = useRef<Settings>(defaults);
