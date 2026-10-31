@@ -1,3 +1,17 @@
+# Claw Metrics v0.2.4-test.8 — four offline font weights and alpha-safe colors
+
+This test build retains the working v0.2.4-test.7 Vulkan renderer, single-row overlay, all sensors, all spacing controls and separate separator-color configuration.
+
+**Font weights**: Barlow Semi Condensed Light 300, Regular 400, SemiBold 600, Bold 700. The user-provided four files were inspected to verify the intended font family and weight variants. The release build fetches corresponding licensed official Google Fonts binaries at an immutable revision, validates Git blob hashes, and includes their OFL license in the plugin assets. They are the same family and weights but not guaranteed byte-identical to the four supplied files. The actual installed MSI Claw requires **no internet for font loading**. The plugin installs them from its assets on startup and verifies them. Existing settings are preserved and normal font preference defaults to Regular; FPS may use real Bold separately. Previous Claw Sans remains as a fallback if packaged assets are missing or damaged.
+
+**Color picker fix:** The built-in Decky picker exposed an Alpha slider although the plugin only stores 24-bit RGB. A custom QAM picker now offers only Hue, Saturation and Lightness and always uses fully opaque color. This avoids the unused alpha control implicated in the game's crash report; its safety in live games still needs confirmation on the user's MSI Claw.
+
+**Testing:** Install the new ZIP through Decky and restart Decky. Confirm the Font status shows Barlow Semi Condensed available, then switch between all four weights. Keep the experimental Vulkan launch command used in test.7, or copy the new one from Activation if it changed. While a game runs, test red separator, blue VRAM, and verify other metrics remain stable with the alpha-free picker. If a game crashes or font is missing, restore the last working v0.2.4-test.7.
+
+The existing system MangoHud, stable v0.2.3, and Panel de Control are unchanged.
+
+---
+
 # Claw Metrics v0.2.4-test.7 — separator color and Barlow Semi Condensed
 
 Based on the user-tested v0.2.4-test.6 renderer. The existing single row, metrics, color controls, and spacing options are preserved.
