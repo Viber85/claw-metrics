@@ -107,4 +107,25 @@ change("overlay.cpp",
        return;
    }
    switch (params.position) {""")
+# Measure actual text/glyph extents, not MangoHud's historical approximation
+# based on table_columns * 64. The latter is inaccurate for our inline text.
+change("overlay.cpp",
+    "   ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;",
+    "   float claw_strip_right = 0.0f;\n"
+    "   ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;")
+change("overlay.cpp",
+    "            func.run();\n            HUDElements.place += 1;",
+    """            func.run();
+            if (params.claw_center_horizontal && params.enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
+               const float item_right = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x;
+               if (item_right > claw_strip_right) claw_strip_right = item_right;
+            }
+            HUDElements.place += 1;""")
+change("overlay.cpp",
+    """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
+               window_size = ImVec2(content_width, params.height);""",
+    """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
+               if (params.claw_center_horizontal && claw_strip_right > 0.0f)
+                   content_width = claw_strip_right + params.claw_padding_x;
+               window_size = ImVec2(content_width, params.height);""")
 print("Native FPS scaling and centered HUD installed")
