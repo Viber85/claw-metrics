@@ -15,7 +15,7 @@ import {
 import { FaChartLine, FaCopy } from "react-icons/fa";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
-type FontWeight = "light" | "regular" | "bold";
+type FontWeight = "light" | "regular" | "semibold" | "bold";
 type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph";
 type ColorSettings = Record<ColorKey, string>;
 const defaultColors: ColorSettings = {
@@ -305,7 +305,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.7">
+      <PanelSection title="Claw Metrics · v0.2.4-test.8">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -353,17 +353,17 @@ function Content() {
         {toggle("sans", "Sans-serif font")}
         <PanelSectionRow><Field label="Font" description={settings.sans
           ? (info?.condensed_fonts_ready
-              ? "Barlow Semi Condensed · Light / Regular / Bold dostupni"
-              : "Preuzimanje iz službenog Google Fonts izvora nije uspjelo ili još traje. Privremeno ostaje postojeći Claw Sans. Ponovno pokreni Decky kada budeš online.")
+              ? "Barlow Semi Condensed · Light / Regular / SemiBold / Bold dostupni"
+              : "Fontovi nisu pronađeni u instalacijskom ZIP-u ili ne prolaze provjeru. Ostaje Claw Sans. Ponovno instaliraj paket s ugrađenim fontovima.")
           : "MangoHud zadani font"} /></PanelSectionRow>
-        <PanelSectionRow><Field label="Debljina fonta" description="Odaberi Light za tanji izgled, Regular za čitljivost ili Bold za naglašenu cijelu traku. FPS može zasebno biti Bold. Promjena fonta može zahtijevati ponovno pokretanje igre." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Debljina fonta" description="Odaberi Light, Regular, SemiBold ili Bold. Regular je početni odabir; FPS može zasebno koristiti pravi Bold. Za promjenu fonta možda treba ponovno pokrenuti igru." /></PanelSectionRow>
         <PanelSectionRow>
           <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
-            {(["light", "regular", "bold"] as FontWeight[]).map(weight => (
+            {(["light", "regular", "semibold", "bold"] as FontWeight[]).map(weight => (
               <DialogButton key={weight} disabled={!ready || !settings.sans} onClick={() => update({font_weight: weight})}
-                style={{minWidth: 84, padding: "8px", background: settings.font_weight === weight ? "#22678d" : "#303e4f",
-                  fontWeight: weight === "bold" ? 700 : weight === "light" ? 300 : 400}}>
-                {weight === "light" ? "Light" : weight === "regular" ? "Regular" : "Bold"}
+                style={{minWidth: 94, padding: "8px", background: settings.font_weight === weight ? "#22678d" : "#303e4f",
+                  fontWeight: weight === "bold" ? 700 : weight === "semibold" ? 600 : weight === "light" ? 300 : 400}}>
+                {weight === "light" ? "Light" : weight === "regular" ? "Regular" : weight === "semibold" ? "SemiBold" : "Bold"}
               </DialogButton>
             ))}
           </div>
