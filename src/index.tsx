@@ -153,7 +153,7 @@ function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 type Settings = Record<Group, boolean> & {
   active_style: string|null;
   custom_labels: Record<string,string>;
-  enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
+  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
@@ -196,7 +196,7 @@ type Info = {
 
 const defaults: Settings = {
   active_style:null, custom_labels: {},
-  enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
+  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150,
@@ -630,7 +630,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.22">
+      <PanelSection title="Claw Metrics · v0.2.4-test.23">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -656,9 +656,36 @@ function Content() {
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
           ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
           ["padding_x", "Padding lijevo i desno (px)", 0, 24, 1],
-          ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
+          ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready || (key==="padding_x" && !info?.layout_spacing_supported)}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
+
+        <PanelSectionRow><Field label="FPS – veličina broja"
+          description="Povećava samo FPS broj; ostale metrike zadržavaju svoju veličinu." /></PanelSectionRow>
+        <PanelSectionRow><SliderField label={"Veličina FPS broja · "+settings.fps_scale+"%"}
+          value={settings.fps_scale} min={100} max={200} step={10} showValue
+          disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(value:number)=>update({fps_scale:value})}/></PanelSectionRow>
+        <div className="claw-fps-scale-preview" aria-label="Pregled veličine FPS broja"
+          style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",
+            background:"#101c2e",border:"1px solid #385a77",borderRadius:8,
+            overflow:"hidden",padding:"9px 7px",marginBottom:10}}>
+          <span style={{display:"flex",alignItems:"center",gap:8,minWidth:0,
+            whiteSpace:"nowrap",color:"#eaf4ff",lineHeight:1.2}}>
+            <span style={{color:"#35e5a2",fontSize:12,flexShrink:0}}>FPS</span>
+            <span style={{fontWeight:700,fontSize:Math.round(18*settings.fps_scale/100),
+              flexShrink:0}}>60</span>
+            <span style={{fontSize:12,color:"#a9bbcf",flexShrink:0}}>GPU 72%</span>
+          </span>
+        </div>
+        <PanelSectionRow><ToggleField label="Centriraj horizontalno"
+          description="Centrira cijeli izlistaj po širini ekrana. Pamti ručni X-pomak."
+          checked={settings.center_horizontal} disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(v:boolean)=>update({center_horizontal:v})}/></PanelSectionRow>
+        <PanelSectionRow><SliderField label="X — lijevo/desno (px)"
+          value={settings.offset_x} min={-1920} max={1920} step={1} showValue
+          disabled={!ready || settings.center_horizontal}
+          onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
         <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
           ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
           : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
@@ -676,13 +703,14 @@ function Content() {
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
-          fontsize:defaults.fontsize,opacity:defaults.opacity,rounding:defaults.rounding,
+          fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,center_horizontal:defaults.center_horizontal,
+          opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,inline_metrics:defaults.inline_metrics
         })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili razmake — pomak ne smanjuje širinu." /></PanelSectionRow>
-        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Automatsko centriranje zanemaruje ručni X-pomak, ali ga čuva. Isključivanjem centriranja vraća se ručni položaj po 1 px." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
         </AccordionCard>
         <AccordionCard id="metrics" title="Metrics" subtitle="Prikazane metrike i njihov redoslijed"
