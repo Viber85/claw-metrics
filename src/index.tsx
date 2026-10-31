@@ -12,12 +12,15 @@ import {
   SliderField,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy } from "react-icons/fa";
+import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+
+import {styleLayoutFrom, independentColors, styleModified} from "./style-presets";
+import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
 type WeightSelection = "inherit" | FontWeight;
-type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time";
+type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "draw" | "values";
 type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value";
 type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
 const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
@@ -26,33 +29,37 @@ const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
   gpu: [{key:"gpu.label", label:"GPU naziv", defaultColor:"gpu"}, {key:"gpu.load", label:"Opterećenje (%)", defaultColor:"text"}, {key:"gpu.temp", label:"Temperatura (°C)", defaultColor:"text"}, {key:"gpu.clock", label:"Takt (MHz)", defaultColor:"text"}, {key:"gpu.power", label:"Potrošnja (W)", defaultColor:"text"}, {key:"gpu.junction", label:"Junction temperatura", defaultColor:"text"}, {key:"gpu.fan", label:"Ventilator", defaultColor:"text"}, {key:"gpu.voltage", label:"Napon", defaultColor:"text"}],
   ram: [{key:"ram.label", label:"RAM naziv", defaultColor:"ram"}, {key:"ram.value", label:"Zauzeće (GiB)", defaultColor:"text"}],
   vram: [{key:"vram.label", label:"VRAM naziv", defaultColor:"vram"}, {key:"vram.value", label:"Zauzeće (GiB)", defaultColor:"text"}, {key:"vram.temp", label:"Temperatura memorije", defaultColor:"text"}, {key:"vram.clock", label:"Takt memorije", defaultColor:"text"}],
-  battery: [{key:"battery.label", label:"BATT naziv", defaultColor:"battery"}, {key:"battery.value", label:"Baterija (%) / ikona", defaultColor:"text"}, {key:"battery.time", label:"Preostalo vrijeme", defaultColor:"text"}, {key:"battery.power", label:"Baterija (W)", defaultColor:"text"}],
-  time: [{key:"time.value", label:"Sat", defaultColor:"text"}],
+  battery: [{key:"battery.label", label:"BATT naziv", defaultColor:"battery"}, {key:"battery.value", label:"Baterija (%) / ikona", defaultColor:"text"}, {key:"battery.time", label:"Preostalo vrijeme", defaultColor:"text"}],
+  time: [{key:"time.value", label:"Sat", defaultColor:"time"}],
+  draw: [{key:"battery.power",label:"DRAW",defaultColor:"draw"}],
+  values: [],
 };
+tokenGroups.values=Object.entries(tokenGroups).filter(([key])=>!["time","draw","values"].includes(key)).flatMap(([,tokens])=>tokens.filter(token=>!token.key.endsWith(".label")));
 const weightOptions: WeightSelection[] = ["inherit", "light", "regular", "semibold", "bold"];
 const weightLabel: Record<WeightSelection, string> = {
   inherit: "Global", light: "Light", regular: "Regular", semibold: "SemiBold", bold: "Bold",
 };
 const styleTabs: [StyleCategory,string][] = [
   ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
-  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],
+  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["draw","DRAW"],["values","Vrijednosti"],
 ];
-type SavedStyle = {
+type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
+  sans?:boolean; inline_metrics?:boolean; version?:number;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
   token_colors: Partial<Record<TokenKey, string>>;
 };
 
-type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph";
+type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph" | "time" | "draw";
 type ColorSettings = Record<ColorKey, string>;
 const defaultColors: ColorSettings = {
   text: "F0F2F5", separator: "777C87", fps_label: "30E5A0", fps_value: "30E5A0",
   cpu: "37C9EF", gpu: "8BDA62", ram: "B077DF", vram: "D76AB8",
-  battery: "30E5A0", graph: "30E5A0",
+  battery: "30E5A0", graph: "30E5A0", time:"F0F2F5", draw:"F0F2F5",
 };
 const colorRows: [ColorKey, string][] = [
-  ["text", "Vrijednosti, sat i DRAW"], ["separator", "Separatori između grupa"],
-  ["fps_label", "FPS naziv"], ["fps_value", "FPS broj"],
+  ["text", "Vrijednosti"], ["time", "Clock"], ["draw", "DRAW"], ["separator", "Separatori između grupa"],
+  ["fps_label", "FPS"],
   ["cpu", "CPU naziv"], ["gpu", "GPU naziv"], ["ram", "RAM naziv"],
   ["vram", "VRAM naziv"], ["battery", "BATT naziv"], ["graph", "Frametime graf"],
 ];
@@ -121,7 +128,19 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
     </ConfirmModal>
   );
 }
+const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,draw:<FaBolt/>,values:<FaHashtag/>};
+function RenameMetricModal({name,original,onConfirm,onCancel}:any){
+ const [value,setValue]=useState(name);
+ return <ConfirmModal strTitle="Promijeni naziv metrike" onCancel={onCancel} onOK={()=>onConfirm(cleanName(value))}>
+  <label className="rename-field">Naziv stavke<input autoFocus aria-label="Naziv stavke" maxLength={24} value={value} placeholder={original} onChange={e=>setValue(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();onConfirm(cleanName(value))}if(e.key==='Escape')onCancel()}}/></label>
+  <p className="description">Naziv se koristi u Metrics, Colors & Font i HUD prikazu. Prazan naziv vraća zadani naziv.</p>
+  <DialogButton onClick={()=>setValue('')}>Vrati zadani naziv</DialogButton>
+ </ConfirmModal>;
+}
+
 type Settings = Record<Group, boolean> & {
+  active_style: string|null;
+  custom_labels: Record<string,string>;
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number;
@@ -162,6 +181,7 @@ type Info = {
 };
 
 const defaults: Settings = {
+  active_style:null, custom_labels: {},
   enabled: true, fontsize: 18, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
@@ -376,6 +396,25 @@ function Content() {
     );
   };
 
+  const renameMetric = (key:Group) => {
+    const restoreFocus=()=>requestAnimationFrame(()=>{(document.querySelector('[data-metric="'+key+'"] button') as HTMLElement)?.focus()});
+    const dialog=showModal(<RenameMetricModal name={metricName(current.current,key)} original={groups[key].label}
+      onCancel={()=>{dialog.Close();restoreFocus()}} onConfirm={(value:string)=>{
+        const labels={...current.current.custom_labels};
+        if(!value || value===groups[key].label) delete labels[key];else labels[key]=value;
+        update({custom_labels:labels}); dialog.Close();restoreFocus();
+      }}/>);
+  };
+  const named=(key:string)=>key==="values"?"Vrijednosti":metricName(settings,key);
+  const tokenTitle=(token:MetricToken)=>{
+    const group=token.key==="battery.power"?"draw":token.key.split(".")[0];
+    const key=group==="time"?"time":group;
+    if(token.key.endsWith(".label")||token.key.endsWith(".value")||token.key==="battery.power")return named(key);
+    return (styleCategory==="values"?named(key)+" · ":"")+relatedLabel(settings,token.label).replace(/\s+(naziv|broj)\b/gi,"");
+  };
+  const loadedPreset=settings.active_style?settings.style_presets?.[settings.active_style]:null;
+  const presetDirty=loadedPreset?styleModified({...loadedPreset,colors:independentColors(loadedPreset.colors,defaultColors)},settings):false;
+  const related=(label:string)=>relatedLabel(settings,label);
   const chooseStyleCategory = (id: StyleCategory) => {
     lastStyleCategory = id;
     setStyleCategory(id);
@@ -392,7 +431,7 @@ function Content() {
     const hex = current.current.token_colors?.[token.key] ??
       current.current.colors[token.defaultColor] ?? defaultColors[token.defaultColor];
     const dialog = showModal(<OpaqueColorPicker
-      title={token.label} hex={hex} closeModal={() => dialog.Close()}
+      title={tokenTitle(token)} hex={hex} closeModal={() => dialog.Close()}
       onConfirm={(value: string) => update({
         token_colors: {...current.current.token_colors, [token.key]: value}
       })}
@@ -406,24 +445,36 @@ function Content() {
   const savePreset = (slot: string) => {
     const d = current.current;
     const preset: SavedStyle = {
+      version:2, ...styleLayoutFrom(d),
       colors: {...d.colors}, font_weight: d.font_weight, fps_bold: d.fps_bold,
       token_weights: {...d.token_weights}, token_colors: {...d.token_colors},
     };
-    update({style_presets: {...d.style_presets, [slot]: preset}});
+    update({style_presets: {...d.style_presets, [slot]: preset},active_style:slot});
   };
   const loadPreset = (slot: string) => {
     const preset = current.current.style_presets?.[slot];
     if (!preset) return;
-    update({colors: {...preset.colors}, font_weight: preset.font_weight,
+    update({...styleLayoutFrom(preset),active_style:slot,colors: independentColors(preset.colors,defaultColors), font_weight: preset.font_weight,
       fps_bold: preset.fps_bold, token_weights: {...preset.token_weights},
       token_colors: {...preset.token_colors}});
   };
 
+  const paletteLabel = (key:ColorKey,label:string) => {
+    const category:Partial<Record<ColorKey,Group>>={fps_label:"fps",cpu:"cpu",gpu:"gpu",ram:"ram",vram:"vram",battery:"battery",graph:"frametime",time:"time",draw:"draw"};
+    return category[key]?named(category[key]!):related(label);
+  };
   const openColorPicker = (key: ColorKey, label: string) => {
     const dialog = showModal(<OpaqueColorPicker
-      title={label} hex={current.current.colors[key] ?? defaultColors[key]}
+      title={paletteLabel(key,label)} hex={current.current.colors[key] ?? defaultColors[key]}
       closeModal={() => dialog.Close()}
-      onConfirm={(hex: string) => update({colors: {...current.current.colors, [key]: hex}})}
+      onConfirm={(hex: string) => {
+        const token_colors={...current.current.token_colors};
+        const changed=new Set<ColorKey>(key==="fps_label"?["fps_label","fps_value"]:[key]);
+        for(const tokens of Object.values(tokenGroups))for(const token of tokens){
+          if(changed.has(token.defaultColor))delete token_colors[token.key];
+        }
+        update({colors:{...current.current.colors,[key]:hex,...(key==="fps_label"?{fps_value:hex}:{})},token_colors});
+      }}
     />);
   };
 
@@ -448,7 +499,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.11">
+      <PanelSection title="Claw Metrics · v0.2.4-test.13">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -471,19 +522,15 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="layout" title="Layout" subtitle="Pozicija, veličina, širina i razmaci"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
           ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
+          ["padding_x", "Padding lijevo i desno (px)", 0, 24, 1],
           ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
-          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
+          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready || (key==="padding_x" && !info?.layout_spacing_supported)}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({offset_x: 8, offset_y: 8})}>Vrati položaj na X=8, Y=8</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({fontsize: 12, offset_x: 8, offset_y: 8, padding_y: 4, metrics: {...current.current.metrics, cpu_mhz: false, gpu_core_clock: false}})}>Uži red: manji font i bez MHz</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
           ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
           : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Padding lijevo i desno (px)" value={settings.padding_x} min={0} max={24} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({padding_x: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Razmak između elemenata (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
@@ -497,11 +544,13 @@ function Content() {
 
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
-        <PanelSectionRow><ButtonItem disabled={!ready || !info?.layout_spacing_supported} layout="below"
-          onClick={() => update({padding_x: 5, element_gap: 4, table_gap: 2, graph_width: 110, inner_gap: 4, inline_metrics: true, fps_bold: true})}>
-          Test: kompaktan prikaz (graf 110px, razmaci 4/2px)
-        </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili odaberi kompaktan raspored — pomak ne smanjuje širinu." /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
+          fontsize:defaults.fontsize,opacity:defaults.opacity,rounding:defaults.rounding,
+          padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
+          element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
+          graph_width:defaults.graph_width,inline_metrics:defaults.inline_metrics
+        })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Ručni položaj od lijevog i gornjeg ruba. Padding povećava razmak gore/dolje; bočni razmak u standardnom MangoHudu je fiksan. Ako je red širi od igre, smanji font ili razmake — pomak ne smanjuje širinu." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
 
         </AccordionCard>
@@ -516,33 +565,34 @@ function Content() {
           const total = group.metrics.length + (group.always ? 1 : 0);
           const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
           return <PanelSectionRow key={key}>
-            <div style={{background: "#17212ee8", borderRadius: 10, marginBottom: 6, overflow: "hidden", border: open ? "1px solid #18adf1" : "1px solid #334152"}}>
+            <div className="metric-card" data-metric={key} style={{background: "#17212ee8", borderRadius: 10, marginBottom: 6, overflow: "hidden", border: open ? "1px solid #18adf1" : "1px solid #334152"}}>
               <Focusable style={{display: "flex", alignItems: "center", gap: 4, padding: 5}} flow-children="row">
                 <DialogButton disabled={!ready} onClick={() => expandMetric(open ? null : key)}
                   style={{flex: 1, minWidth: 0, margin: 0, padding: "8px 5px", textAlign: "left", background: "transparent", color: "#f2f7fc", fontSize: 15}}>
                   <span style={{color: "#42bfff", marginRight: 7}}>{open ? "⌄" : "›"}</span>
-                  <span style={{fontWeight: 700}}>{group.label}</span>
+                  <span style={{fontWeight: 700}}>{named(key)}</span>
                   {total > 1 && <span style={{float: "right", color: "#9bbad0", fontSize: 12}}>{count}/{total}</span>}
                 </DialogButton>
-                <DialogButton style={smallButton} disabled={!ready || index === 0} onClick={() => move(key, -1)}><span title="Move up">⌃</span></DialogButton>
-                <DialogButton style={smallButton} disabled={!ready || index === visible.length - 1} onClick={() => move(key, 1)}><span title="Move down">⌄</span></DialogButton>
-                <DialogButton style={smallButton} disabled={!ready} onClick={() => update({[key]: false})}><span title="Hide element">×</span></DialogButton>
+                <DialogButton aria-label={"Promijeni naziv: "+named(key)} style={smallButton} disabled={!ready} onClick={()=>renameMetric(key)}><FaPen aria-hidden="true"/></DialogButton>
+                <DialogButton aria-label={"Pomakni gore: "+named(key)} style={smallButton} disabled={!ready || index === 0} onClick={() => move(key, -1)}><span title="Move up">⌃</span></DialogButton>
+                <DialogButton aria-label={"Pomakni dolje: "+named(key)} style={smallButton} disabled={!ready || index === visible.length - 1} onClick={() => move(key, 1)}><span title="Move down">⌄</span></DialogButton>
+                <DialogButton aria-label={"Sakrij: "+named(key)} style={smallButton} disabled={!ready} onClick={() => update({[key]: false})}><span title="Hide element">×</span></DialogButton>
               </Focusable>
               {open && <div style={{borderLeft: `3px solid ${group.color}`, margin: "4px 9px 12px", paddingLeft: 8}}>
                 <div style={{fontSize: 12, lineHeight: 1.5, color: "#b4c9d8", margin: "8px 0"}}>
                   Toggle the metrics in this block; they show together on one row.
                 </div>
                 <div style={{fontSize: 12, color: "#70cdf7", margin: "12px 0 6px", letterSpacing: 0.5}}>GROUP METRICS</div>
-                {group.always && <Field label={group.always} padding="compact"><span style={{fontSize: 11, color: "#4acbff", background: "#123e59", borderRadius: 12, padding: "3px 7px"}}>Always</span></Field>}
-                {group.metrics.map(([id, label]) => <ToggleField key={id} label={label} checked={settings.metrics[id]} disabled={!ready}
+                {group.always && <Field label={related(group.always)} padding="compact"><span style={{fontSize: 11, color: "#4acbff", background: "#123e59", borderRadius: 12, padding: "3px 7px"}}>Always</span></Field>}
+                {group.metrics.map(([id, label]) => <ToggleField key={id} label={related(label)} checked={settings.metrics[id]} disabled={!ready}
                   onChange={(checked: boolean) => metric(id, checked)} />)}
-                {group.note && <div style={{fontSize: 11, lineHeight: 1.5, color: "#a6b6c6", marginTop: 10}}>{group.note}</div>}
+                {group.note && <div style={{fontSize: 11, lineHeight: 1.5, color: "#a6b6c6", marginTop: 10}}>{related(group.note)}</div>}
               </div>}
             </div>
           </PanelSectionRow>;
         })}
         {hidden.length > 0 && <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>}
-        {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {groups[key].label}</ButtonItem></PanelSectionRow>)}
+        {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {named(key)}</ButtonItem></PanelSectionRow>)}
 
 
         </AccordionCard>
@@ -556,54 +606,53 @@ function Content() {
               style={{minWidth:78,margin:0,padding:8,
                 background:styleCategory===key?"#087daf":"#263d5b",
                 border:styleCategory===key?"1px solid #29dcff":"1px solid #476687"}}>
-              {name}
+              <span className="style-group-icon" aria-hidden="true">{groupIcons[key]}</span> {key==="global"?name:named(key)}
             </DialogButton>)}
           </div>
+          <div className="loaded-style-status" role="status">{loadedPreset?`Učitan stil ${settings.active_style}${presetDirty?" · izmijenjen":" · aktivan"}`:"Prilagođeni izgled · stil nije učitan"}</div>
           {styleCategory==="global" ? <>
-          <PanelSectionRow><Field label="GLOBALNO" description="Font i zadane boje koje ostale vrijednosti nasljeđuju." /></PanelSectionRow>
+          <PanelSectionRow><Field label="GLOBALNO" description="Globalna debljina vrijedi za sve elemente. Promjena boje uklanja ručne boje povezanih elemenata; pojedinačne postavke možeš ponovno zadati nakon toga." /></PanelSectionRow>
           {toggle("sans", "Sans-serif font")}
           <PanelSectionRow><Field label="Barlow Semi Condensed" description={
             info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold učitani."
               : "Fontovi nisu dostupni; koristi se Claw Sans."} /></PanelSectionRow>
-          <PanelSectionRow><Field label="Osnovna debljina" description="Promjena osnovnog fonta može zahtijevati ponovno pokretanje igre." /></PanelSectionRow>
+          <PanelSectionRow><Field label="Osnovna debljina" description="Primjenjuje se na sve elemente i uklanja njihove ručne debljine fonta. Poslije ih možeš ponovno podesiti pojedinačno." /></PanelSectionRow>
           <PanelSectionRow><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {(["light","regular","semibold","bold"] as FontWeight[]).map(weight=>
               <DialogButton key={weight} disabled={!ready || !settings.sans}
-                onClick={()=>update({font_weight:weight})}
+                onClick={()=>update({font_weight:weight,token_weights:{}})}
                 style={{minWidth:82,margin:0,background:settings.font_weight===weight?"#096e9e":"#23364c",
                   fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
                 {weightLabel[weight]}
               </DialogButton>)}
           </div></PanelSectionRow>
-          <PanelSectionRow><ToggleField label="FPS Bold (ako nije ručno postavljen)"
-            checked={settings.fps_bold} disabled={!ready} onChange={v=>update({fps_bold:v})}/></PanelSectionRow>
           {colorRows.map(([key,label])=><PanelSectionRow key={key}>
             <ButtonItem layout="below" disabled={!ready} onClick={()=>openColorPicker(key,label)}>
               <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
                 <span style={{width:20,height:20,borderRadius:5,background:"#"+(settings.colors[key]??defaultColors[key]),border:"1px solid #b8c7d9"}}/>
-                {label}
+                {paletteLabel(key,label)}
               </span>
             </ButtonItem>
           </PanelSectionRow>)}
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
-            onClick={()=>update({colors:{...defaultColors}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
+            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="MOJI STILOVI"
-            description="Tri spremišta za vlastite kombinacije fontova i boja. Spremanje ne mijenja postojeću konfiguraciju." /></PanelSectionRow>
+            description="Tri spremišta za cijeli izgled: boje, font, veličinu teksta, položaj, padding, razmake, zaobljenost i širinu grafa. Stariji stilovi bez Layout postavki zadržavaju trenutačni raspored." /></PanelSectionRow>
           {(["1","2","3"] as const).map(slot=><PanelSectionRow key={slot}>
             <div style={{display:"flex",gap:6}}>
               <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
                 style={{flex:1,margin:0}}>Spremi {slot}</DialogButton>
               <DialogButton disabled={!ready||!settings.style_presets?.[slot]}
-                onClick={()=>loadPreset(slot)} style={{flex:1,margin:0}}>Učitaj {slot}</DialogButton>
+                onClick={()=>loadPreset(slot)} aria-pressed={settings.active_style===slot} style={{flex:1,margin:0,border:settings.active_style===slot?"2px solid "+(presetDirty?"#ffcc66":"#ffffff"):"2px solid transparent"}}>Učitaj {slot}</DialogButton>
             </div>
           </PanelSectionRow>)}
           </> : <>
-          <PanelSectionRow><Field label={styleCategory.toUpperCase()}
+          <PanelSectionRow><Field label={named(styleCategory)}
             description="Svaka stavka ima svoju boju i težinu fonta. Global znači naslijedi osnovnu postavku." /></PanelSectionRow>
           {tokenGroups[styleCategory as Exclude<StyleCategory,"global">].map(token=>(
             <div key={token.key} style={{padding:"8px 4px",marginBottom:8,
               background:"#1a2c43",border:"1px solid #375878",borderRadius:8}}>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:5}}>{token.label}</div>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:5}}>{tokenTitle(token)}</div>
               <PanelSectionRow>
                 <ButtonItem disabled={!ready} layout="below" onClick={()=>cycleTokenWeight(token.key)}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -716,3 +765,5 @@ export default definePlugin(() => ({
   content: <Content />,
   icon: <FaChartLine />,
 }));
+
+export { defaults };
