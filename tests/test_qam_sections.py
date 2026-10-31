@@ -158,9 +158,15 @@ class GroupedQamTests(unittest.TestCase):
     def test_frametime_dropdown_has_four_styles(self):
         self.assertIn('label="Tip frametime grafa"',SOURCE)
         self.assertIn('rgOptions={graphStyleOptions} selectedOption={settings.graph_style}',SOURCE)
-        for label in ("A · Ispuna","B · Linijski graf","C · Histogram",
-                      "F · Linija + blaga ispuna"):
-            self.assertIn(label,SOURCE)
+        self.assertIn('function GraphStyleIcon({kind}',SOURCE)
+        self.assertIn('function graphOption(kind:GraphStyle, label:string)',SOURCE)
+        for kind, label in (("area","A · Ispuna"),("line","B · Linijski graf"),
+                            ("bars","C · Histogram"),("dual","F · Linija + blaga ispuna")):
+            self.assertIn(f'graphOption("{kind}","{label}")',SOURCE)
+        self.assertIn('kind === "bars"',SOURCE)
+        self.assertIn('kind === "dual" ? 2.4 : 1.7',SOURCE)
+        self.assertIn('fillOpacity={kind === "area" ? 0.8 : 0.2}',SOURCE)
+        self.assertIn('maxWidth:"100%",minWidth:0',SOURCE)
         self.assertIn("graph_style:defaults.graph_style",SOURCE)
 
     def test_graph_styles_native_patch_present(self):
