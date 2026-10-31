@@ -117,6 +117,21 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
         self.assertIn('flex: 0 0 auto;', SOURCE)
 
+    def test_amd_gpu_metrics_v3_backport_is_in_native_build(self):
+        workflow=(pathlib.Path(__file__).resolve().parents[1] /
+                  ".github/workflows/layout-experiment.yml").read_text()
+        script=(pathlib.Path(__file__).resolve().parents[1] /
+                "experiments/enable_apu_v3_metrics.py").read_text()
+        self.assertIn("python3 ../experiments/enable_apu_v3_metrics.py src", workflow)
+        self.assertIn("python3 ../experiments/apply_token_styles.py src", workflow)
+        self.assertLess(workflow.index("enable_apu_v3_metrics.py"),
+                        workflow.index("apply_token_styles.py"))
+        for required in ("gpu_metrics_v3_0", "structure_size",
+                         "average_apu_power", "average_gfx_power",
+                         "average_cpu_power_w", "sizeof(gpu_metrics_v3_0) == 264",
+                         "nread < sizeof(gpu_metrics_v3_0)"):
+            self.assertIn(required, script)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)

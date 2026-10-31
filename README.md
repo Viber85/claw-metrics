@@ -1,3 +1,16 @@
+# Claw Metrics v0.2.4-test.22 — Z2 Extreme CPU/GPU power telemetry
+
+MSI Claw A8 user confirmed `gpu_metrics` starts with `8 1 3 0`: structure size 264 bytes (0x108), format revision **3**, content revision **0**. The pinned MangoHud 0.8.1 rejected this format and fell back to GPU sysfs, making CPU 0.0 W and GPU power potentially reflect whole APU power.
+
+- Backport the AMDGPU `gpu_metrics_v3_0` layout (from MangoHud 0.8.2) to **our existing modified MangoHud 0.8.1**, checking exact 264-byte structure size, format and read length.
+- GPU W comes from v3 `average_gfx_power` (mW); the CPU/APU remainder comes from `max(0, average_apu_power - average_gfx_power)` (mW), matching upstream's verified Z2 Extreme fix (flightlessmango/MangoHud#1851, November 2025).
+- CPU power calculation is an upstream-defined APU remainder, not independently measured silicon CPU rail. No direct device wattage accuracy claim until Game Mode validation.
+- Retains per-game Panel de Control TDP readback (test.19), DRAW behavior, QAM styles, editable labels, condensed fonts and selected group border (test.21). No changes to power limits.
+
+Source: https://github.com/flightlessmango/MangoHud/issues/1851
+
+---
+
 # Claw Metrics v0.2.4-test.21 — selected group border / style action icons
 
 - Draw the selected main group's white outline directly **over** the section header, with a positioned, pointer-transparent ring; keep a CSS `!important` outline on Decky's button, rather than relying on the outer card border that did not appear reliably in SteamOS Game Mode. The ring persists when focus moves into the group's controls, and has no effect on click or gamepad input.

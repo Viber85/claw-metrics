@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/active-header-icons-21]
+    branches: [test/z2e-amdgpu-v3-power-22]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.21
+  group: claw-metrics-v0.2.4-test.22
   cancel-in-progress: true
 
 jobs:
@@ -91,6 +91,7 @@ jobs:
           patch -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          python3 ../experiments/enable_apu_v3_metrics.py src
           python3 ../experiments/apply_token_styles.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
@@ -118,7 +119,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.21.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.22.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -137,14 +138,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.21
-          path: ClawMetrics-v0.2.4-test.21.zip
+          name: ClawMetrics-v0.2.4-test.22
+          path: ClawMetrics-v0.2.4-test.22.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.21 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.21 ClawMetrics-v0.2.4-test.21.zip \
+          gh release delete v0.2.4-test.22 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.22 ClawMetrics-v0.2.4-test.22.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.21 – selected-section header outline and style icons" \
-            --notes "Reinforced white selected-category outline painted over Decky header; Play and Download icons on two compact style presets. No changes to functioning per-game TDP, DRAW, saved styles, font assets or MangoHud renderer. SteamOS Game Mode verification required."
+            --title "Claw Metrics v0.2.4-test.22 – Z2 Extreme CPU GPU v3 telemetry" \
+            --notes "Port AMD gpu_metrics v3.0 (Z2 Extreme) to pinned MangoHud 0.8.1 to read GFX power separately and derive CPU/APU remainder correctly. Existing custom renderer, UI, style icons, selected header, Panel de Control TDP and DRAW are preserved. Hardware wattage must be tested on MSI Claw A8 SteamOS."
