@@ -74,7 +74,7 @@ class DevLabSyncTests(unittest.TestCase):
         code = (Path(__file__).resolve().parents[1] /
                 "experiments/apply_token_styles.py").read_text()
         for key in ("claw_ram_label", "claw_vram_label", "claw_battery_label",
-                    "native DRAW token style"):
+                    "native DRAW and TDP token style"):
             self.assertIn(key, code)
 
 
