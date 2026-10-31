@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [feature/bundled-font-alpha-safe]
+    branches: [feature/qam-grouped-v0.2.4-test.9]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.8
+  group: claw-metrics-v0.2.4-test.9
   cancel-in-progress: true
 
 jobs:
@@ -114,7 +114,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.8.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.9.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -133,14 +133,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.8
-          path: ClawMetrics-v0.2.4-test.8.zip
+          name: ClawMetrics-v0.2.4-test.9
+          path: ClawMetrics-v0.2.4-test.9.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.8 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.8 ClawMetrics-v0.2.4-test.8.zip \
+          gh release delete v0.2.4-test.9 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.9 ClawMetrics-v0.2.4-test.9.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.8 – spacing experiment" \
-            --notes "Claw Metrics v0.2.4-test.8: bundled Barlow Semi Condensed Light, Regular, SemiBold and Bold (offline at runtime; fonts verified against upstream Google Fonts git hashes and SIL OFL license included). Fixes color picker by eliminating unsupported Alpha control, retains separate separator color and existing one-line layout. SteamOS hardware validation still needed. Built from tested v0.2.4-test.7."
+            --title "Claw Metrics v0.2.4-test.9 – grouped QAM interface" \
+            --notes "UI-focused test release: replaces the long QAM menu with six collapsible controller-friendly groups (Overlay, Layout, Metrics, Colors & Font, Activation, Advanced), icons, and existing interactive settings. Opens Metrics by default. Retains previous Vulkan renderer, one-line overlay, four bundled font weights, alpha-free color picker, all sensors and existing Steam launch command. This is an experimental release requiring device verification."
