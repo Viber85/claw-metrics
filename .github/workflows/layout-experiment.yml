@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [feature/qam-grouped-v0.2.4-test.10]
+    branches: [feature/qam-typography-test.10]
   workflow_dispatch:
 
 permissions:
