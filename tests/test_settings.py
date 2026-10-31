@@ -106,6 +106,36 @@ class Settings(unittest.TestCase):
         first['colors']['separator'] = 'FFFFFF'
         self.assertEqual(main.normalize({})['colors']['separator'], '777C87')
 
+    def test_condensed_font_weights_and_native_bold_configuration(self):
+        import hashlib
+        from unittest.mock import patch
+        self.assertEqual(main.normalize({})['font_weight'], 'regular')
+        self.assertEqual(main.normalize({'font_weight': 'light'})['font_weight'], 'light')
+        self.assertEqual(main.normalize({'font_weight': 'bold'})['font_weight'], 'bold')
+        self.assertEqual(main.normalize({'font_weight': 'invalid'})['font_weight'], 'regular')
+        dummy = bytes([0, 1, 0, 0]) + bytes(range(256)) * 100
+        digest = hashlib.sha1(b'blob ' + str(len(dummy)).encode() +
+                              bytes([0]) + dummy).hexdigest()
+        self.assertTrue(main.valid_git_font(dummy, digest))
+        self.assertFalse(main.valid_git_font(dummy, '0' * 40))
+        with tempfile.TemporaryDirectory() as folder:
+            with patch.object(main, 'BASE', Path(folder)):
+                with patch.object(main, 'BARLOW_BLOBS', {
+                    'light': ('Light', digest),
+                    'regular': ('Regular', digest),
+                    'bold': ('Bold', digest),
+                }):
+                    for weight in ('light', 'regular', 'bold'):
+                        main.write_atomic(main.condensed_font_path(weight), dummy)
+                    self.assertTrue(main.condensed_fonts_ready())
+                    native = main.mango_config(main.normalize({
+                        'font_weight': 'light'}), native_spacing=True)
+                    self.assertIn('font_file=' + str(main.condensed_font_path('light')) + '\n', native)
+                    self.assertIn('claw_bold_font_file=' + str(main.condensed_font_path('bold')) + '\n', native)
+                    normal = main.mango_config(main.normalize({'font_weight': 'bold'}))
+                    self.assertIn('font_file=' + str(main.condensed_font_path('bold')) + '\n', normal)
+                    self.assertNotIn('claw_bold_font_file=', normal)
+
     def test_experimental_layer_manifest_is_explicit(self):
         from unittest.mock import patch
         import json
