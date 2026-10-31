@@ -16,7 +16,7 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(f'<AccordionCard id="{key}"', SOURCE)
         self.assertEqual(SOURCE.count("<AccordionCard id="), 6)
         self.assertIn('useState<SectionKey | null>(() => lastOpenSection)', SOURCE)
-        self.assertIn('setOpenSection(old => old === id ? null : id)', SOURCE)
+        self.assertIn('setOpenSection(next)', SOURCE)
         self.assertIn("<DialogButton onClick={onToggle}", SOURCE)
 
     def test_existing_controls_and_safe_color_picker_survive(self):
