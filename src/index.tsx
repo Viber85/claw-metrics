@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
-  ColorPickerModal,
+  ConfirmModal,
   showModal,
   DialogButton,
   Focusable,
@@ -48,13 +48,12 @@ function rgbToHsl(hex: string): [number, number, number] {
   }
   return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
 }
-function hslStringToHex(value: string): string | null {
-  const match = value.match(/^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%(?:\s*,\s*[\d.]+)?\s*\)$/);
-  if (!match) return null;
-  const hue = Number(match[1]), saturation = Number(match[2]), lightness = Number(match[3]);
-  if (![hue, saturation, lightness].every(Number.isFinite)) return null;
-  const h = ((hue % 360) + 360) % 360, s = Math.max(0, Math.min(100, saturation)) / 100,
-    l = Math.max(0, Math.min(100, lightness)) / 100;
+function hslToHex(hue: number, saturation: number, lightness: number): string {
+  // This plugin only stores opaque 24-bit RGB. Alpha is not supported by
+  // MangoHud label/separator settings; never add a fourth channel.
+  const h = ((hue % 360) + 360) % 360;
+  const s = Math.max(0, Math.min(100, saturation)) / 100;
+  const l = Math.max(0, Math.min(100, lightness)) / 100;
   const a = s * Math.min(l, 1 - l);
   const channel = (n: number) => {
     const k = (n + h / 30) % 12;
@@ -62,6 +61,38 @@ function hslStringToHex(value: string): string | null {
       .toString(16).padStart(2, "0").toUpperCase();
   };
   return channel(0) + channel(8) + channel(4);
+}
+
+type OpaqueColorPickerProps = {
+  title: string; hex: string; closeModal: () => void; onConfirm: (hex: string) => void;
+};
+function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPickerProps) {
+  const [initialH, initialS, initialL] = rgbToHsl(hex);
+  const [h, setH] = useState(initialH);
+  const [s, setS] = useState(initialS);
+  const [l, setL] = useState(initialL);
+  const preview = hslToHex(h, s, l);
+  return (
+    <ConfirmModal strTitle={title} bAllowFullSize onCancel={closeModal}
+      onOK={() => { onConfirm(preview); closeModal(); }}>
+      <div style={{padding: "8px 4px 14px"}}>
+        <div style={{display: "flex", alignItems: "center", gap: 12, marginBottom: 12}}>
+          <div style={{height: 48, width: 48, borderRadius: 5,
+            backgroundColor: "#" + preview, border: "1px solid #8794a4"}} />
+          <div>
+            <div>#{preview}</div>
+            <div style={{fontSize: 12, opacity: 0.7}}>Neprozirna RGB boja (alpha 100%)</div>
+          </div>
+        </div>
+        <SliderField showValue editableValue label="Nijansa (Hue)"
+          value={h} min={0} max={360} step={1} onChange={setH} />
+        <SliderField showValue editableValue label="Zasićenost (Saturation)"
+          value={s} min={0} max={100} step={1} onChange={setS} />
+        <SliderField showValue editableValue label="Svjetlina (Lightness)"
+          value={l} min={0} max={100} step={1} onChange={setL} />
+      </div>
+    </ConfirmModal>
+  );
 }
 type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
@@ -246,14 +277,10 @@ function Content() {
   };
 
   const openColorPicker = (key: ColorKey, label: string) => {
-    const [h, sat, light] = rgbToHsl(current.current.colors[key] ?? defaultColors[key]);
-    const dialog = showModal(<ColorPickerModal
-      title={label} defaultH={h} defaultS={sat} defaultL={light} defaultA={1}
+    const dialog = showModal(<OpaqueColorPicker
+      title={label} hex={current.current.colors[key] ?? defaultColors[key]}
       closeModal={() => dialog.Close()}
-      onConfirm={(hsl: string) => {
-        const hex = hslStringToHex(hsl);
-        if (hex) update({colors: {...current.current.colors, [key]: hex}});
-      }}
+      onConfirm={(hex: string) => update({colors: {...current.current.colors, [key]: hex}})}
     />);
   };
 
@@ -379,7 +406,7 @@ function Content() {
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. FPS se ne može zasebno povećati u ovom MangoHud rendereru." /></PanelSectionRow>
       </PanelSection>
       <PanelSection title="BOJE / COLORS">
-        <PanelSectionRow><Field label="Birač boja" description="Odaberi element i prilagodi nijansu, zasićenost i svjetlinu kontrolerom. Nazivi kategorija, brojčane vrijednosti i separatori imaju odvojene boje. Promjene se spremaju za oba MangoHud profila." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Birač boja" description="Odaberi element i prilagodi nijansu, zasićenost i svjetlinu kontrolerom. Alpha je zaključana na 100% i više nema klizača za nju, jer MangoHud u ovom profilu koristi samo RGB. Promjene se spremaju za oba profila." /></PanelSectionRow>
         {colorRows.map(([key, label]) => (
           <PanelSectionRow key={key}>
             <ButtonItem layout="below" disabled={!ready} onClick={() => openColorPicker(key, label)}>
