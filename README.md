@@ -1,3 +1,15 @@
+# Claw Metrics v0.2.4-test.13 — Claw DevLab sync (experimental)
+
+Source: `ikorljan-droid/claw-devlab` main commit `9acb36c6ab1b3e3d3a866f6dc09ff0eaf548431e` (2026-10-31).
+
+Imports the current DevLab Decky QAM UI: named metrics, global font weight clearing manual overrides, palette changes clearing related manual colors, separate Clock/DRAW/Values categories, active style marker, and full visual style presets including font size, position, padding and spacing.
+
+The backend now normalizes/persists the new settings and migrates older color/preset configurations. Native modified MangoHud keeps its Vulkan renderer, implements custom RAM/VRAM/Battery labels and maps the Clock and DRAW appearance independently; FPS/CPU/GPU labels use existing MangoHud config parameters. DRAW is still host-sampled battery discharge, not APU TDP.
+
+**Compatibility:** This is a separate prerelease, not a change to SteamOS MangoHud. The overlay is an opt-in experiment with the same short Steam launch option as test.12. Native Game Mode/Proton results must be checked on the MSI Claw A8; browser preview and CI alone do not establish compatibility. Use test.12 to roll back.
+
+---
+
 # v0.2.4-test.12 — stability only
 
 The short launcher now publishes executable content atomically and avoids rewriting itself when already valid. If the renderer library, Vulkan manifest or custom HUD configuration is missing during an update, it launches the game normally without the custom HUD. It does not try to inject or fix an incompatible present layer. No TDP additions, SteamOS native integrations or native renderer changes in this build.

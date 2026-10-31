@@ -25,11 +25,13 @@ class GroupedQamTests(unittest.TestCase):
             "Kopiraj kratku testnu komandu", "Prikaži dugu rezervnu komandu",
             "Razmak unutar grupa", "Širina frametime grafa",
             "Vrati zadane boje", "OpaqueColorPicker",
-            "SemiBold", "fps_bold", "font_weight", "MangoHud",
-            "Vrati položaj", "Battery", "TDP · Panel de Control",
+            "SemiBold", "font_weight", "MangoHud",
+            "Vrati zadane postavke Layouta", "Battery", "TDP · Panel de Control",
         ):
             self.assertIn(option, SOURCE, option)
         self.assertNotIn("ColorPickerModal", SOURCE)
+        self.assertNotIn("FPS Bold", SOURCE)
+        self.assertNotIn("Uži red", SOURCE)
 
     def test_active_category_survives_react_remounts(self):
         self.assertIn('lastOpenSection: SectionKey | null = "metrics"', SOURCE)
@@ -49,6 +51,15 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('font_weight: FontWeight;', SOURCE)
         self.assertIn('styleCategory==="global"', SOURCE)
         self.assertEqual(SOURCE.count('<AccordionCard id='), 6)
+
+    def test_devlab_latest_controls_present(self):
+        for name in ("custom_labels", "RenameMetricModal", "styleLayoutFrom",
+                     "independentColors", "styleModified", "loaded-style-status",
+                     "active_style", "Vrijednosti", "DRAW", "Clock",
+                     "Vrati zadane postavke Layouta", "groupIcons"):
+            self.assertIn(name, SOURCE, name)
+        self.assertIn("token_weights:{}", SOURCE)
+        self.assertIn("token_colors:{}", SOURCE)
 
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
