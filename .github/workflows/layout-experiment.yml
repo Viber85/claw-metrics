@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [feature/devlab-sync-test.13]
+    branches: [feature/tdp-draw-test.14]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.13
+  group: claw-metrics-v0.2.4-test.14
   cancel-in-progress: true
 
 jobs:
@@ -118,7 +118,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.13.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.14.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -137,14 +137,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.13
-          path: ClawMetrics-v0.2.4-test.13.zip
+          name: ClawMetrics-v0.2.4-test.14
+          path: ClawMetrics-v0.2.4-test.14.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.13 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.13 ClawMetrics-v0.2.4-test.13.zip \
+          gh release delete v0.2.4-test.14 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.14 ClawMetrics-v0.2.4-test.14.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.13 – stability hardening" \
-            --notes "Stability-only: short launcher now atomically installed, avoids reinstallation while valid, and fails open if renderer assets are missing. Existing renderer and overlay design untouched. SteamOS device validation still required."
+            --title "Claw Metrics v0.2.4-test.14 – TDP + DRAW telemetry" \
+            --notes "Adds optional read-only TDP limit metric beside existing battery DRAW telemetry. TDP uses RyzenAdj STAPM readback or MSI firmware PL1 when readable, otherwise displays TDP --. No limit writes; DRAW continues to report system battery discharge on battery and -- on charging/AC. Native renderer styles both separately, and QAM provides sensor-source status. Official SteamOS/Z2E validation required."

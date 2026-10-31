@@ -1,3 +1,15 @@
+# Claw Metrics v0.2.4-test.14 — read-only TDP and DRAW
+
+- Optional **TDP** metric: sustained APU limit from `ryzenadj -i` STAPM readback on official SteamOS or MSI firmware PL1 if exposed. Never invokes writes and never guesses an unavailable limit. Displays `TDP --` if neither source is readable.
+- **DRAW** remains whole-device battery-discharge telemetry from battery sensors, not APU power. DRAW becomes `--` while charging or on AC because total wall draw cannot be reliably derived from the battery sensor.
+- Both are separate groups in Metrics, independently ordered and colored in Colors & Font. TDP starts off for existing installs: enable with **Metrics → ADD ELEMENT → TDP**; position it as desired near DRAW.
+- Advanced → Provjeri TDP očitanje reports the current source. If kernel blocks RyzenAdj information, the display cannot promise a number.
+- Read-only sensor sampling runs on the Decky backend, not inside games. The native modified Vulkan MangoHud renderer and test.13 layout are preserved.
+
+Linux/CI checks do not prove hardware TDP readback or Proton behavior. SteamOS MSI Claw A8 verification needed. Roll back to test.13 if anything regresses.
+
+---
+
 # Claw Metrics v0.2.4-test.13 — Claw DevLab sync (experimental)
 
 Source: `ikorljan-droid/claw-devlab` main commit `9acb36c6ab1b3e3d3a866f6dc09ff0eaf548431e` (2026-10-31).

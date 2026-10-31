@@ -26,7 +26,7 @@ class GroupedQamTests(unittest.TestCase):
             "Razmak unutar grupa", "Širina frametime grafa",
             "Vrati zadane boje", "OpaqueColorPicker",
             "SemiBold", "font_weight", "MangoHud",
-            "Vrati zadane postavke Layouta", "Battery", "TDP · Panel de Control",
+            "Vrati zadane postavke Layouta", "Battery", "TDP limit (read-only)",
         ):
             self.assertIn(option, SOURCE, option)
         self.assertNotIn("ColorPickerModal", SOURCE)
@@ -67,7 +67,8 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('copyLaunchCommand("short")', SOURCE)
         self.assertIn("short_launcher_ready", SOURCE)
         self.assertIn("onChange={(value: number) => update(", SOURCE)
-        self.assertIn('Očitanje primijenjenog limita još nije dostupno.', SOURCE)
+        self.assertIn('Provjeri TDP očitanje', SOURCE)
+        self.assertIn('get_tdp_status', SOURCE)
 
 
 if __name__ == "__main__":
