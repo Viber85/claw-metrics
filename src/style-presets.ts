@@ -1,10 +1,10 @@
 // Appearance only: sensor selection, metric names/order and other slots are not overwritten.
-export const styleLayoutKeys = ['sans','fontsize','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','inline_metrics'] as const;
+export const styleLayoutKeys = ['sans','fontsize','fps_scale','center_horizontal','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','inline_metrics'] as const;
 export function styleLayoutFrom(value:any){
  const result:any={};
  for(const key of styleLayoutKeys){
   const v=value?.[key];
-  if(key==='sans'||key==='inline_metrics'){if(typeof v==='boolean')result[key]=v}
+  if(key==='sans'||key==='inline_metrics'||key==='center_horizontal'){if(typeof v==='boolean')result[key]=v}
   else if(typeof v==='number'&&Number.isFinite(v))result[key]=v;
  }
  return result;
