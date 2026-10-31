@@ -1,0 +1,40 @@
+name: Opaque color picker safety checks (no release)
+on:
+  push:
+    branches:
+      - feature/bundled-font-alpha-safe
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Backend tests
+        env:
+          CLAW_METRICS_SKIP_FONT_DOWNLOAD: "1"
+        run: python3 -m unittest discover -s tests
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check QAM
+        run: npm run typecheck
+      - name: Build QAM
+        run: npm run build
+      - name: Ensure color editor is opaque-only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path('src/index.tsx').read_text()
+          assert 'function OpaqueColorPicker' in src
+          assert 'ColorPickerModal' not in src
+          assert 'defaultA' not in src
+          assert 'Alpha' not in src.split('function OpaqueColorPicker')[1].split('type Settings')[0].replace('alpha 100%', '')
+          assert 'return channel(0) + channel(8) + channel(4)' in src
+          print('Opaque RGB-only picker present; alpha input removed')
+          PY
