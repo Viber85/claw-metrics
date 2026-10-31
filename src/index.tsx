@@ -516,10 +516,27 @@ function Content() {
           outline: 2px solid #ffffff !important; outline-offset: -3px;
           box-shadow: inset 0 0 0 1px #ffffff;
         }
-        [data-section="colors"] .style-group-icon {
-          display: inline-flex; align-items: center; margin-right: 5px;
-          color: #bceaff; font-size: 14px;
+        /* Narrow QAM panel: fixed 3-column grid with no intrinsic button min-width. */
+        .claw-tiles {
+          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px; width: 100%; min-width: 0; padding: 4px 0 10px;
+          box-sizing: border-box;
         }
+        .claw-tiles > *, .claw-tiles button {
+          min-width: 0 !important; max-width: 100%; box-sizing: border-box;
+        }
+        .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
+        .claw-style-tiles .style-group-icon {
+          display: inline-flex; align-items: center; justify-content: center;
+          margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
+        }
+        .claw-metric-tiles .metric-card:focus-within {
+          outline: 2px solid #ffffff; outline-offset: -2px; border-radius: 8px;
+        }
+        .claw-metric-tiles button[aria-pressed="true"] {
+          box-shadow: 0 0 0 1px #29dcff inset;
+        }
+        .claw-weight-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         [data-section="colors"] .loaded-style-status {
           padding: 9px 8px; margin: 0 0 12px; background: #0b263b;
           border: 1px solid #306689; border-radius: 5px;
@@ -532,7 +549,7 @@ function Content() {
           border-radius: 4px; color: #fff;
         }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.14">
+      <PanelSection title="Claw Metrics · v0.2.4-test.15">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -589,57 +606,100 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="metrics" title="Metrics" subtitle="Prikazane metrike i njihov redoslijed"
           icon={<FaChartBar />} open={openSection === "metrics"} onToggle={() => toggleSection("metrics")}>
-        <PanelSectionRow><div style={{fontSize: 13, color: "#b8c7d5", marginBottom: 12}}>
-          Reorder with the arrows. Items with a chevron have their own settings.
+        <PanelSectionRow><div style={{fontSize: 12, color: "#b8c7d5", marginBottom: 8}}>
+          Odaberi karticu za detalje, preimenovanje, pomicanje i skrivanje. Tri metrike u redu.
         </div></PanelSectionRow>
-        {visible.map((key, index) => {
-          const group = groups[key];
-          const open = expanded === key;
-          const total = group.metrics.length + (group.always ? 1 : 0);
-          const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
-          return <PanelSectionRow key={key}>
-            <div className="metric-card" data-metric={key} style={{background: "#17212ee8", borderRadius: 10, marginBottom: 6, overflow: "hidden", border: open ? "1px solid #18adf1" : "1px solid #334152"}}>
-              <Focusable style={{display: "flex", alignItems: "center", gap: 4, padding: 5}} flow-children="row">
-                <DialogButton disabled={!ready} onClick={() => expandMetric(open ? null : key)}
-                  style={{flex: 1, minWidth: 0, margin: 0, padding: "8px 5px", textAlign: "left", background: "transparent", color: "#f2f7fc", fontSize: 15}}>
-                  <span style={{color: "#42bfff", marginRight: 7}}>{open ? "⌄" : "›"}</span>
-                  <span style={{fontWeight: 700}}>{named(key)}</span>
-                  {total > 1 && <span style={{float: "right", color: "#9bbad0", fontSize: 12}}>{count}/{total}</span>}
-                </DialogButton>
-                <DialogButton aria-label={"Promijeni naziv: "+named(key)} style={smallButton} disabled={!ready} onClick={()=>renameMetric(key)}><FaPen aria-hidden="true"/></DialogButton>
-                <DialogButton aria-label={"Pomakni gore: "+named(key)} style={smallButton} disabled={!ready || index === 0} onClick={() => move(key, -1)}><span title="Move up">⌃</span></DialogButton>
-                <DialogButton aria-label={"Pomakni dolje: "+named(key)} style={smallButton} disabled={!ready || index === visible.length - 1} onClick={() => move(key, 1)}><span title="Move down">⌄</span></DialogButton>
-                <DialogButton aria-label={"Sakrij: "+named(key)} style={smallButton} disabled={!ready} onClick={() => update({[key]: false})}><span title="Hide element">×</span></DialogButton>
-              </Focusable>
-              {open && <div style={{borderLeft: `3px solid ${group.color}`, margin: "4px 9px 12px", paddingLeft: 8}}>
-                <div style={{fontSize: 12, lineHeight: 1.5, color: "#b4c9d8", margin: "8px 0"}}>
-                  Toggle the metrics in this block; they show together on one row.
-                </div>
-                <div style={{fontSize: 12, color: "#70cdf7", margin: "12px 0 6px", letterSpacing: 0.5}}>GROUP METRICS</div>
-                {group.always && <Field label={related(group.always)} padding="compact"><span style={{fontSize: 11, color: "#4acbff", background: "#123e59", borderRadius: 12, padding: "3px 7px"}}>Always</span></Field>}
-                {group.metrics.map(([id, label]) => <ToggleField key={id} label={related(label)} checked={settings.metrics[id]} disabled={!ready}
-                  onChange={(checked: boolean) => metric(id, checked)} />)}
-                {group.note && <div style={{fontSize: 11, lineHeight: 1.5, color: "#a6b6c6", marginTop: 10}}>{related(group.note)}</div>}
-              </div>}
-            </div>
-          </PanelSectionRow>;
-        })}
-        {hidden.length > 0 && <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>}
-        {hidden.map(key => <PanelSectionRow key={key}><ButtonItem disabled={!ready} layout="below" onClick={() => update({[key]: true})}>+ {named(key)}</ButtonItem></PanelSectionRow>)}
-
+        <div className="claw-tiles claw-metric-tiles">
+          {visible.map(key => {
+            const group = groups[key];
+            const open = expanded === key;
+            const total = group.metrics.length + (group.always ? 1 : 0);
+            const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
+            return <div key={key} className="metric-card" data-metric={key}>
+              <DialogButton disabled={!ready} aria-pressed={open}
+                aria-label={"Postavke metrike: " + named(key)}
+                onClick={() => expandMetric(open ? null : key)}
+                style={{width:"100%",minWidth:0,minHeight:62,margin:0,padding:"7px 3px",
+                  background:open?"#075783":"#172d44",
+                  border:open?"2px solid #32d7ff":"1px solid #406586",
+                  borderRadius:8,color:"#f2f7fc"}}>
+                <span style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                  gap:4,width:"100%",minWidth:0}}>
+                  <span aria-hidden="true" style={{fontSize:15,color:group.color,lineHeight:1}}>{groupIcons[key]}</span>
+                  <span style={{fontSize:12,fontWeight:600,lineHeight:1.15,overflowWrap:"anywhere",
+                    textAlign:"center",width:"100%",minWidth:0}}>{named(key)}</span>
+                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count}/{total}</span>}
+                </span>
+              </DialogButton>
+            </div>;
+          })}
+        </div>
+        {expanded && settings[expanded] && (() => {
+          const key=expanded;
+          const group=groups[key];
+          const index=visible.indexOf(key);
+          return <div className="metric-detail" style={{border:"1px solid #365d7c",
+            borderLeft:"3px solid "+group.color,borderRadius:8,background:"#102236",
+            padding:"9px 7px",marginTop:9,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Postavke</div>
+            <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
+              <DialogButton aria-label={"Promijeni naziv: "+named(key)} disabled={!ready}
+                onClick={()=>renameMetric(key)} style={smallButton}><FaPen aria-hidden="true"/></DialogButton>
+              <DialogButton aria-label={"Pomakni gore: "+named(key)} disabled={!ready || index<=0}
+                onClick={()=>move(key,-1)} style={smallButton}>⌃</DialogButton>
+              <DialogButton aria-label={"Pomakni dolje: "+named(key)} disabled={!ready || index===visible.length-1}
+                onClick={()=>move(key,1)} style={smallButton}>⌄</DialogButton>
+              <DialogButton aria-label={"Sakrij: "+named(key)} disabled={!ready}
+                onClick={()=>{expandMetric(null);update({[key]:false});}}
+                style={{...smallButton,minWidth:66,width:66,fontSize:12}}>Sakrij</DialogButton>
+            </Focusable>
+            {group.always && <Field label={related(group.always)} padding="compact">
+              <span style={{fontSize:11,color:"#4acbff"}}>Always</span>
+            </Field>}
+            {group.metrics.map(([id,label])=><ToggleField key={id} label={related(label)}
+              checked={settings.metrics[id]} disabled={!ready}
+              onChange={(checked:boolean)=>metric(id,checked)}/>)}
+            {group.note && <div style={{fontSize:11,lineHeight:1.4,color:"#a6b6c6",marginTop:8}}>
+              {related(group.note)}
+            </div>}
+          </div>;
+        })()}
+        {hidden.length > 0 && <>
+          <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>
+          <div className="claw-tiles claw-hidden-metric-tiles">
+            {hidden.map(key=><DialogButton key={key} disabled={!ready}
+              aria-label={"Prikaži metriku: "+named(key)}
+              onClick={()=>update({[key]:true})}
+              style={{minWidth:0,width:"100%",minHeight:52,margin:0,padding:"6px 3px",
+                background:"#162b3f",border:"1px dashed #50708e",borderRadius:8}}>
+              <span style={{display:"flex",alignItems:"center",justifyContent:"center",
+                flexDirection:"column",gap:4,minWidth:0}}>
+                <span aria-hidden="true" style={{fontSize:14,color:groups[key].color}}>{groupIcons[key]}</span>
+                <span style={{fontSize:11,overflowWrap:"anywhere",textAlign:"center"}}>+ {named(key)}</span>
+              </span>
+            </DialogButton>)}
+          </div>
+        </>}
 
         </AccordionCard>
         <AccordionCard id="colors" title="Colors & Font" subtitle="Paleta, separatori, Light / Regular / SemiBold / Bold"
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
           <PanelSectionRow><Field label="BOJE & FONT"
             description="Globalne postavke ili zasebne postavke naziva i vrijednosti svake metrike." /></PanelSectionRow>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",padding:"5px 0 12px"}}>
+          <div className="claw-tiles claw-style-tiles">
             {styleTabs.map(([key,name])=><DialogButton key={key} disabled={!ready}
+              aria-pressed={styleCategory===key} aria-label={"Stil: "+(key==="global"?name:named(key))}
               onClick={()=>chooseStyleCategory(key)}
-              style={{minWidth:78,margin:0,padding:8,
+              style={{minWidth:0,width:"100%",minHeight:49,margin:0,padding:"6px 3px",
                 background:styleCategory===key?"#087daf":"#263d5b",
-                border:styleCategory===key?"1px solid #29dcff":"1px solid #476687"}}>
-              <span className="style-group-icon" aria-hidden="true">{groupIcons[key]}</span> {key==="global"?name:named(key)}
+                border:styleCategory===key?"2px solid #29dcff":"1px solid #476687",
+                borderRadius:8,color:"#eef5ff"}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",gap:4,minWidth:0,width:"100%"}}>
+                <span className="style-group-icon" aria-hidden="true">{groupIcons[key]}</span>
+                <span style={{fontSize:11.5,lineHeight:1.2,overflowWrap:"anywhere",
+                  textAlign:"center",width:"100%",minWidth:0}}>{key==="global"?name:named(key)}</span>
+              </span>
             </DialogButton>)}
           </div>
           <div className="loaded-style-status" role="status">{loadedPreset?`Učitan stil ${settings.active_style}${presetDirty?" · izmijenjen":" · aktivan"}`:"Prilagođeni izgled · stil nije učitan"}</div>
@@ -650,23 +710,34 @@ function Content() {
             info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold učitani."
               : "Fontovi nisu dostupni; koristi se Claw Sans."} /></PanelSectionRow>
           <PanelSectionRow><Field label="Osnovna debljina" description="Primjenjuje se na sve elemente i uklanja njihove ručne debljine fonta. Poslije ih možeš ponovno podesiti pojedinačno." /></PanelSectionRow>
-          <PanelSectionRow><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          <div className="claw-tiles claw-weight-tiles">
             {(["light","regular","semibold","bold"] as FontWeight[]).map(weight=>
               <DialogButton key={weight} disabled={!ready || !settings.sans}
+                aria-pressed={settings.font_weight===weight}
                 onClick={()=>update({font_weight:weight,token_weights:{}})}
-                style={{minWidth:82,margin:0,background:settings.font_weight===weight?"#096e9e":"#23364c",
-                  fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
+                style={{minWidth:0,width:"100%",minHeight:39,margin:0,padding:"7px 2px",
+                  background:settings.font_weight===weight?"#096e9e":"#23364c",
+                  border:"1px solid #406080",borderRadius:7,
+                  fontSize:11,fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
                 {weightLabel[weight]}
               </DialogButton>)}
-          </div></PanelSectionRow>
-          {colorRows.map(([key,label])=><PanelSectionRow key={key}>
-            <ButtonItem layout="below" disabled={!ready} onClick={()=>openColorPicker(key,label)}>
-              <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
-                <span style={{width:20,height:20,borderRadius:5,background:"#"+(settings.colors[key]??defaultColors[key]),border:"1px solid #b8c7d9"}}/>
-                {paletteLabel(key,label)}
+          </div>
+          <div className="claw-tiles claw-color-tiles">
+            {colorRows.map(([key,label])=><DialogButton key={key} disabled={!ready}
+              onClick={()=>openColorPicker(key,label)}
+              aria-label={"Promijeni boju: "+paletteLabel(key,label)}
+              style={{minWidth:0,width:"100%",minHeight:51,margin:0,padding:"6px 3px",
+                background:"#21354c",border:"1px solid #496783",borderRadius:8,color:"#e8f4ff"}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                gap:4,minWidth:0,width:"100%"}}>
+                <span aria-hidden="true" style={{width:14,height:14,flexShrink:0,borderRadius:4,
+                  background:"#"+(settings.colors[key]??defaultColors[key]),
+                  border:"1px solid #b8c7d9"}}/>
+                <span style={{fontSize:11,lineHeight:1.2,overflowWrap:"anywhere",
+                  textAlign:"center",minWidth:0,width:"100%"}}>{paletteLabel(key,label)}</span>
               </span>
-            </ButtonItem>
-          </PanelSectionRow>)}
+            </DialogButton>)}
+          </div>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
             onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="MOJI STILOVI"

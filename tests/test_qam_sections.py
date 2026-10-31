@@ -61,6 +61,25 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("token_weights:{}", SOURCE)
         self.assertIn("token_colors:{}", SOURCE)
 
+    def test_compact_three_column_grids_preserve_actions_and_focus(self):
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", SOURCE)
+        for name in ("claw-style-tiles", "claw-color-tiles",
+                     "claw-metric-tiles", "claw-hidden-metric-tiles",
+                     "claw-weight-tiles"):
+            self.assertIn(name, SOURCE, name)
+        self.assertIn("min-width: 0 !important", SOURCE)
+        self.assertIn("aria-pressed={styleCategory===key}", SOURCE)
+        self.assertIn("aria-pressed={open}", SOURCE)
+        self.assertIn("expandMetric(open ? null : key)", SOURCE)
+        self.assertIn("onClick={()=>renameMetric(key)}", SOURCE)
+        self.assertIn("onClick={()=>move(key,-1)}", SOURCE)
+        self.assertIn("onClick={()=>move(key,1)}", SOURCE)
+        self.assertIn("update({[key]:false})", SOURCE)
+        self.assertIn("onChange={(checked:boolean)=>metric(id,checked)}", SOURCE)
+        self.assertIn("onClick={()=>update({[key]:true})}", SOURCE)
+        self.assertIn("openColorPicker(key,label)", SOURCE)
+        self.assertIn("styleModified", SOURCE)
+
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
         self.assertIn("copyLaunchCommand(true)", SOURCE)

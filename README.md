@@ -1,3 +1,16 @@
+# Claw Metrics v0.2.4-test.15 — Decky Game Mode compact UI
+
+UI-only prerelease based on v0.2.4-test.14 (official SteamOS, MSI Claw A8 Z2 Extreme).
+
+- **Colors & Font:** style categories and global colors now display in 3 columns with reduced 13–15px icons and smaller padding, so 11 categories and all colors fit a narrow Decky Quick Access Menu.
+- **Metrics:** enabled metrics appear as compact 3-column cards. Selecting a card reveals its original edit, reorder, hide and per-submetric toggle actions in a full-width details panel below. Disabled metrics return via compact "ADD ELEMENT" tiles. Renaming, state persistence and gamepad focus are retained.
+- Font-weight options use a compact 2x2 grid to prevent overflow. Saved style slots and advanced style controls remain present.
+- No changes to the modified MangoHud Vulkan renderer, Decky Python backend, TDP read-only sampling or battery DRAW telemetry. Existing launch option stays the same.
+
+The layout must be checked on the actual SteamOS Decky panel. If any focus or functionality regression occurs, reinstall test.14 from its release.
+
+---
+
 # Claw Metrics v0.2.4-test.14 — read-only TDP and DRAW
 
 - Optional **TDP** metric: sustained APU limit from `ryzenadj -i` STAPM readback on official SteamOS or MSI firmware PL1 if exposed. Never invokes writes and never guesses an unavailable limit. Displays `TDP --` if neither source is readable.
