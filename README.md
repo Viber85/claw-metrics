@@ -1,3 +1,12 @@
+# Claw Metrics v0.2.4-test.25 — vertikalno centriranje uz povećani FPS
+
+- Pri FPS veličini iznad 100%, sve ostale metrike, FPS oznaka, frametime (ms) i frametime graf centriraju se vertikalno uz povećani FPS broj. Računa se stvarna visina fonta iz MangoHud/ImGui font atlasa, a ne pretpostavljena visina; primjenjuje se nakon raspoređivanja elemenata u stupce tako da podržava promjenu redoslijeda.
+- Sam povećani FPS broj ostaje u originalnoj poziciji. Na 100% ili kada povećani font nije učitan svi elementi ostaju na postojećem položaju. Ne mijenjaju se ostali fontovi, horizontalni položaj ili razmaci.
+- Nema promjena na Z2 Extreme CPU/GPU potrošnji, aktivnom TDP profilu, DRAW-u, četiri A/B/C/F stila grafa, ikonama odabira, spremanju Stil 1/Stil 2 ili ostalim korisničkim opcijama.
+- Izmjena vrijedi za modificirani Vulkan renderer. Potrebna je provjera prikaza na stvarnom MSI Claw A8 pri 100%, 150% i 200% FPS veličine.
+
+---
+
 # Claw Metrics v0.2.4-test.24 — četverostruki frametime graf
 
 Layout → **Tip frametime grafa**: A Ispuna, B Linijski graf, C Histogram, F Linija + blaga ispuna. Zadano je B, dosadašnji prikaz. Koriste se stvarni frametime podaci i postojeća boja grafa. Odabir se sprema u Stil 1 i Stil 2. Izmjena djeluje u našem modificiranom Vulkan rendereru nakon ponovnog pokretanja igre, bez promjena na CPU/GPU, TDP, DRAW, FPS veličini ili centriranju.

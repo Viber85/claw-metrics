@@ -178,6 +178,25 @@ class GroupedQamTests(unittest.TestCase):
                       "AddQuadFilled","AddLine","GetWindowDrawList"):
             self.assertIn(token,patcher)
 
+    def test_fps_enlargement_centers_full_inline_hud_vertically(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        patcher = (root / "experiments/center_hud_vertically.py").read_text()
+        self.assertIn("python3 ../experiments/center_hud_vertically.py src", workflow)
+        self.assertLess(workflow.index("enable_frametime_graph_styles.py"),
+                        workflow.index("center_hud_vertically.py"))
+        # Font size is measured from real scaled FPS font rather than guessed.
+        for marker in ("ClawFpsVerticalCenterOffset", "ImGui::SetCursorPosY",
+                       "claw_fps_row_top", "claw_fps_scale <= 100",
+                       "fps_font->FontSize", "FontGlobalScale", 'group == "fps"',
+                       'group == "frame_timing"', "OVERLAY_PARAM_ENABLED_fps",
+                       "ImGui::GetFontSize()"):
+            self.assertIn(marker, patcher, marker)
+        # No telemetry, TDP, DRAW or HUD layout settings changed.
+        self.assertNotIn("main.py", patcher)
+        self.assertIn('label="Tip frametime grafa"', SOURCE)
+        self.assertIn('value={settings.fps_scale} min={100} max={200}', SOURCE)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)
