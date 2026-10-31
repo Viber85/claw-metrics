@@ -146,9 +146,11 @@ update_inline("fps", [
     ('HUDElements.TextColored(HUDElements.colors.engine, "%s", label);',
      'ClawText(0, HUDElements.colors.engine, "%s", label);'),
     ('if (HUDElements.params->claw_fps_bold) {',
-     'if (ClawFontForToken(1) || HUDElements.params->claw_color_map.size() >= 14 && HUDElements.params->claw_color_map[7] != \'-\') {\n'
+     'if (ClawFontForToken(1)) {\n'
      '                ClawText(1, color, "%.0f", HUDElements.sw_stats->fps);\n'
      '            } else if (HUDElements.params->claw_fps_bold) {'),
+    ('ClawBoldFpsNumber(color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);',
+     'ClawBoldFpsNumber(ClawColorForToken(1, color), ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);'),
     ('HUDElements.TextColored(color, "%.0f", HUDElements.sw_stats->fps);',
      'ClawText(1, color, "%.0f", HUDElements.sw_stats->fps);'),
     ('HUDElements.TextColored(HUDElements.colors.text, "%.1f",',
@@ -156,13 +158,6 @@ update_inline("fps", [
     ('HUDElements.TextColored(HUDElements.colors.text, "ms");',
      'ClawText(2, HUDElements.colors.text, "ms");'),
 ])
-# FPS color override should not disable a configured bold font. Apply it to
-# the existing bold painter before invocation (when no custom weight was set).
-s = replace_once(s,
-    'ClawBoldFpsNumber(color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);',
-    'ClawBoldFpsNumber(color, ImGui::CalcTextSize(fps_string).x, HUDElements.sw_stats->fps);',
-    "keep existing bold painter")
-
 update_inline("cpu_stats", [
     ('HUDElements.TextColored(HUDElements.colors.cpu, "%s", label);',
      'ClawText(3, HUDElements.colors.cpu, "%s", label);'),
@@ -249,9 +244,11 @@ update_inline("battery", [
 ])
 # Independent clock font and color, while preserving the fallback layout.
 s = replace_once(s,
-    'HUDElements.TextColored(HUDElements.colors.text, "%s", HUDElements.sw_stats->time.c_str());',
-    'ClawText(26, HUDElements.colors.text, "%s", HUDElements.sw_stats->time.c_str());',
-    "clock label")
+    '            ImguiNextColumnFirstItem();\n'
+    '            HUDElements.TextColored(HUDElements.colors.text, "%s", HUDElements.sw_stats->time.c_str());',
+    '            ImguiNextColumnFirstItem();\n'
+    '            ClawText(26, HUDElements.colors.text, "%s", HUDElements.sw_stats->time.c_str());',
+    "clock value in one-row layout")
 
 hud.write_text(s)
 print("Applied per-token font/color renderer:", root)
