@@ -201,7 +201,7 @@ class BackendLifecycle(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(main.draw_path().read_text(), 'DRAW 24.6W\n')
                     self.assertTrue((await plugin.get_info())['font_ready'])
                     self.assertEqual(stat.S_IMODE(main.font_path().stat().st_mode), 0o644)
-                    self.assertIn(str(main.font_path()), main.HUD.read_text())
+                    self.assertIn("font_file=" + main.sans_font("regular") + "\n", main.HUD.read_text())
                     self.assertEqual(stat.S_IMODE(main.draw_path().stat().st_mode), 0o644)
                     self.assertEqual(stat.S_IMODE(main.HUD.stat().st_mode), 0o644)
                     settings = await plugin.get_settings()
