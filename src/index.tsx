@@ -23,11 +23,36 @@ import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
 type GraphStyle = "area" | "line" | "bars" | "dual";
-const graphStyleOptions: {data:GraphStyle;label:string}[] = [
-  {data:"area",label:"A · Ispuna"},
-  {data:"line",label:"B · Linijski graf"},
-  {data:"bars",label:"C · Histogram"},
-  {data:"dual",label:"F · Linija + blaga ispuna"},
+
+// Tiny real graph silhouettes make every option recognizable in Decky's narrow menu.
+function GraphStyleIcon({kind}:{kind:GraphStyle}) {
+  const isArea = kind === "area" || kind === "dual";
+  return <svg width={19} height={19} viewBox="0 0 24 22" aria-hidden="true"
+    style={{display:"block",flexShrink:0,overflow:"visible"}}>
+    {isArea && <path d="M2 17 L6 12 L10 14 L14 5 L18 9 L22 3 L22 20 L2 20 Z"
+      fill="#39dabe" fillOpacity={kind === "area" ? 0.8 : 0.2} />}
+    {kind === "bars" ? <>
+      <rect x={2} y={12} width={3} height={8} rx={0.5} fill="#39dabe"/>
+      <rect x={7} y={7} width={3} height={13} rx={0.5} fill="#39dabe"/>
+      <rect x={12} y={11} width={3} height={9} rx={0.5} fill="#39dabe"/>
+      <rect x={17} y={3} width={3} height={17} rx={0.5} fill="#39dabe"/>
+    </> : <polyline points="2,17 6,12 10,14 14,5 18,9 22,3"
+      fill="none" stroke="#65f1db" strokeWidth={kind === "dual" ? 2.4 : 1.7}
+      strokeLinecap="round" strokeLinejoin="round"/>}
+  </svg>;
+}
+function graphOption(kind:GraphStyle, label:string): {data:GraphStyle;label:ReactNode} {
+  return {data:kind, label:<span style={{display:"inline-flex",alignItems:"center",gap:7,
+    maxWidth:"100%",minWidth:0,boxSizing:"border-box"}}>
+    <GraphStyleIcon kind={kind}/>
+    <span style={{whiteSpace:"normal",lineHeight:1.2,overflowWrap:"anywhere"}}>{label}</span>
+  </span>};
+}
+const graphStyleOptions: {data:GraphStyle;label:ReactNode}[] = [
+  graphOption("area","A · Ispuna"),
+  graphOption("line","B · Linijski graf"),
+  graphOption("bars","C · Histogram"),
+  graphOption("dual","F · Linija + blaga ispuna"),
 ];
 type WeightSelection = "inherit" | FontWeight;
 type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
