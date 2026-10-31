@@ -132,6 +132,29 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_fps_size_preview_and_center_pill(self):
+        for item in ('label="FPS – veličina broja"',
+                     'value={settings.fps_scale} min={100} max={200} step={10}',
+                     'fontSize:Math.round(18*settings.fps_scale/100)',
+                     'label="Centriraj horizontalno"',
+                     'checked={settings.center_horizontal}',
+                     'disabled={!ready || settings.center_horizontal}',
+                     'value={settings.offset_x} min={-1920} max={1920} step={1}',
+                     'center_horizontal:defaults.center_horizontal'):
+            self.assertIn(item, SOURCE, item)
+
+    def test_new_native_controls_are_patched_after_token_styling(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        native = (root / "experiments/enable_fps_size_center.py").read_text()
+        self.assertIn("python3 ../experiments/enable_fps_size_center.py src", workflow)
+        self.assertLess(workflow.index("apply_token_styles.py"),
+                        workflow.index("enable_fps_size_center.py"))
+        for marker in ("claw_fps_scale", "claw_center_horizontal",
+                       "ClawFpsFontForToken", "AddFontFromFileTTF",
+                       "ImGui::GetIO().DisplaySize"):
+            self.assertIn(marker, native)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)
