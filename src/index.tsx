@@ -555,7 +555,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.17">
+      <PanelSection title="Claw Metrics · v0.2.4-test.18">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -853,7 +853,7 @@ function Content() {
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Provjeri TDP očitanje
         </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Izvor TDP-a" description={tdpStatus} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Izvor TDP-a · dijagnostika" description={tdpStatus} /></PanelSectionRow>
         {info?.layout_spacing_supported && <PanelSectionRow>
           <ButtonItem layout="below" disabled={rendererBusy} onClick={() => { void verifyRenderer(); }}>
             Provjeri koristi li igra eksperimentalni renderer
