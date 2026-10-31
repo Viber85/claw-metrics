@@ -99,6 +99,24 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('open={openSection === "layout"}', SOURCE)
         self.assertIn('open={openSection === "colors"}', SOURCE)
 
+    def test_selected_group_border_is_drawn_above_decky_button(self):
+        # The wrapper's old border was insufficient with Steam's focus styling.
+        self.assertIn('data-selected={open ? "true" : "false"}', SOURCE)
+        self.assertIn('className="claw-accordion-header"', SOURCE)
+        self.assertIn('className="claw-accordion-selection-ring"', SOURCE)
+        self.assertIn('position:"absolute",inset:3,zIndex:2,pointerEvents:"none"', SOURCE)
+        self.assertIn('border:open?"2px solid #ffffff":"2px solid transparent"', SOURCE)
+        self.assertIn('[data-section][data-selected="true"] .claw-accordion-header > button', SOURCE)
+        self.assertIn('outline: 2px solid #ffffff !important', SOURCE)
+
+    def test_preset_buttons_use_visual_load_and_save_icons(self):
+        self.assertIn('FaPlay, FaDownload', SOURCE)
+        self.assertIn('<FaPlay aria-hidden="true" /> Učitaj', SOURCE)
+        self.assertIn('<FaDownload aria-hidden="true" /> Spremi', SOURCE)
+        self.assertIn('className="claw-preset-label"', SOURCE)
+        self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
+        self.assertIn('flex: 0 0 auto;', SOURCE)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)

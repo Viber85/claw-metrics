@@ -14,7 +14,7 @@ import {
   Router,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
 import {styleLayoutFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
@@ -259,7 +259,7 @@ type AccordionCardProps = {
 
 function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: AccordionCardProps) {
   return (
-    <div data-section={id} style={{
+    <div data-section={id} data-selected={open ? "true" : "false"} style={{
       background: "#111e30",
       width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box",
       border: open ? "2px solid #ffffff" : "1px solid #395579",
@@ -269,26 +269,39 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
       marginBottom: 10,
       boxShadow: open ? "inset 0 0 0 1px #ffffff, 0 0 15px #0285ca55" : "none",
     }}>
-      <DialogButton onClick={onToggle} style={{
-        width: "100%", display: "flex", alignItems: "center",
-        textAlign: "left", margin: 0, padding: "12px 10px",
-        background: open ? "#073858" : "#14243b",
-        border: "none", borderRadius: 0, minHeight: 66, whiteSpace: "normal",
-      }}>
-        <span style={{display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0}}>
-          <span style={{display: "flex", alignItems: "center", justifyContent: "center",
-            background: open ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
-            fontSize: 20, color: open ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
-          <span style={{display: "flex", flex: 1, minWidth: 0, flexDirection: "column", gap: 3}}>
-            <span style={{fontWeight: 700, fontSize: 16, color: "#f1f7ff"}}>{title}</span>
-            <span style={{fontWeight: 400, fontSize: 11, lineHeight: 1.35,
-              color: "#a9c7e8", overflowWrap: "anywhere"}}>{subtitle}</span>
+      {/* Keep the selection border INSIDE the header: Decky can override DialogButton borders. */}
+      <div className="claw-accordion-header" style={{position:"relative",width:"100%",minWidth:0,
+        maxWidth:"100%",boxSizing:"border-box"}}>
+        <DialogButton onClick={onToggle} aria-pressed={open} style={{
+          width: "100%", minWidth: 0, boxSizing: "border-box",
+          display: "flex", alignItems: "center",
+          textAlign: "left", margin: 0, padding: "12px 10px",
+          background: open ? "#073858" : "#14243b",
+          border: "none", borderRadius: 0, minHeight: 66, whiteSpace: "normal",
+          outline: open ? "2px solid #ffffff" : "none", outlineOffset: "-3px",
+        }}>
+          <span style={{display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0}}>
+            <span style={{display: "flex", alignItems: "center", justifyContent: "center",
+              background: open ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
+              fontSize: 20, color: open ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
+            <span style={{display: "flex", flex: 1, minWidth: 0, flexDirection: "column", gap: 3}}>
+              <span style={{fontWeight: 700, fontSize: 16, color: "#f1f7ff"}}>{title}</span>
+              <span style={{fontWeight: 400, fontSize: 11, lineHeight: 1.35,
+                color: "#a9c7e8", overflowWrap: "anywhere"}}>{subtitle}</span>
+            </span>
+            <span style={{display: "flex", color: "#9edbff", fontSize: 16, flexShrink: 0}}>
+              {open ? <FaChevronDown /> : <FaChevronRight />}
+            </span>
           </span>
-          <span style={{display: "flex", color: "#9edbff", fontSize: 16, flexShrink: 0}}>
-            {open ? <FaChevronDown /> : <FaChevronRight />}
-          </span>
-        </span>
-      </DialogButton>
+        </DialogButton>
+        {/* Painted over the Decky button so Steam focus styling cannot hide the white outline.
+            Pointer events are disabled to preserve controller navigation and click behavior. */}
+        <div aria-hidden="true" className="claw-accordion-selection-ring"
+          style={{position:"absolute",inset:3,zIndex:2,pointerEvents:"none",
+            boxSizing:"border-box",borderRadius:8,
+            border:open?"2px solid #ffffff":"2px solid transparent",
+            boxShadow:open?"0 0 0 1px rgba(255,255,255,0.50)":"none"}} />
+      </div>
       {open && <div style={{padding: "10px 8px 12px", borderTop: "1px solid #235b81"}}>
         {children}
       </div>}
@@ -600,10 +613,24 @@ function Content() {
           font-size: 12px !important; min-height: 38px;
           white-space: normal !important; overflow-wrap: anywhere;
         }
+        .claw-preset-actions .claw-preset-label {
+          display: inline-flex; align-items: center; justify-content: center;
+          gap: 5px; width: 100%; min-width: 0;
+          white-space: nowrap; font-size: 12px; line-height: 1.2;
+        }
+        .claw-preset-actions .claw-preset-label svg {
+          display: block; flex: 0 0 auto;
+          width: 12px; height: 12px;
+        }
+        /* Persistent selection, independent of Decky keyboard/controller focus. */
+        [data-section][data-selected="true"] .claw-accordion-header > button {
+          outline: 2px solid #ffffff !important;
+          outline-offset: -3px !important;
+        }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.20">
+      <PanelSection title="Claw Metrics · v0.2.4-test.21">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -816,12 +843,12 @@ function Content() {
                     style={{background:active?"#e0f7ff":"#0874a5",
                       color:active?"#083957":"#ffffff",
                       border:"1px solid #3c91c0",borderRadius:7}}>
-                    Učitaj
+                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Učitaj</span>
                   </DialogButton>
                   <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
                     style={{background:"#294968",border:"1px solid #507394",
                       borderRadius:7,color:"#ffffff"}}>
-                    Spremi
+                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Spremi</span>
                   </DialogButton>
                 </div>
               </div>;

@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/compact-styles-selected-section-20]
+    branches: [test/active-header-icons-21]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.20
+  group: claw-metrics-v0.2.4-test.21
   cancel-in-progress: true
 
 jobs:
@@ -118,7 +118,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.20.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.21.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -137,14 +137,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.20
-          path: ClawMetrics-v0.2.4-test.20.zip
+          name: ClawMetrics-v0.2.4-test.21
+          path: ClawMetrics-v0.2.4-test.21.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.20 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.20 ClawMetrics-v0.2.4-test.20.zip \
+          gh release delete v0.2.4-test.21 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.21 ClawMetrics-v0.2.4-test.21.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.20 – compact style presets and selected section outline" \
-            --notes "Two compact appearance preset slots with Save/Load and currently loaded status, white outline on selected main group. Keeps test.19 per-game Panel de Control TDP readback and all native MangoHud fonts/renderer. SteamOS A8 Game Mode verification required."
+            --title "Claw Metrics v0.2.4-test.21 – selected-section header outline and style icons" \
+            --notes "Reinforced white selected-category outline painted over Decky header; Play and Download icons on two compact style presets. No changes to functioning per-game TDP, DRAW, saved styles, font assets or MangoHud renderer. SteamOS Game Mode verification required."

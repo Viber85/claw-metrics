@@ -1,3 +1,11 @@
+# Claw Metrics v0.2.4-test.21 — selected group border / style action icons
+
+- Draw the selected main group's white outline directly **over** the section header, with a positioned, pointer-transparent ring; keep a CSS `!important` outline on Decky's button, rather than relying on the outer card border that did not appear reliably in SteamOS Game Mode. The ring persists when focus moves into the group's controls, and has no effect on click or gamepad input.
+- The two compact style slots now have explicit **Play** icons for Učitaj and **Download-to-tray** icons for Spremi, matching the approved visual proposal. Action labels stay centered and their buttons use responsive `minmax(0,1fr)` widths.
+- Retain all working test.20 UI behavior and the verified per-game Panel de Control TDP + DRAW monitoring from test.19, with no sensor or renderer changes.
+
+---
+
 # Claw Metrics v0.2.4-test.20 — compact styles & selected section
 
 - Two saved appearance presets in Colors & Font → MOJI STILOVI; each fits within Decky's narrow Quick Access Menu. Each card offers only **Učitaj** and **Spremi**. Style 3 is no longer offered or read into current settings.
