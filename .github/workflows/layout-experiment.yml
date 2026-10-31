@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [feature/layout-spacing-v0.2.4]
+    branches: [feature/bundled-font-alpha-safe]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.7
+  group: claw-metrics-v0.2.4-test.8
   cancel-in-progress: true
 
 jobs:
@@ -20,6 +20,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Bundle four licensed Barlow font weights in build artifact
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import urllib.request
+
+          revision = "89f5431ff0db41bd2fe3f7ba21a723a01622428b"
+          prefix = "https://raw.githubusercontent.com/google/fonts/" + revision + "/ofl/barlowsemicondensed/"
+          expected = {
+              "Light": "f7e0277904b0d7e560d5b178e0ad680d9a096cfd",
+              "Regular": "473604976bc07e69c0a8e6dca63e159fac54f5fe",
+              "SemiBold": "082c76327d21d663948c8ccd2271fa527bd0c145",
+              "Bold": "ee04b09e31e98d2509354d7003797ec6540e796f",
+          }
+          target = pathlib.Path("assets/fonts")
+          target.mkdir(parents=True, exist_ok=True)
+          for weight, digest in expected.items():
+              name = f"BarlowSemiCondensed-{weight}.ttf"
+              with urllib.request.urlopen(prefix + name, timeout=30) as r:
+                  data = r.read(220000)
+              actual = hashlib.sha1(b"blob " + str(len(data)).encode() + bytes([0]) + data).hexdigest()
+              assert actual == digest, f"Unexpected contents for {name}"
+              (target / name).write_bytes(data)
+              print("Verified", name, len(data), "bytes")
+          with urllib.request.urlopen(prefix + "OFL.txt", timeout=30) as r:
+              license_text = r.read(20000)
+          assert b"SIL OPEN FONT LICENSE" in license_text.upper()
+          (target / "OFL.txt").write_bytes(license_text)
+          print("Four font weights and OFL license bundled successfully")
+          PY
       - name: Python tests
         env:
           CLAW_METRICS_SKIP_FONT_DOWNLOAD: "1"
@@ -83,7 +114,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.7.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.8.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -91,20 +122,25 @@ jobs:
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
               for p in ['main.py','plugin.json','dist/index.js','native64/libMangoHud.so',
-                        'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt']:
+                        'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
+                        'assets/fonts/BarlowSemiCondensed-Light.ttf',
+                        'assets/fonts/BarlowSemiCondensed-Regular.ttf',
+                        'assets/fonts/BarlowSemiCondensed-SemiBold.ttf',
+                        'assets/fonts/BarlowSemiCondensed-Bold.ttf',
+                        'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.7
-          path: ClawMetrics-v0.2.4-test.7.zip
+          name: ClawMetrics-v0.2.4-test.8
+          path: ClawMetrics-v0.2.4-test.8.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.7 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.7 ClawMetrics-v0.2.4-test.7.zip \
+          gh release delete v0.2.4-test.8 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.8 ClawMetrics-v0.2.4-test.8.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.7 – spacing experiment" \
-            --notes "Claw Metrics v0.2.4-test.7: separator color now packed with visible alpha using IM_COL32; Barlow Semi Condensed Light/Regular/Bold selectable in QAM; real Bold face for FPS instead of faux strokes when fonts are available. Fonts fetched from pinned Google Fonts source on first installation (internet required); if offline previous Claw Sans stays active. Preserves proven test.5/6 layout and Panel de Control."
+            --title "Claw Metrics v0.2.4-test.8 – spacing experiment" \
+            --notes "Claw Metrics v0.2.4-test.8: bundled Barlow Semi Condensed Light, Regular, SemiBold and Bold (offline at runtime; fonts verified against upstream Google Fonts git hashes and SIL OFL license included). Fixes color picker by eliminating unsupported Alpha control, retains separate separator color and existing one-line layout. SteamOS hardware validation still needed. Built from tested v0.2.4-test.7."
