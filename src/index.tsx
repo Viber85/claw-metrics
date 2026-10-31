@@ -261,12 +261,13 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
   return (
     <div data-section={id} style={{
       background: "#111e30",
-      border: open ? "1px solid #04b7ed" : "1px solid #395579",
+      width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box",
+      border: open ? "2px solid #ffffff" : "1px solid #395579",
       borderLeft: open ? "4px solid #08d3fa" : "4px solid #8b65e7",
       borderRadius: 12,
       overflow: "hidden",
       marginBottom: 10,
-      boxShadow: open ? "0 0 15px #0285ca55" : "none",
+      boxShadow: open ? "inset 0 0 0 1px #ffffff, 0 0 15px #0285ca55" : "none",
     }}>
       <DialogButton onClick={onToggle} style={{
         width: "100%", display: "flex", alignItems: "center",
@@ -567,14 +568,42 @@ function Content() {
         }
         .claw-weight-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         [data-section="colors"] .loaded-style-status {
-          padding: 9px 8px; margin: 0 0 12px; background: #0b263b;
-          border: 1px solid #306689; border-radius: 5px;
+          padding: 8px 9px; margin: 0 0 10px; background: #0b263b;
+          border: 1px solid #306689; border-radius: 7px;
           font-size: 12px; color: #d8edff;
+          width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
+          overflow-wrap: anywhere;
+        }
+        /* Two preset slots only; avoid Decky's intrinsic DialogButton min-width. */
+        .claw-preset-list {
+          display: grid; grid-template-columns: minmax(0, 1fr);
+          gap: 8px; width: 100%; min-width: 0; max-width: 100%;
+          padding: 0; margin: 0 0 8px; box-sizing: border-box;
+        }
+        .claw-preset-card {
+          min-width: 0; max-width: 100%; box-sizing: border-box;
+          border-radius: 9px; padding: 9px;
+          background: #142840; border: 1px solid #365b7b;
+        }
+        .claw-preset-card[data-loaded="true"] {
+          background: #093454; border-color: #26d6fa;
+        }
+        .claw-preset-actions {
+          display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px; width: 100%; min-width: 0; margin-top: 8px;
+          box-sizing: border-box;
+        }
+        .claw-preset-actions > button {
+          width: 100% !important; max-width: 100% !important;
+          min-width: 0 !important; margin: 0 !important;
+          padding: 8px 3px !important; box-sizing: border-box;
+          font-size: 12px !important; min-height: 38px;
+          white-space: normal !important; overflow-wrap: anywhere;
         }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.19">
+      <PanelSection title="Claw Metrics · v0.2.4-test.20">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -727,7 +756,6 @@ function Content() {
               </span>
             </DialogButton>)}
           </div>
-          <div className="loaded-style-status" role="status">{loadedPreset?`Učitan stil ${settings.active_style}${presetDirty?" · izmijenjen":" · aktivan"}`:"Prilagođeni izgled · stil nije učitan"}</div>
           {styleCategory==="global" ? <>
           <PanelSectionRow><Field label="GLOBALNO" description="Globalna debljina vrijedi za sve elemente. Promjena boje uklanja ručne boje povezanih elemenata; pojedinačne postavke možeš ponovno zadati nakon toga." /></PanelSectionRow>
           {toggle("sans", "Sans-serif font")}
@@ -766,15 +794,39 @@ function Content() {
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
             onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="MOJI STILOVI"
-            description="Tri spremišta za cijeli izgled: boje, font, veličinu teksta, položaj, padding, razmake, zaobljenost i širinu grafa. Stariji stilovi bez Layout postavki zadržavaju trenutačni raspored." /></PanelSectionRow>
-          {(["1","2","3"] as const).map(slot=><PanelSectionRow key={slot}>
-            <div style={{display:"flex",gap:6}}>
-              <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
-                style={{flex:1,margin:0}}>Spremi {slot}</DialogButton>
-              <DialogButton disabled={!ready||!settings.style_presets?.[slot]}
-                onClick={()=>loadPreset(slot)} aria-pressed={settings.active_style===slot} style={{flex:1,margin:0,border:settings.active_style===slot?"2px solid "+(presetDirty?"#ffcc66":"#ffffff"):"2px solid transparent"}}>Učitaj {slot}</DialogButton>
-            </div>
-          </PanelSectionRow>)}
+            description="Spremi ili učitaj cijeli izgled: boje, font, veličinu, položaj i razmake." /></PanelSectionRow>
+          <div className="loaded-style-status" role="status">
+            {loadedPreset?`Trenutno učitan: Stil ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Trenutno učitan: nijedan"}
+          </div>
+          <div className="claw-preset-list">
+            {(["1","2"] as const).map(slot=>{
+              const stored=Boolean(settings.style_presets?.[slot]);
+              const active=stored && settings.active_style===slot;
+              return <div className="claw-preset-card" data-loaded={active} key={slot}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  gap:6,minWidth:0,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>Stil {slot}</span>
+                  <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
+                    {active?(presetDirty?"Učitan · izmijenjen":"Učitan"):stored?"Spremljen":"Prazan"}
+                  </span>
+                </div>
+                <div className="claw-preset-actions">
+                  <DialogButton disabled={!ready||!stored} aria-pressed={active}
+                    onClick={()=>loadPreset(slot)}
+                    style={{background:active?"#e0f7ff":"#0874a5",
+                      color:active?"#083957":"#ffffff",
+                      border:"1px solid #3c91c0",borderRadius:7}}>
+                    Učitaj
+                  </DialogButton>
+                  <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
+                    style={{background:"#294968",border:"1px solid #507394",
+                      borderRadius:7,color:"#ffffff"}}>
+                    Spremi
+                  </DialogButton>
+                </div>
+              </div>;
+            })}
+          </div>
           </> : <>
           <PanelSectionRow><Field label={named(styleCategory)}
             description="Svaka stavka ima svoju boju i težinu fonta. Global znači naslijedi osnovnu postavku." /></PanelSectionRow>

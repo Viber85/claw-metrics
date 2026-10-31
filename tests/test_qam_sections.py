@@ -80,6 +80,25 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("openColorPicker(key,label)", SOURCE)
         self.assertIn("styleModified", SOURCE)
 
+    def test_two_compact_preset_slots_fit_decky_width(self):
+        self.assertIn('(["1","2"] as const).map(slot=>{', SOURCE)
+        self.assertNotIn('(["1","2","3"] as const)', SOURCE)
+        self.assertIn('className="claw-preset-list"', SOURCE)
+        self.assertIn('className="claw-preset-actions"', SOURCE)
+        self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
+        self.assertIn('min-width: 0 !important; margin: 0 !important', SOURCE)
+        self.assertIn('max-width: 100% !important', SOURCE)
+        self.assertIn('Trenutno učitan: Stil', SOURCE)
+        self.assertNotIn('Preimenuj stil', SOURCE)
+        self.assertNotIn('Obriši stil', SOURCE)
+
+    def test_selected_main_group_has_white_persistent_outline(self):
+        self.assertIn('border: open ? "2px solid #ffffff"', SOURCE)
+        self.assertIn('boxShadow: open ? "inset 0 0 0 1px #ffffff', SOURCE)
+        self.assertIn('width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box"', SOURCE)
+        self.assertIn('open={openSection === "layout"}', SOURCE)
+        self.assertIn('open={openSection === "colors"}', SOURCE)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)

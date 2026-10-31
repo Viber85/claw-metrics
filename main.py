@@ -96,7 +96,7 @@ def normalize_style_presets(payload):
     out = {}
     if not isinstance(payload, dict):
         return out
-    for key in ("1", "2", "3"):
+    for key in ("1", "2"):
         item = payload.get(key)
         if not isinstance(item, dict):
             continue

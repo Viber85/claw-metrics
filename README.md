@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.20 — compact styles & selected section
+
+- Two saved appearance presets in Colors & Font → MOJI STILOVI; each fits within Decky's narrow Quick Access Menu. Each card offers only **Učitaj** and **Spremi**. Style 3 is no longer offered or read into current settings.
+- Under the style description, the currently loaded style is clearly displayed; modified current settings are marked *izmijenjen*. Save/load behavior still persists all typography, colors, layout, and spacing options.
+- A persistent white outline marks the currently expanded main category (Overlay, Layout, Metrics, Colors & Font, Activation, Advanced).
+- No changes to per-game Panel de Control TDP readback, DRAW, native MangoHud 0.8.1 renderer or the SteamOS rename keyboard.
+- Unit tests, TypeScript, native renderer build, and full ZIP packaging are checked by Actions. Hardware Game Mode validation is still required.
+
+---
+
 # Claw Metrics v0.2.4-test.19 — per-game Panel de Control TDP
 
 - Read-only TDP fallback now follows the foreground Steam game (including PDC's stable non-Steam `ns:` identifiers) even while the Decky menu is closed. It uses the game's PL1 or the global PL1 when the game follows global. Auto TDP and explicit Steam-owned profiles do not claim a fixed PDC setpoint. All fallback readings are explicitly unverified as hardware readings.

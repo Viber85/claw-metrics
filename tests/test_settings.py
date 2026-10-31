@@ -204,10 +204,13 @@ class Settings(unittest.TestCase):
                    "token_colors": {"cpu.power": "#AABBCC"},
                    "colors": {"separator": "12ABEF"}},
             "2": {"font_weight": "invalid", "colors": {"text": "BAD"}},
+            "3": {"font_weight": "bold"},
             "4": {"font_weight": "bold"},
         }}
         d = main.normalize(payload)
         self.assertEqual(sorted(d["style_presets"]), ["1", "2"])
+        self.assertNotIn("3", d["style_presets"])
+        self.assertIsNone(main.normalize({"style_presets": payload["style_presets"], "active_style": "3"})["active_style"])
         self.assertEqual(d["style_presets"]["1"]["token_weights"], {"cpu.power": "bold"})
         self.assertEqual(d["style_presets"]["1"]["token_colors"], {"cpu.power": "AABBCC"})
         self.assertFalse(d["style_presets"]["1"]["fps_bold"])
