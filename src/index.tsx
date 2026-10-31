@@ -15,6 +15,7 @@ import {
 import { FaChartLine, FaCopy } from "react-icons/fa";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
+type FontWeight = "light" | "regular" | "bold";
 type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph";
 type ColorSettings = Record<ColorKey, string>;
 const defaultColors: ColorSettings = {
@@ -66,7 +67,7 @@ type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number;
-  inner_gap: number; inline_metrics: boolean; fps_bold: boolean; order: Group[];
+  inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
   metrics: Record<string, boolean>;
   colors: ColorSettings;
 };
@@ -89,6 +90,7 @@ type Info = {
   experimental_config_readable: boolean;
   font_path: string;
   font_ready: boolean;
+  condensed_fonts_ready: boolean;
   config_readable: boolean;
   config_path: string;
   launch_option: string;
@@ -101,7 +103,7 @@ const defaults: Settings = {
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150,
-  inner_gap: 4, inline_metrics: true, fps_bold: true, order,
+  inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
@@ -276,7 +278,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.6">
+      <PanelSection title="Claw Metrics · v0.2.4-test.7">
         {toggle("enabled", "Uključi prikaz")}
         <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
       </PanelSection>
@@ -322,7 +324,26 @@ function Content() {
       <PanelSection title="APPEARANCE">
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => update({sans: true, fontsize: 18, opacity: 80, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8})}>Primijeni izgled prijedloga</ButtonItem></PanelSectionRow>
         {toggle("sans", "Sans-serif font")}
-        <PanelSectionRow><Field label="Font" description={settings.sans ? (info?.font_ready ? "Claw Sans · provjeren i spremljen uz profil" : "Font nije spreman — ponovno pokreni Decky Loader") : "MangoHud zadani font"} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Font" description={settings.sans
+          ? (info?.condensed_fonts_ready
+              ? "Barlow Semi Condensed · Light / Regular / Bold dostupni"
+              : "Preuzimanje iz službenog Google Fonts izvora nije uspjelo ili još traje. Privremeno ostaje postojeći Claw Sans. Ponovno pokreni Decky kada budeš online.")
+          : "MangoHud zadani font"} /></PanelSectionRow>
+        <PanelSectionRow><Field label="Debljina fonta" description="Odaberi Light za tanji izgled, Regular za čitljivost ili Bold za naglašenu cijelu traku. FPS može zasebno biti Bold. Promjena fonta može zahtijevati ponovno pokretanje igre." /></PanelSectionRow>
+        <PanelSectionRow>
+          <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
+            {(["light", "regular", "bold"] as FontWeight[]).map(weight => (
+              <DialogButton key={weight} disabled={!ready || !settings.sans} onClick={() => update({font_weight: weight})}
+                style={{minWidth: 84, padding: "8px", background: settings.font_weight === weight ? "#22678d" : "#303e4f",
+                  fontWeight: weight === "bold" ? 700 : weight === "light" ? 300 : 400}}>
+                {weight === "light" ? "Light" : weight === "regular" ? "Regular" : "Bold"}
+              </DialogButton>
+            ))}
+          </div>
+        </PanelSectionRow>
+        <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => {void refresh();}}>
+          Provjeri dostupnost fonta
+        </ButtonItem></PanelSectionRow>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
           ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
           ["offset_x", "X — lijevo/desno (px)", -1920, 1920, 1], ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
@@ -345,7 +366,7 @@ function Content() {
         <PanelSectionRow><SliderField label="Razmak unutar grupa (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="Podebljani FPS broj (bez povećavanja)"
+        <PanelSectionRow><ToggleField label="FPS broj Bold (stvarni font kad je dostupan)"
           checked={settings.fps_bold} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({fps_bold: v})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
