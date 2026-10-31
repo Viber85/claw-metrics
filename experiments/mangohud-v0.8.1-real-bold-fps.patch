@@ -1,0 +1,29 @@
+--- a/src/hud_elements.cpp
++++ b/src/hud_elements.cpp
+@@ -773,10 +773,22 @@
+ 
+ // Faux bold only for the numeric FPS value. The text is drawn twice with a
+ // subpixel horizontal offset; its font size and ImGui layout are unchanged.
+-static void ClawBoldFpsNumber(ImVec4& color, float off_x, float fps) {
+-    char text[32] {};
+-    snprintf(text, sizeof(text), "%.0f", fps);
+-    ImVec2 cursor = ImGui::GetCursorPos();
++extern ImFont* claw_bold_fps_font;
++static void ClawBoldFpsNumber(ImVec4& color, float off_x, float fps) {
++    char text[32] {};
++    snprintf(text, sizeof(text), "%.0f", fps);
++    if (claw_bold_fps_font) {
++        ImGui::PushFont(claw_bold_fps_font);
++        const bool inline_values = HUDElements.params->claw_inline_metrics &&
++            HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];
++        if (!inline_values && !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact])
++            ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
++                off_x - ImGui::CalcTextSize(text).x);
++        HUDElements.TextColored(color, "%s", text);
++        ImGui::PopFont();
++        return;
++    }
++    ImVec2 cursor = ImGui::GetCursorPos();
+     if (!HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_hud_compact])
+         ImGui::SetCursorPosX(cursor.x + off_x - ImGui::CalcTextSize(text).x);
+     ImVec2 position = ImGui::GetCursorScreenPos();
