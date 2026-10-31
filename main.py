@@ -12,6 +12,7 @@ import base64
 import gzip
 import hashlib
 import re
+import urllib.request
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
 COLORS = {
@@ -46,6 +47,7 @@ DEFAULTS = {
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "inner_gap": 4, "inline_metrics": True, "fps_bold": True,
     "colors": COLORS,
+    "font_weight": "regular",
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -183,6 +185,8 @@ def normalize(payload):
     if "metrics" not in payload and payload.get("power") is False:
         d["metrics"]["cpu_power"] = False
         d["metrics"]["gpu_power"] = False
+    if payload.get("font_weight") in ("light", "regular", "bold"):
+        d["font_weight"] = payload["font_weight"]
     if isinstance(payload.get("colors"), dict):
         for key, value in payload["colors"].items():
             if key in COLORS and isinstance(value, str):
@@ -206,7 +210,53 @@ FONT_SHA256 = "507e0aff243abd8cb440c7ed9927d9d554dafddaf8d4526ca9ed2b145f20f699"
 def font_path():
     return BASE / "ClawSans.ttf"
 
-def sans_font():
+# Pinned upstream Google Fonts revision. Only the original Google Fonts
+# endpoints are contacted, and git-blob SHA-1 validates every response.
+BARLOW_REV = "89f5431ff0db41bd2fe3f7ba21a723a01622428b"
+BARLOW_BLOBS = {
+    "light": ("Light", "f7e0277904b0d7e560d5b178e0ad680d9a096cfd"),
+    "regular": ("Regular", "473604976bc07e69c0a8e6dca63e159fac54f5fe"),
+    "bold": ("Bold", "ee04b09e31e98d2509354d7003797ec6540e796f"),
+}
+
+
+def condensed_font_path(weight):
+    return BASE / ("BarlowSemiCondensed-" + BARLOW_BLOBS[weight][0] + ".ttf")
+
+
+def valid_git_font(blob, expected):
+    return (len(blob) > 20000 and blob[:4] in (bytes([0, 1, 0, 0]), b"OTTO") and
+            hashlib.sha1(b"blob " + str(len(blob)).encode() + b"\\0" + blob).hexdigest() == expected)
+
+
+def install_condensed_fonts():
+    """Download only official font files; offline startup keeps the old font."""
+    for weight, (file_weight, git_sha) in BARLOW_BLOBS.items():
+        dest = condensed_font_path(weight)
+        try:
+            if dest.is_file() and valid_git_font(dest.read_bytes(), git_sha):
+                continue
+            url = ("https://raw.githubusercontent.com/google/fonts/" + BARLOW_REV +
+                   "/ofl/barlowsemicondensed/BarlowSemiCondensed-" + file_weight + ".ttf")
+            with urllib.request.urlopen(url, timeout=5) as response:
+                blob = response.read(250000)
+            if not valid_git_font(blob, git_sha):
+                raise ValueError("Google Fonts checksum mismatch: " + file_weight)
+            write_atomic(dest, blob)
+        except (OSError, ValueError) as error:
+            print("Claw Metrics: condensed font " + weight + " unavailable: " + str(error))
+
+
+def condensed_fonts_ready():
+    return all(condensed_font_path(w).is_file() and
+               valid_git_font(condensed_font_path(w).read_bytes(), sha)
+               for w, (_, sha) in BARLOW_BLOBS.items())
+
+
+def sans_font(weight="regular"):
+    path = condensed_font_path(weight)
+    if path.is_file() and valid_git_font(path.read_bytes(), BARLOW_BLOBS[weight][1]):
+        return str(path)
     return str(font_path())
 
 def install_font():
@@ -294,8 +344,11 @@ def mango_config(settings, native_spacing=False):
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
         ])
-    if d["sans"] and sans_font():
-        lines += ["font_file=" + sans_font(), "font_file_text=" + sans_font()]
+    if d["sans"]:
+        primary = sans_font(d["font_weight"])
+        lines += ["font_file=" + primary, "font_file_text=" + primary]
+        if native_spacing and condensed_fonts_ready():
+            lines.append("claw_bold_font_file=" + str(condensed_font_path("bold")))
     display = {"fps": "fps", "frametime": "frame_timing", "cpu": "cpu_stats",
                "gpu": "gpu_stats", "ram": "ram", "vram": "vram",
                "battery": "battery", "time": "time"}
@@ -315,6 +368,7 @@ def mango_config(settings, native_spacing=False):
 class Plugin:
     async def _main(self):
         install_font()
+        await asyncio.to_thread(install_condensed_fonts)
         if not CONFIG.is_file():
             write_atomic(CONFIG, json.dumps(DEFAULTS, indent=2) + "\n")
         try:
@@ -438,6 +492,7 @@ class Plugin:
             "config_readable": HUD.is_file() and bool(HUD.stat().st_mode & 0o004),
             "font_path": sans_font(),
             "font_ready": font_path().is_file() and hashlib.sha256(font_path().read_bytes()).hexdigest() == FONT_SHA256,
+            "condensed_fonts_ready": condensed_fonts_ready(),
             "layout_spacing_supported": native_renderer_available(),
             # Binary presence does not mean the SteamOS game actually loads it.
             "experimental_config_readable": (
