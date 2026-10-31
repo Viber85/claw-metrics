@@ -11,6 +11,7 @@ import {
   PanelSectionRow,
   SliderField,
   TextField,
+  Router,
   ToggleField,
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
@@ -212,6 +213,24 @@ const load = callable<[], Settings>("get_settings");
 const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
 const getTdpStatus = callable<[], TdpStatus>("get_tdp_status");
+const setTdpGameContext = callable<[string | null], {ok: boolean}>("set_tdp_game_context");
+
+function readActivePdcProfileKey(): string | null | undefined {
+  try {
+    const app = Router?.MainRunningApp as
+      { appid?: number | string; display_name?: string; app_type?: number } | undefined;
+    if (!app?.appid) return null;
+    const raw = String(app.appid);
+    if (app.app_type === 1073741824 || Number(raw) >= 2147483648) {
+      const name = app.display_name?.trim().toLowerCase().replace(/\s+/g, " ");
+      return name ? "ns:" + name : raw;
+    }
+    return raw;
+  } catch {
+    return undefined;
+  }
+}
+
 type RendererStatus = {
   native_loaded: boolean; native_processes: number; stock_processes: number;
   layer_requests: number; config_requests: number; path_requests: number;
@@ -555,7 +574,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.18">
+      <PanelSection title="Claw Metrics · v0.2.4-test.19">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -873,11 +892,27 @@ function Content() {
   );
 }
 
-export default definePlugin(() => ({
-  name: "Claw Metrics",
-  titleView: <div>Claw Metrics</div>,
-  content: <Content />,
-  icon: <FaChartLine />,
-}));
+export default definePlugin(() => {
+  let stopped = false;
+  let pending = false;
+  const report = async () => {
+    if (stopped || pending) return;
+    const key = readActivePdcProfileKey();
+    if (key === undefined) return;
+    pending = true;
+    try { await setTdpGameContext(key); }
+    catch { /* Hardware probing continues even if Decky RPC is unavailable. */ }
+    finally { pending = false; }
+  };
+  void report();
+  const timer = setInterval(() => { void report(); }, 3000);
+  return {
+    name: "Claw Metrics",
+    titleView: <div>Claw Metrics</div>,
+    content: <Content />,
+    icon: <FaChartLine />,
+    onDismount() { stopped = true; clearInterval(timer); },
+  };
+});
 
 

@@ -1,7 +1,7 @@
 name: Build and release Decky plugin
 on:
   push:
-    branches: [main, test/tdp-diagnostics-18]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

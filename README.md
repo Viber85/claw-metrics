@@ -1,3 +1,11 @@
+# Claw Metrics v0.2.4-test.19 — per-game Panel de Control TDP
+
+- Read-only TDP fallback now follows the foreground Steam game (including PDC's stable non-Steam `ns:` identifiers) even while the Decky menu is closed. It uses the game's PL1 or the global PL1 when the game follows global. Auto TDP and explicit Steam-owned profiles do not claim a fixed PDC setpoint. All fallback readings are explicitly unverified as hardware readings.
+- Context is refreshed every 3 seconds and expires after 25 seconds; on game change the old TDP is cleared until the new one is read. No TDP writes. Advanced has per-source diagnostics.
+- Build includes the same patched MangoHud v0.8.1 Vulkan renderer and the offline Barlow fonts as test.17. Overlay and keyboard remain unchanged.
+
+---
+
 # Claw Metrics v0.2.4-test.18 — dijagnostika TDP-a
 
 Advanced → Provjeri TDP očitanje sada prikazuje stanje zasebnih izvora: MSI firmware, RyzenAdj i konfigurirani Panel de Control (globalni limit, Auto TDP, različiti profili igara). Rezultati ne otkrivaju ID-eve igara. Nijedna TDP vrijednost se ne mijenja. Ovaj build služi utvrđivanju zašto se TDP ne očitava; ne tvrdi da je očitanje na SteamOS-u riješeno. Ostale izmjene test.17 ostaju iste.

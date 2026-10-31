@@ -14,6 +14,7 @@ import hashlib
 import re
 import shutil
 import subprocess
+import time
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"]
 COLORS = {
@@ -339,12 +340,8 @@ def panel_settings_roots():
     return list(dict.fromkeys(roots))
 
 
-def read_panel_setpoint(roots=None):
-    """Read the configured PDC global PL1, not an asserted hardware readback.
-
-    If independent per-game or auto TDP profiles could select a different value,
-    do not pretend the global setpoint is necessarily current.
-    """
+def read_panel_setpoint(roots=None, appid=None, context_known=False):
+    """Read only the PDC PL1 setpoint for the active game, not a claimed HW limit."""
     locations = roots if roots is not None else panel_settings_roots()
     for directory in locations:
         for name in ("Panel de Control", "panel-de-control", "Panel-de-Control",
@@ -365,25 +362,42 @@ def read_panel_setpoint(roots=None):
                 global_profile = profiles.get("global")
                 if not isinstance(global_profile, dict):
                     continue
-                global_watts = valid_tdp_w(global_profile.get(
-                    "pl1", global_profile.get("watts")))
-                if global_watts is None:
-                    continue
-                if global_profile.get("auto_tdp") is True:
-                    return None, "PDC: Auto TDP (promjenjiv limit)"
                 games = profiles.get("games", {})
-                if isinstance(games, dict):
-                    for profile in games.values():
-                        if not isinstance(profile, dict) or profile.get("follow_global"):
-                            continue
-                        game_watts = valid_tdp_w(profile.get(
-                            "pl1", profile.get("watts")))
-                        if (game_watts != global_watts or profile.get("auto_tdp") is True):
-                            return None, "PDC: različiti profili igara, trenutni nije potvrđen"
-                return global_watts, "Panel de Control · postavljeno (nije hardverski potvrđeno)"
-            except (OSError, ValueError, TypeError):
+                if not isinstance(games, dict):
+                    games = {}
+                if not context_known:
+                    if any(isinstance(p, dict) and not p.get("follow_global")
+                           for p in games.values()):
+                        return None, "PDC: čekam potvrdu aktivne igre"
+                    selected, scope = global_profile, "globalno"
+                elif appid is not None:
+                    if not isinstance(appid, str) or not (0 < len(appid) <= 160):
+                        return None, "PDC: neispravan identitet igre"
+                    ownership_path = plugin / "power_ownership.json"
+                    if ownership_path.is_file() and ownership_path.stat().st_size <= 262144:
+                        ownership = json.loads(ownership_path.read_text(encoding="utf-8"))
+                        if isinstance(ownership, dict):
+                            owners = ownership.get("games", {})
+                            owner = owners.get(appid, {}) if isinstance(owners, dict) else {}
+                            if isinstance(owner, dict) and owner.get("owner") == "steam":
+                                return None, "PDC: Steam upravlja TDP-om ove igre"
+                    game_profile = games.get(appid)
+                    if isinstance(game_profile, dict) and not game_profile.get("follow_global"):
+                        selected, scope = game_profile, "profil aktivne igre"
+                    else:
+                        selected, scope = global_profile, "globalni profil za aktivnu igru"
+                else:
+                    selected, scope = global_profile, "globalno (nema pokrenute igre)"
+                watts = valid_tdp_w(selected.get("pl1", selected.get("watts")))
+                if watts is None:
+                    return None, "PDC: odabrani profil nema valjan PL1"
+                if selected.get("auto_tdp") is True:
+                    return None, "PDC: Auto TDP aktivnog profila (promjenjiv limit)"
+                return watts, (f"Panel de Control · {scope} · postavljeno "
+                               "(nije hardverski potvrđeno)")
+            except (OSError, ValueError, TypeError, AttributeError):
                 continue
-    return None, "Nije dostupno"
+    return None, "PDC: profil nije dostupan"
 
 
 def valid_tdp_w(value):
@@ -397,7 +411,8 @@ def valid_tdp_w(value):
 
 
 def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
-                   binary=None, runner=None, panel_roots=None):
+                   binary=None, runner=None, panel_roots=None,
+                   appid=None, context_known=False):
     """Return (readback in watts, source). No cached/setpoint guesses.
 
     On official SteamOS prefer the same RyzenAdj STAPM readback used by
@@ -431,12 +446,13 @@ def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
         pass
     # Intended setpoint remains useful when modern SteamOS blocks HW readback.
     # Do not silently claim it was applied, especially with game overrides.
-    return read_panel_setpoint(panel_roots)
+    return read_panel_setpoint(panel_roots, appid=appid, context_known=context_known)
 
 
 
 def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attributes"),
-                           plugin_roots=None, settings_roots=None, runner=None):
+                           plugin_roots=None, settings_roots=None, runner=None,
+                           appid=None, context_known=False):
     """On-demand read-only TDP source report; never include stored game IDs."""
     notes = []
     nodes = sorted(firmware_root.glob(
@@ -503,7 +519,8 @@ def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attri
                         value = state.get("tdp_control_enabled")
                         if isinstance(value, bool):
                             enabled = "da" if value else "ne"
-                _, reason = read_panel_setpoint([directory])
+                _, reason = read_panel_setpoint([directory], appid=appid,
+                                                 context_known=context_known)
                 notes.append(
                     f"PDC: globalno {glob if glob is not None else '--'}W, "
                     f"upravljanje uključeno {enabled}, različitih profila igara "
@@ -816,6 +833,9 @@ class Plugin:
         self._current_settings = settings
         self._tdp_last_value = None
         self._tdp_last_source = "Nije provjereno"
+        self._tdp_context_game = None
+        self._tdp_context_known = False
+        self._tdp_context_at = 0.0
         write_atomic(draw_path(), draw_text(settings) + "\n")
         write_atomic(tdp_path(), tdp_text(settings, None) + "\n")
         self._draw_task = asyncio.create_task(self._draw_loop())
@@ -836,7 +856,14 @@ class Plugin:
     async def _tdp_loop(self):
         while True:
             try:
-                watts, source = await asyncio.to_thread(read_tdp_limit)
+                current_game = getattr(self, "_tdp_context_game", None)
+                context_known = (getattr(self, "_tdp_context_known", False)
+                                 and time.monotonic() - getattr(self, "_tdp_context_at", 0.0) < 25)
+                watts, source = await asyncio.to_thread(
+                    read_tdp_limit, appid=current_game if context_known else None,
+                    context_known=context_known)
+                if current_game != getattr(self, "_tdp_context_game", None):
+                    continue
                 self._tdp_last_value = watts
                 self._tdp_last_source = source
                 settings = getattr(self, "_current_settings", DEFAULTS)
@@ -883,8 +910,36 @@ class Plugin:
             install_short_launcher()
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
+    async def set_tdp_game_context(self, appid=None):
+        """Steam Router reports the stable PDC game key, even with QAM closed."""
+        if appid is not None:
+            if (not isinstance(appid, str) or not (0 < len(appid) <= 160)
+                    or any(ord(ch) < 32 for ch in appid)):
+                return {"ok": False}
+        previous = getattr(self, "_tdp_context_game", None)
+        known = getattr(self, "_tdp_context_known", False)
+        self._tdp_context_game = appid
+        self._tdp_context_known = True
+        self._tdp_context_at = time.monotonic()
+        if not known or previous != appid:
+            self._tdp_last_value = None
+            self._tdp_last_source = "Očitavam profil aktivne igre"
+            try:
+                write_atomic(tdp_path(), tdp_text(
+                    getattr(self, "_current_settings", DEFAULTS), None) + "\n")
+            except OSError:
+                pass
+        return {"ok": True}
+
     async def get_tdp_status(self):
-        details = await asyncio.to_thread(tdp_source_diagnostics)
+        known = (getattr(self, "_tdp_context_known", False)
+                 and time.monotonic() - getattr(self, "_tdp_context_at", 0.0) < 25)
+        game = getattr(self, "_tdp_context_game", None) if known else None
+        details = await asyncio.to_thread(
+            tdp_source_diagnostics, appid=game, context_known=known)
+        details = ("Kontekst: " +
+                   ("aktivna igra" if game else "nema igre" if known else "nije potvrđen") +
+                   " | " + details)
         watts = getattr(self, "_tdp_last_value", None)
         source = getattr(self, "_tdp_last_source", "Nije provjereno")
         is_configured = watts is not None and source.startswith("Panel de Control")

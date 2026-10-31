@@ -135,6 +135,50 @@ class TdpReadOnlyTests(unittest.TestCase):
             self.assertIn("RyzenAdj: 19W, izlazni kod 2", report)
             self.assertEqual(calls, [[str(binpath), "-i"]])
 
+
+    def test_current_game_specific_tdp_and_global_follow(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            pdc = root / "Panel de Control"
+            pdc.mkdir()
+            (pdc / "tdp_profiles.json").write_text(
+                '{"global":{"pl1":18},"games":{"123":{"pl1":25},'
+                '"456":{"pl1":30,"follow_global":true},'
+                '"ns:my game":{"pl1":29},"789":{"pl1":20,"auto_tdp":true}}}')
+            (pdc / "state.json").write_text('{"tdp_control_enabled":true}')
+            self.assertIsNone(main.read_panel_setpoint([root])[0])
+            for appid, expected in (("123", 25), ("456", 18),
+                                    ("ns:my game", 29), ("unsaved", 18)):
+                self.assertEqual(main.read_panel_setpoint(
+                    [root], appid=appid, context_known=True)[0], expected)
+            self.assertEqual(main.read_panel_setpoint(
+                [root], context_known=True)[0], 18)
+            self.assertIsNone(main.read_panel_setpoint(
+                [root], appid="789", context_known=True)[0])
+            (pdc / "power_ownership.json").write_text(
+                '{"games":{"123":{"owner":"steam"}}}')
+            self.assertIsNone(main.read_panel_setpoint(
+                [root], appid="123", context_known=True)[0])
+            (pdc / "state.json").write_text('{"tdp_control_enabled":false}')
+            self.assertIsNone(main.read_panel_setpoint(
+                [root], appid="456", context_known=True)[0])
+
+    def test_read_limit_uses_running_game_not_other_saved_games(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            pdc = root / "Panel de Control"
+            pdc.mkdir()
+            (pdc / "tdp_profiles.json").write_text(
+                '{"global":{"pl1":18},"games":{"111":{"pl1":26},"222":{"pl1":31}}}')
+            def denied(argv, **kwargs):
+                return SimpleNamespace(returncode=1, stdout="", stderr="denied")
+            self.assertEqual(main.read_tdp_limit(
+                root=root, binary="ryzenadj", runner=denied,
+                panel_roots=[root], appid="222", context_known=True)[0], 31)
+            self.assertIsNone(main.read_tdp_limit(
+                root=root, binary="ryzenadj", runner=denied,
+                panel_roots=[root], context_known=False)[0])
+
     def test_native_config_and_styles_ordered_independently(self):
         with tempfile.TemporaryDirectory() as temp:
             with patch.object(main, "BASE", pathlib.Path(temp)):
