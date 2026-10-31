@@ -35,6 +35,61 @@ METRICS = {
     "gpu_fan": False, "gpu_voltage": False,
     "battery_icon": False, "battery_time": True,
 }
+TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value"]
+FONT_WEIGHTS = ("inherit", "light", "regular", "semibold", "bold")
+FONT_DIGITS = {name: str(index) for index, name in enumerate(FONT_WEIGHTS)}
+
+
+def normalize_token_weights(payload):
+    out = {}
+    if isinstance(payload, dict):
+        for key in TOKEN_SLOTS:
+            if payload.get(key) in FONT_WEIGHTS[1:]:
+                out[key] = payload[key]
+    return out
+
+
+def normalize_token_colors(payload):
+    out = {}
+    if isinstance(payload, dict):
+        for key in TOKEN_SLOTS:
+            color = payload.get(key)
+            if isinstance(color, str):
+                val = color.lstrip("#").upper()
+                if re.fullmatch("[0-9A-F]{6}", val):
+                    out[key] = val
+    return out
+
+
+def normalize_style_presets(payload):
+    out = {}
+    if not isinstance(payload, dict):
+        return out
+    for key in ("1", "2", "3"):
+        item = payload.get(key)
+        if not isinstance(item, dict):
+            continue
+        out[key] = {
+            "colors": {**COLORS, **normalize_color_overrides(item.get("colors"))},
+            "font_weight": item.get("font_weight") if item.get("font_weight") in FONT_WEIGHTS[1:] else "regular",
+            "fps_bold": item.get("fps_bold") if type(item.get("fps_bold")) is bool else True,
+            "token_weights": normalize_token_weights(item.get("token_weights")),
+            "token_colors": normalize_token_colors(item.get("token_colors")),
+        }
+    return out
+
+
+def normalize_color_overrides(payload):
+    out = {}
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key in COLORS and isinstance(value, str):
+                candidate = value.lstrip("#").upper()
+                if re.fullmatch("[0-9A-F]{6}", candidate):
+                    out[key] = candidate
+    return out
+
+
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
@@ -47,6 +102,7 @@ DEFAULTS = {
     "inner_gap": 4, "inline_metrics": True, "fps_bold": True,
     "colors": COLORS,
     "font_weight": "regular",
+    "token_weights": {}, "token_colors": {}, "style_presets": {},
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -192,6 +248,9 @@ def normalize(payload):
                 candidate = value.lstrip("#").upper()
                 if re.fullmatch(r"[0-9A-F]{6}", candidate):
                     d["colors"][key] = candidate
+    d["token_weights"] = normalize_token_weights(payload.get("token_weights"))
+    d["token_colors"] = normalize_token_colors(payload.get("token_colors"))
+    d["style_presets"] = normalize_style_presets(payload.get("style_presets"))
     if isinstance(payload.get("metrics"), dict):
         for key, v in payload["metrics"].items():
             if key in METRICS and type(v) is bool:
@@ -353,12 +412,16 @@ def mango_config(settings, native_spacing=False):
             "claw_inner_gap=" + str(d["inner_gap"]),
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
+            "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
+            "claw_color_map=" + ":".join(d["token_colors"].get(slot, "------") for slot in TOKEN_SLOTS),
         ])
     if d["sans"]:
         primary = sans_font(d["font_weight"])
         lines += ["font_file=" + primary, "font_file_text=" + primary]
         if native_spacing and condensed_fonts_ready():
             lines.append("claw_bold_font_file=" + str(condensed_font_path("bold")))
+            for weight in ("light", "regular", "semibold"):
+                lines.append("claw_" + weight + "_font_file=" + str(condensed_font_path(weight)))
     display = {"fps": "fps", "frametime": "frame_timing", "cpu": "cpu_stats",
                "gpu": "gpu_stats", "ram": "ram", "vram": "vram",
                "battery": "battery", "time": "time"}
