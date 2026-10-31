@@ -22,10 +22,16 @@ class ShortLauncherTests(unittest.TestCase):
             with patch.object(main, "BASE", base), \
                  patch.object(main, "experimental_library", return_value=binary):
                 self.assertTrue(main.native_renderer_available())
+                main.experimental_manifest().parent.mkdir(parents=True, exist_ok=True)
+                main.write_atomic(main.experimental_manifest(), "{}")
+                main.write_atomic(main.native_hud_path(), "fps=1\n")
                 main.install_short_launcher()
                 launcher = main.short_launcher_path()
                 self.assertTrue(main.short_launcher_ready())
                 self.assertEqual(stat.S_IMODE(launcher.stat().st_mode), 0o755)
+                with patch.object(main.os, "replace", wraps=os.replace) as replace_call:
+                    main.install_short_launcher()
+                    replace_call.assert_not_called()
                 self.assertTrue(launcher.read_bytes().startswith(b"#!/bin/sh\n"))
                 self.assertIn('exec "$@"', launcher.read_text())
                 probe = ("import json,os,sys;"
@@ -55,6 +61,23 @@ class ShortLauncherTests(unittest.TestCase):
                 main.install_short_launcher()
                 self.assertTrue(main.short_launcher_ready())
                 launcher.write_text("corrupted")
+                self.assertFalse(main.short_launcher_ready())
+                main.install_short_launcher()
+                self.assertTrue(main.short_launcher_ready())
+                binary.unlink()
+                fallback_env = {**os.environ}
+                for key in ("VK_INSTANCE_LAYERS", "VK_ADD_LAYER_PATH",
+                            "DISABLE_MANGOHUD", "MANGOHUD_CONFIGFILE"):
+                    fallback_env.pop(key, None)
+                fallback_result = subprocess.run(
+                    [str(launcher), sys.executable, "-c", probe, "fallback"],
+                    capture_output=True, text=True, check=True, env=fallback_env,
+                )
+                fallback = json.loads(fallback_result.stdout)
+                self.assertEqual(fallback["args"], ["fallback"])
+                for key in ("layer", "path", "disabled", "config"):
+                    self.assertIsNone(fallback[key])
+                self.assertIn("missing renderer assets", fallback_result.stderr)
                 self.assertFalse(main.short_launcher_ready())
 
     def test_native_binary_absent_means_no_short_command(self):
