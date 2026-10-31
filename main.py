@@ -12,7 +12,6 @@ import base64
 import gzip
 import hashlib
 import re
-import urllib.request
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
 COLORS = {
@@ -185,7 +184,7 @@ def normalize(payload):
     if "metrics" not in payload and payload.get("power") is False:
         d["metrics"]["cpu_power"] = False
         d["metrics"]["gpu_power"] = False
-    if payload.get("font_weight") in ("light", "regular", "bold"):
+    if payload.get("font_weight") in ("light", "regular", "semibold", "bold"):
         d["font_weight"] = payload["font_weight"]
     if isinstance(payload.get("colors"), dict):
         for key, value in payload["colors"].items():
@@ -210,14 +209,20 @@ FONT_SHA256 = "507e0aff243abd8cb440c7ed9927d9d554dafddaf8d4526ca9ed2b145f20f699"
 def font_path():
     return BASE / "ClawSans.ttf"
 
-# Pinned upstream Google Fonts revision. Only the original Google Fonts
-# endpoints are contacted, and git-blob SHA-1 validates every response.
-BARLOW_REV = "89f5431ff0db41bd2fe3f7ba21a723a01622428b"
+# These public OFL fonts are packaged into assets/fonts/ by GitHub Actions.
+# No network access is required on the MSI Claw after installation.
+# The hashes identify immutable official Google Fonts revision binaries.
 BARLOW_BLOBS = {
     "light": ("Light", "f7e0277904b0d7e560d5b178e0ad680d9a096cfd"),
     "regular": ("Regular", "473604976bc07e69c0a8e6dca63e159fac54f5fe"),
+    "semibold": ("SemiBold", "082c76327d21d663948c8ccd2271fa527bd0c145"),
     "bold": ("Bold", "ee04b09e31e98d2509354d7003797ec6540e796f"),
 }
+
+
+def bundled_font_path(weight):
+    return pathlib.Path(__file__).resolve().parent / "assets" / "fonts" / (
+        "BarlowSemiCondensed-" + BARLOW_BLOBS[weight][0] + ".ttf")
 
 
 def condensed_font_path(weight):
@@ -225,28 +230,28 @@ def condensed_font_path(weight):
 
 
 def valid_git_font(blob, expected):
-    return (len(blob) > 20000 and blob[:4] in (bytes([0, 1, 0, 0]), b"OTTO") and
-            hashlib.sha1(b"blob " + str(len(blob)).encode() + bytes([0]) + blob).hexdigest() == expected)
+    return (len(blob) > 20000
+            and blob[:4] in (bytes([0, 1, 0, 0]), b"OTTO")
+            and hashlib.sha1(b"blob " + str(len(blob)).encode()
+                             + bytes([0]) + blob).hexdigest() == expected)
 
 
 def install_condensed_fonts():
-    """Download only official font files; offline startup keeps the old font."""
-    if os.getenv("CLAW_METRICS_SKIP_FONT_DOWNLOAD") == "1":
-        return
-    for weight, (file_weight, git_sha) in BARLOW_BLOBS.items():
+    """Install validated packaged fonts without any network access."""
+    for weight, (_, git_sha) in BARLOW_BLOBS.items():
+        src = bundled_font_path(weight)
         dest = condensed_font_path(weight)
         try:
             if dest.is_file() and valid_git_font(dest.read_bytes(), git_sha):
                 continue
-            url = ("https://raw.githubusercontent.com/google/fonts/" + BARLOW_REV +
-                   "/ofl/barlowsemicondensed/BarlowSemiCondensed-" + file_weight + ".ttf")
-            with urllib.request.urlopen(url, timeout=5) as response:
-                blob = response.read(250000)
+            if not src.is_file():
+                raise FileNotFoundError("Missing bundled font asset: " + src.name)
+            blob = src.read_bytes()
             if not valid_git_font(blob, git_sha):
-                raise ValueError("Google Fonts checksum mismatch: " + file_weight)
+                raise ValueError("Bundled font checksum mismatch: " + src.name)
             write_atomic(dest, blob)
         except (OSError, ValueError) as error:
-            print("Claw Metrics: condensed font " + weight + " unavailable: " + str(error))
+            print("Claw Metrics: bundled font " + weight + " unavailable: " + str(error))
 
 
 def condensed_fonts_ready():
@@ -256,10 +261,13 @@ def condensed_fonts_ready():
 
 
 def sans_font(weight="regular"):
+    if weight not in BARLOW_BLOBS:
+        weight = "regular"
     path = condensed_font_path(weight)
     if path.is_file() and valid_git_font(path.read_bytes(), BARLOW_BLOBS[weight][1]):
         return str(path)
     return str(font_path())
+
 
 def install_font():
     # Ship a licensed font; host /usr font paths can differ inside a game runtime.
@@ -370,7 +378,7 @@ def mango_config(settings, native_spacing=False):
 class Plugin:
     async def _main(self):
         install_font()
-        await asyncio.to_thread(install_condensed_fonts)
+        install_condensed_fonts()
         if not CONFIG.is_file():
             write_atomic(CONFIG, json.dumps(DEFAULTS, indent=2) + "\n")
         try:
