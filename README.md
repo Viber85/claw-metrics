@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.23 — FPS broj & automatsko horizontalno centriranje
+
+- FPS broj ima zasebni slider od 100% do 200% s korakom od 10% i prikaz veličine u Layout panelu. Ostali tekst i metrike ostaju nepromijenjeni. Modificirani MangoHud učitava dodatne FPS fontove i koristi samo jedan povećani font pri iscrtavanju FPS broja.
+- Pill opcija **Centriraj horizontalno** centrira cijeli HUD red prema širini ekrana i izračunatoj širini reda iz prethodnog framea (umjesto MangoHudovog problematičnog top-center načina). Uključena opcija zasivljuje X slider; isključena ga vraća na prethodno spremljenu vrijednost s korakom od 1 px. Y pomak ostaje neovisan.
+- FPS scale i centriranje spremaju se u Stil 1 i Stil 2, uz ostale parametre. Početne postavke su FPS 100% i centriranje isključeno, tako da nema promjena na postojećem izgledu dok korisnik ne uključi opcije.
+- Očitavanje CPU/GPU potrošnje iz AMD `gpu_metrics` 3.0 na Claw A8, TDP aktivne igre, DRAW i postojeće boje/fontovi ostaju kao u test.22.
+- Nova veličina fonta i poravnanje zahtijevaju pokretanje igre s modificiranim Vulkan rendererom te ponovno pokretanje igre nakon promjene.
+
+---
+
 # Claw Metrics v0.2.4-test.22 — Z2 Extreme CPU/GPU power telemetry
 
 MSI Claw A8 user confirmed `gpu_metrics` starts with `8 1 3 0`: structure size 264 bytes (0x108), format revision **3**, content revision **0**. The pinned MangoHud 0.8.1 rejected this format and fell back to GPU sysfs, making CPU 0.0 W and GPU power potentially reflect whole APU power.
