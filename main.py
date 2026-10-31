@@ -231,6 +231,8 @@ def valid_git_font(blob, expected):
 
 def install_condensed_fonts():
     """Download only official font files; offline startup keeps the old font."""
+    if os.getenv("CLAW_METRICS_SKIP_FONT_DOWNLOAD") == "1":
+        return
     for weight, (file_weight, git_sha) in BARLOW_BLOBS.items():
         dest = condensed_font_path(weight)
         try:
