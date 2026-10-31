@@ -94,6 +94,47 @@ class TdpReadOnlyTests(unittest.TestCase):
             (pdc / "state.json").write_text('{"tdp_control_enabled":false}')
             self.assertIsNone(main.read_panel_setpoint([root])[0])
 
+
+    def test_diagnostics_show_pdc_global_while_game_profiles_block_readback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            node = root / "fw/msi-wmi-platform.0/attributes/ppt_pl1_spl/current_value"
+            node.parent.mkdir(parents=True)
+            node.write_text("0\n")
+            pdc = root / "settings/Panel de Control"
+            pdc.mkdir(parents=True)
+            (pdc / "tdp_profiles.json").write_text(
+                '{"global":{"pl1":23},"games":{"123":{"pl1":30}}}')
+            (pdc / "state.json").write_text('{"tdp_control_enabled":true}')
+            with patch.object(main.shutil, "which", return_value=None):
+                report = main.tdp_source_diagnostics(
+                    firmware_root=root / "fw", plugin_roots=[root / "plugins"],
+                    settings_roots=[root / "settings"])
+            self.assertIn("MSI firmware PL1: nečitljivo", report)
+            self.assertIn("RyzenAdj: izvršna datoteka nije pronađena", report)
+            self.assertIn("PDC: globalno 23W", report)
+            self.assertIn("različitih profila igara 1", report)
+            self.assertIn("različiti profili igara", report)
+            self.assertNotIn('"123"', report)
+
+    def test_diagnostics_ryzenadj_read_is_non_mutating(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            binpath = root / "plugins/Panel de Control/bin/ryzenadj"
+            binpath.parent.mkdir(parents=True)
+            binpath.write_text("#!/bin/sh\nexit 0\n")
+            binpath.chmod(0o755)
+            calls = []
+            def reader(argv, **kwargs):
+                calls.append(argv)
+                return SimpleNamespace(returncode=2, stdout="| STAPM LIMIT | 19.000 |")
+            with patch.object(main.shutil, "which", return_value=None):
+                report = main.tdp_source_diagnostics(
+                    firmware_root=root / "fw", plugin_roots=[root / "plugins"],
+                    settings_roots=[root / "settings"], runner=reader)
+            self.assertIn("RyzenAdj: 19W, izlazni kod 2", report)
+            self.assertEqual(calls, [[str(binpath), "-i"]])
+
     def test_native_config_and_styles_ordered_independently(self):
         with tempfile.TemporaryDirectory() as temp:
             with patch.object(main, "BASE", pathlib.Path(temp)):

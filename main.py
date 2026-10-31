@@ -434,6 +434,90 @@ def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
     return read_panel_setpoint(panel_roots)
 
 
+
+def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attributes"),
+                           plugin_roots=None, settings_roots=None, runner=None):
+    """On-demand read-only TDP source report; never include stored game IDs."""
+    notes = []
+    nodes = sorted(firmware_root.glob(
+        "msi-wmi-platform*/attributes/ppt_pl1_spl/current_value"))
+    if not nodes:
+        notes.append("MSI firmware PL1: putanja nije pronađena")
+    for node in nodes[:3]:
+        try:
+            watts = valid_tdp_w(node.read_text(encoding="utf-8").strip())
+            notes.append("MSI firmware PL1: " +
+                         (f"{watts}W" if watts is not None else "nečitljivo"))
+        except OSError as error:
+            notes.append("MSI firmware PL1: " + type(error).__name__)
+    binary = resolve_ryzenadj(plugin_roots)
+    if not binary:
+        notes.append("RyzenAdj: izvršna datoteka nije pronađena")
+    else:
+        try:
+            env = dict(os.environ)
+            env["LD_LIBRARY_PATH"] = ""
+            proc = (runner or subprocess.run)([binary, "-i"], capture_output=True,
+                                              text=True, timeout=3, env=env)
+            match = STAPM_LIMIT_RE.search(proc.stdout or "")
+            watts = valid_tdp_w(match.group(1)) if match else None
+            reading = f"{watts}W" if watts is not None else "STAPM nije pročitan"
+            notes.append(f"RyzenAdj: {reading}, izlazni kod {proc.returncode}")
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            notes.append("RyzenAdj: " + type(error).__name__)
+    locations = settings_roots if settings_roots is not None else panel_settings_roots()
+    for directory in locations:
+        for name in ("Panel de Control", "panel-de-control", "Panel-de-Control",
+                     "panel_de_control"):
+            plugin = pathlib.Path(directory) / name
+            profile_path = plugin / "tdp_profiles.json"
+            if not profile_path.is_file():
+                continue
+            try:
+                if profile_path.stat().st_size > 262144:
+                    notes.append("PDC: profili preveliki")
+                    continue
+                profiles = json.loads(profile_path.read_text(encoding="utf-8"))
+                if not isinstance(profiles, dict):
+                    notes.append("PDC: neispravan format profila")
+                    continue
+                global_profile = profiles.get("global")
+                if not isinstance(global_profile, dict):
+                    notes.append("PDC: globalni profil nedostaje")
+                    continue
+                glob = valid_tdp_w(global_profile.get(
+                    "pl1", global_profile.get("watts")))
+                games = profiles.get("games", {})
+                overrides = 0
+                if isinstance(games, dict):
+                    for game in games.values():
+                        if isinstance(game, dict) and not game.get("follow_global"):
+                            if (valid_tdp_w(game.get("pl1", game.get("watts"))) != glob
+                                    or game.get("auto_tdp") is True):
+                                overrides += 1
+                enabled = "nepoznato"
+                state_path = plugin / "state.json"
+                if state_path.is_file() and state_path.stat().st_size <= 262144:
+                    state = json.loads(state_path.read_text(encoding="utf-8"))
+                    if isinstance(state, dict):
+                        value = state.get("tdp_control_enabled")
+                        if isinstance(value, bool):
+                            enabled = "da" if value else "ne"
+                _, reason = read_panel_setpoint([directory])
+                notes.append(
+                    f"PDC: globalno {glob if glob is not None else '--'}W, "
+                    f"upravljanje uključeno {enabled}, različitih profila igara "
+                    f"{overrides}, Auto TDP globalno "
+                    f"{'da' if global_profile.get('auto_tdp') else 'ne'}; "
+                    f"rezervno čitanje: {reason}")
+                return " | ".join(notes)
+            except (OSError, ValueError, TypeError) as error:
+                notes.append("PDC: greška " + type(error).__name__)
+                return " | ".join(notes)
+    notes.append("PDC: tdp_profiles.json nije pronađen u Decky settings")
+    return " | ".join(notes)
+
+
 def tdp_text(settings, watts):
     label = normalize_custom_labels(settings.get("custom_labels", {})).get("tdp", "TDP")
     return label + (" --" if watts is None else f" {watts}W")
@@ -800,6 +884,7 @@ class Plugin:
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
     async def get_tdp_status(self):
+        details = await asyncio.to_thread(tdp_source_diagnostics)
         watts = getattr(self, "_tdp_last_value", None)
         source = getattr(self, "_tdp_last_source", "Nije provjereno")
         is_configured = watts is not None and source.startswith("Panel de Control")
@@ -814,7 +899,7 @@ class Plugin:
                 if watts is not None else
                 "TDP -- · " + source + ". RyzenAdj i MSI firmware nisu dali očitanje; "
                 "provjeri Panel de Control profile."
-            )
+            ) + "\nIzvori: " + details
         }
 
     async def get_renderer_status(self):

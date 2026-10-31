@@ -1,3 +1,9 @@
+# Claw Metrics v0.2.4-test.18 — dijagnostika TDP-a
+
+Advanced → Provjeri TDP očitanje sada prikazuje stanje zasebnih izvora: MSI firmware, RyzenAdj i konfigurirani Panel de Control (globalni limit, Auto TDP, različiti profili igara). Rezultati ne otkrivaju ID-eve igara. Nijedna TDP vrijednost se ne mijenja. Ovaj build služi utvrđivanju zašto se TDP ne očitava; ne tvrdi da je očitanje na SteamOS-u riješeno. Ostale izmjene test.17 ostaju iste.
+
+---
+
 # Claw Metrics v0.2.4-test.17 — TDP configured setpoint and normal text size
 
 - TDP probes RyzenAdj from the real Decky plugin directory **Panel de Control/bin/ryzenadj** (with spaces), checks additional installed locations, and reads a valid STAPM row even when an unrelated RyzenAdj probe exits nonzero.
