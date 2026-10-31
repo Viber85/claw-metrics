@@ -1,3 +1,19 @@
+# Claw Metrics v0.2.4-test.7 — separator color and Barlow Semi Condensed
+
+Based on the user-tested v0.2.4-test.6 renderer. The existing single row, metrics, color controls, and spacing options are preserved.
+
+**Fixed**: Separators used a 24-bit RGB configuration color directly as an ImGui draw-list color. Draw-list colors require packed RGBA with an opaque alpha channel. The native fix converts the configured RGB to `IM_COL32(r,g,b,255)`, so separator and VRAM colors remain independent.
+
+**Font**: Replaces the primary Claw Sans look with the slightly narrower, legible **Barlow Semi Condensed** family. QAM Appearance offers Light (300), Regular (400), Bold (700). The FPS Bold option uses the actual Bold font at the same point size, rather than faux-bold, when available. If fonts are unavailable, the existing Claw Sans and faux-bold remain safe fallbacks.
+
+To avoid shipping font files directly, the Decky backend downloads the three weights on initial startup from an immutable Google Fonts revision and verifies the canonical Git blob hash of each file. **Internet access is required on first install.** Once downloaded, the fonts are cached locally and work offline. If Google Fonts is unreachable, the original font remains in use; restarting Decky online retries. Source and license:
+- https://github.com/google/fonts/tree/89f5431ff0db41bd2fe3f7ba21a723a01622428b/ofl/barlowsemicondensed
+- https://github.com/google/fonts/blob/89f5431ff0db41bd2fe3f7ba21a723a01622428b/ofl/barlowsemicondensed/OFL.txt (SIL Open Font License 1.1)
+
+**Test**: Install the v0.2.4-test.7 ZIP. Restart Decky once online. The QAM Appearance font status should say Barlow Semi Condensed available. Start a 64-bit Vulkan game with the experimental launch command, check renderer ACTIVE, then compare Light/Regular/Bold; restart the game if the font doesn't reload. Next, change separators to red and VRAM label to green. Confirm only separators change. Toggle FPS bold; font size must stay unchanged. Stable v0.2.3 and user-confirmed v0.2.4-test.6 remain published and unchanged.
+
+---
+
 # Claw Metrics v0.2.4-test.6 — gamepad color editor
 
 Based on the verified working `v0.2.4-test.5` layout. Keeps the one-line overlay, inner spacing controls, bold FPS, the explicit Vulkan launch path, and all sensor options.
