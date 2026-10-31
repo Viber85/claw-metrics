@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.11 — short launcher for experimental Vulkan
+
+This is a minimal follow-up to test.10. The custom Vulkan renderer, font atlas, metric styles and QAM visuals have not changed. A small POSIX shell launcher is now written automatically to the persistent user config directory at startup (and regenerated after settings updates), with executable permissions. The launcher exports **exactly the same** `VK_ADD_LAYER_PATH`, `VK_INSTANCE_LAYERS`, `DISABLE_MANGOHUD` and `MANGOHUD_CONFIGFILE` variables as the long experimental command, then uses `exec "$@"` to start the Steam game without changing its arguments or exit status.
+
+**Use:** Open **Activation**, copy **Kratka testna komanda**, and paste it into the Steam Launch Options for a selected game. The command is an absolute path such as `/home/deck/.config/ClawMetrics/claw-metrics %command%`; this avoids relying on an uncertain Game Mode `PATH` and remains valid when Decky updates the plugin files. The old full-length experimental command remains available behind **Prikaži dugu rezervnu komandu**, and the standard stock MangoHud command is unchanged.
+
+This does not automatically inject the overlay into every game. It is still **opt-in 64-bit Vulkan experimental support**; check **Provjeri koristi li igra eksperimentalni renderer** while playing. If a game fails to launch, revert its Steam Launch Options to the previous working command. Tests in GitHub Actions verify POSIX-shell delegation, environment variables, paths with whitespace/quotes, executable permissions and fallback. Actual SteamOS Game Mode/Proton compatibility still requires an on-device test.
+
+---
+
 # Claw Metrics v0.2.4-test.10 — individual typography and persistent QAM navigation
 
 This experimental build preserves the exact QAM design from v0.2.4-test.9: dark blue cards, cyan active border, purple inactive accents, and six collapsible sections. The existing one-row Claw Metrics overlay, Vulkan launch method, Barlow Semi Condensed fonts, metrics and slider settings remain unchanged by default.

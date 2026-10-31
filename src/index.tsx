@@ -148,6 +148,8 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
 type Info = {
   layout_spacing_supported: boolean;
   experimental_launch_option: string;
+  short_launch_option: string;
+  short_launcher_ready: boolean;
   experimental_config_readable: boolean;
   font_path: string;
   font_ready: boolean;
@@ -251,6 +253,7 @@ function Content() {
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Učitavanje…");
   const [copyStatus, setCopyStatus] = useState("");
+  const [showLegacyCommand, setShowLegacyCommand] = useState(false);
   const [rendererStatus, setRendererStatus] = useState("Nije provjereno. Pokreni igru za test.");
   const [rendererBusy, setRendererBusy] = useState(false);
   const verifyRenderer = async () => {
@@ -332,8 +335,9 @@ function Content() {
 
   // Copy synchronously from a button click: SteamOS Game Mode often does
   // not expose the modern Clipboard API to Decky panels.
-  const copyLaunchCommand = async (experimental = false) => {
-    const command = experimental ? info?.experimental_launch_option : info?.launch_option;
+  const copyLaunchCommand = async (experimental: boolean | "short" = false) => {
+    const command = experimental === "short" ? info?.short_launch_option
+      : experimental ? info?.experimental_launch_option : info?.launch_option;
     if (!command) {
       setCopyStatus("Naredba još nije dostupna.");
       return;
@@ -444,7 +448,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.10">
+      <PanelSection title="Claw Metrics · v0.2.4-test.11">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -651,14 +655,33 @@ function Content() {
             description={info.experimental_config_readable ? "Datoteka je spremljena. Ovo NE potvrđuje da je igra učitala eksperimentalni renderer." : "Datoteka nije čitljiva; ponovno pokreni Decky Loader."} />
         </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="EKSPERIMENTALNI prikaz – samo Vulkan 64-bit"
-            description={info.experimental_launch_option} />
+          <Field label="Kratka testna komanda (preporučeno)"
+            description={info.short_launcher_ready
+              ? info.short_launch_option
+              : "Launcher nije spreman. Ponovno pokreni Decky Loader i osvježi status."} />
         </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => { void copyLaunchCommand(true); }}>
-            <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (Vulkan 64-bit)
+          <ButtonItem disabled={!info.short_launcher_ready} layout="below"
+            onClick={() => { void copyLaunchCommand("short"); }}>
+            <FaCopy style={{marginRight: 8}} /> Kopiraj kratku testnu komandu
           </ButtonItem>
         </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <Field label="Kratki launcher" description="Automatski postavlja iste Vulkan i MangoHud varijable kao stara testna komanda. Potrebno ga je jednom zalijepiti u Steam Launch Options za svaku igru. Ne uključuje globalno sve igre." />
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && <PanelSectionRow>
+          <ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
+            {showLegacyCommand ? "Sakrij dugu rezervnu komandu" : "Prikaži dugu rezervnu komandu"}
+          </ButtonItem>
+        </PanelSectionRow>}
+        {info?.layout_spacing_supported && showLegacyCommand && <>
+          <PanelSectionRow><Field label="Duga testna komanda (rezervna, Vulkan 64-bit)"
+            description={info.experimental_launch_option} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem layout="below"
+            onClick={() => { void copyLaunchCommand(true); }}>
+            <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (rezervna, duga)
+          </ButtonItem></PanelSectionRow>
+        </>}
         <PanelSectionRow><Field label="Siguran povratak"
           description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>

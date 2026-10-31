@@ -22,6 +22,7 @@ class GroupedQamTests(unittest.TestCase):
     def test_existing_controls_and_safe_color_picker_survive(self):
         for option in (
             "Kopiraj launch komandu", "Kopiraj testnu komandu",
+            "Kopiraj kratku testnu komandu", "Prikaži dugu rezervnu komandu",
             "Razmak unutar grupa", "Širina frametime grafa",
             "Vrati zadane boje", "OpaqueColorPicker",
             "SemiBold", "fps_bold", "font_weight", "MangoHud",
@@ -52,6 +53,8 @@ class GroupedQamTests(unittest.TestCase):
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
         self.assertIn("copyLaunchCommand(true)", SOURCE)
+        self.assertIn('copyLaunchCommand("short")', SOURCE)
+        self.assertIn("short_launcher_ready", SOURCE)
         self.assertIn("onChange={(value: number) => update(", SOURCE)
         self.assertIn('Očitanje primijenjenog limita još nije dostupno.', SOURCE)
 
