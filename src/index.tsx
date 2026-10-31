@@ -766,4 +766,4 @@ export default definePlugin(() => ({
   icon: <FaChartLine />,
 }));
 
-export { defaults };
+
