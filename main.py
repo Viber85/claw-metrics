@@ -25,6 +25,8 @@ COLORS = {
     "vram": "D76AB8",
     "battery": "30E5A0",
     "graph": "30E5A0",
+    "time": "F0F2F5",  # native Clock token
+    "draw": "F0F2F5",  # native DRAW text
 }
 
 METRICS = {
@@ -61,6 +63,31 @@ def normalize_token_colors(payload):
     return out
 
 
+STYLE_LAYOUT_RANGES = {
+    "fontsize": (12, 28), "opacity": (0, 100), "rounding": (0, 20),
+    "padding_x": (0, 24), "padding_y": (0, 24),
+    "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
+    "element_gap": (0, 20), "table_gap": (0, 12),
+    "inner_gap": (0, 16), "graph_width": (80, 200),
+}
+STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics")
+
+
+def normalize_custom_labels(payload):
+    result = {}
+    if not isinstance(payload, dict):
+        return result
+    for key in ORDER:
+        value = payload.get(key)
+        if not isinstance(value, str):
+            continue
+        # Safe single-line labels for both MangoHud config and text output.
+        label = re.sub(r"\\s+", " ", re.sub(r"[\\x00-\\x1f\\x7f=]", " ", value)).strip()[:24]
+        if label:
+            result[key] = label
+    return result
+
+
 def normalize_style_presets(payload):
     out = {}
     if not isinstance(payload, dict):
@@ -69,13 +96,29 @@ def normalize_style_presets(payload):
         item = payload.get(key)
         if not isinstance(item, dict):
             continue
-        out[key] = {
-            "colors": {**COLORS, **normalize_color_overrides(item.get("colors"))},
+        stored_colors = normalize_color_overrides(item.get("colors"))
+        # Old presets used text_color for both Clock and DRAW.
+        for key_name in ("time", "draw"):
+            if key_name not in stored_colors:
+                stored_colors[key_name] = stored_colors.get("text", COLORS["text"])
+        preset = {
+            "colors": {**COLORS, **stored_colors},
             "font_weight": item.get("font_weight") if item.get("font_weight") in FONT_WEIGHTS[1:] else "regular",
             "fps_bold": item.get("fps_bold") if type(item.get("fps_bold")) is bool else True,
             "token_weights": normalize_token_weights(item.get("token_weights")),
             "token_colors": normalize_token_colors(item.get("token_colors")),
         }
+        if item.get("version") == 2:
+            preset["version"] = 2
+        # Legacy presets lacked layout fields; do NOT reset layout on load.
+        for field, (lo, hi) in STYLE_LAYOUT_RANGES.items():
+            value = item.get(field)
+            if type(value) is int:
+                preset[field] = min(hi, max(lo, value))
+        for field in STYLE_LAYOUT_FLAGS:
+            if type(item.get(field)) is bool:
+                preset[field] = item[field]
+        out[key] = preset
     return out
 
 
@@ -103,6 +146,7 @@ DEFAULTS = {
     "colors": COLORS,
     "font_weight": "regular",
     "token_weights": {}, "token_colors": {}, "style_presets": {},
+    "active_style": None, "custom_labels": {},
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -242,6 +286,12 @@ def short_launcher_ready():
         return False
 
 
+def draw_text(settings):
+    reading = battery_draw()
+    label = normalize_custom_labels(settings.get("custom_labels", {})).get("draw", "DRAW")
+    return label + reading[len("DRAW"):] if reading.startswith("DRAW ") else reading
+
+
 def draw_path():
     return BASE / "draw.txt"
 
@@ -295,9 +345,17 @@ def normalize(payload):
                 candidate = value.lstrip("#").upper()
                 if re.fullmatch(r"[0-9A-F]{6}", candidate):
                     d["colors"][key] = candidate
+        # Old saved settings had no independent Clock / DRAW colors.
+        for label in ("time", "draw"):
+            if label not in payload["colors"]:
+                d["colors"][label] = d["colors"]["text"]
+    d["custom_labels"] = normalize_custom_labels(payload.get("custom_labels"))
     d["token_weights"] = normalize_token_weights(payload.get("token_weights"))
     d["token_colors"] = normalize_token_colors(payload.get("token_colors"))
     d["style_presets"] = normalize_style_presets(payload.get("style_presets"))
+    active_slot = payload.get("active_style")
+    if active_slot in d["style_presets"]:
+        d["active_style"] = active_slot
     if isinstance(payload.get("metrics"), dict):
         for key, v in payload["metrics"].items():
             if key in METRICS and type(v) is bool:
@@ -451,7 +509,12 @@ def mango_config(settings, native_spacing=False):
         # An ordinary FPS label means the game is still using the stock profile.
         # This marker is temporary and only affects the experimental profile.
         lines.extend([
-            "fps_text=FPS*",
+            "fps_text=" + d["custom_labels"].get("fps", "FPS*"),
+            "cpu_text=" + d["custom_labels"].get("cpu", "CPU"),
+            "gpu_text=" + d["custom_labels"].get("gpu", "GPU"),
+            "claw_ram_label=" + d["custom_labels"].get("ram", "RAM"),
+            "claw_vram_label=" + d["custom_labels"].get("vram", "VRAM"),
+            "claw_battery_label=" + d["custom_labels"].get("battery", "BATT"),
             "claw_padding_x=" + str(d["padding_x"]),
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
@@ -460,7 +523,11 @@ def mango_config(settings, native_spacing=False):
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
             "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
-            "claw_color_map=" + ":".join(d["token_colors"].get(slot, "------") for slot in TOKEN_SLOTS),
+            "claw_color_map=" + ":".join(
+                d["token_colors"].get(slot, c["time"] if slot == "time.value" else
+                                      c["draw"] if slot == "battery.power" else "------")
+                for slot in TOKEN_SLOTS
+            ),
         ])
     if d["sans"]:
         primary = sans_font(d["font_weight"])
@@ -501,14 +568,18 @@ class Plugin:
             install_native_manifest()
             write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
             install_short_launcher()
-        write_atomic(draw_path(), battery_draw() + "\n")
+        self._current_settings = settings
+        write_atomic(draw_path(), draw_text(settings) + "\n")
         self._draw_task = asyncio.create_task(self._draw_loop())
 
     async def _draw_loop(self):
         while True:
             await asyncio.sleep(2)
             try:
-                write_atomic(draw_path(), battery_draw() + "\n")
+                value = draw_text(getattr(self, "_current_settings", DEFAULTS))
+                # No need to replace the file if its content did not change.
+                if not draw_path().is_file() or draw_path().read_text() != value + "\n":
+                    write_atomic(draw_path(), value + "\n")
             except OSError:
                 # A temporary filesystem failure must not kill the Decky backend.
                 pass
@@ -532,6 +603,8 @@ class Plugin:
     async def save_settings(self, settings: dict):
         data = normalize(settings)
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
+        self._current_settings = data
+        write_atomic(draw_path(), draw_text(data) + "\n")
         write_atomic(HUD, mango_config(data))
         if native_renderer_available():
             install_native_manifest()
