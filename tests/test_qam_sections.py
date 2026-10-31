@@ -155,6 +155,23 @@ class GroupedQamTests(unittest.TestCase):
                        "ImGui::GetIO().DisplaySize"):
             self.assertIn(marker, native)
 
+    def test_frametime_dropdown_has_four_styles(self):
+        self.assertIn('label="Tip frametime grafa"',SOURCE)
+        self.assertIn('rgOptions={graphStyleOptions} selectedOption={settings.graph_style}',SOURCE)
+        for label in ("A · Ispuna","B · Linijski graf","C · Histogram",
+                      "F · Linija + blaga ispuna"):
+            self.assertIn(label,SOURCE)
+        self.assertIn("graph_style:defaults.graph_style",SOURCE)
+
+    def test_graph_styles_native_patch_present(self):
+        root=pathlib.Path(__file__).resolve().parents[1]
+        workflow=(root/".github/workflows/layout-experiment.yml").read_text()
+        patcher=(root/"experiments/enable_frametime_graph_styles.py").read_text()
+        self.assertIn("python3 ../experiments/enable_frametime_graph_styles.py src",workflow)
+        for token in ("claw_graph_style","PlotHistogram","InvisibleButton",
+                      "AddQuadFilled","AddLine","GetWindowDrawList"):
+            self.assertIn(token,patcher)
+
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)

@@ -220,6 +220,26 @@ class Settings(unittest.TestCase):
         self.assertTrue(style["center_horizontal"])
         self.assertEqual(style["offset_x"], -25)
 
+    def test_frametime_graph_styles_native_selection(self):
+        self.assertEqual(main.normalize({})["graph_style"], "line")
+        self.assertEqual(main.normalize({"graph_style":"invalid"})["graph_style"], "line")
+        for name, idx in (("area",1),("line",0),("bars",2),("dual",3)):
+            with self.subTest(name=name):
+                settings=main.normalize({"graph_style":name})
+                native=main.mango_config(settings,native_spacing=True)
+                stock=main.mango_config(settings)
+                self.assertIn(f"claw_graph_style={idx}\n",native)
+                self.assertNotIn("claw_graph_style=",stock)
+
+    def test_graph_style_presets_and_old_style_compatibility(self):
+        settings=main.normalize({"style_presets":{
+            "1":{"version":2,"graph_style":"area"},
+            "2":{"version":2,"graph_style":"dual"}}})
+        self.assertEqual(settings["style_presets"]["1"]["graph_style"],"area")
+        self.assertEqual(settings["style_presets"]["2"]["graph_style"],"dual")
+        self.assertNotIn("graph_style",main.normalize({"style_presets":{
+            "1":{"version":2,"graph_style":"invalid"}}})["style_presets"]["1"])
+
     def test_style_presets_validate_before_reuse(self):
         payload = {"style_presets": {
             "1": {"font_weight": "semibold", "fps_bold": False,

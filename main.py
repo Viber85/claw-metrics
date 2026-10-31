@@ -75,6 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "inner_gap": (0, 16), "graph_width": (80, 200),
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
+GRAPH_STYLES = ("area", "line", "bars", "dual")
 
 
 def normalize_custom_labels(payload):
@@ -122,6 +123,8 @@ def normalize_style_presets(payload):
         for field in STYLE_LAYOUT_FLAGS:
             if type(item.get(field)) is bool:
                 preset[field] = item[field]
+        if item.get("graph_style") in GRAPH_STYLES:
+            preset["graph_style"] = item["graph_style"]
         out[key] = preset
     return out
 
@@ -146,7 +149,7 @@ DEFAULTS = {
     # Native MangoHud 0.8.1 hard-codes these; retain the desired values
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
-    "inner_gap": 4, "inline_metrics": True, "fps_bold": True,
+    "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line",
     "colors": COLORS,
     "font_weight": "regular",
     "token_weights": {}, "token_colors": {}, "style_presets": {},
@@ -584,6 +587,8 @@ def normalize(payload):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
+    if payload.get("graph_style") in GRAPH_STYLES:
+        d["graph_style"] = payload["graph_style"]
     # Preserve the old top-margin preference when upgrading to explicit X/Y.
     if "offset_y" not in payload and type(payload.get("margin")) is int:
         d["offset_y"] = min(1200, max(-1200, payload["margin"]))
@@ -777,6 +782,7 @@ def mango_config(settings, native_spacing=False):
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
+            "claw_graph_style=" + str(GRAPH_STYLES.index(d["graph_style"])),
             "claw_inner_gap=" + str(d["inner_gap"]),
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),

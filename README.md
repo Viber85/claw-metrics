@@ -1,3 +1,9 @@
+# Claw Metrics v0.2.4-test.24 — četverostruki frametime graf
+
+Layout → **Tip frametime grafa**: A Ispuna, B Linijski graf, C Histogram, F Linija + blaga ispuna. Zadano je B, dosadašnji prikaz. Koriste se stvarni frametime podaci i postojeća boja grafa. Odabir se sprema u Stil 1 i Stil 2. Izmjena djeluje u našem modificiranom Vulkan rendereru nakon ponovnog pokretanja igre, bez promjena na CPU/GPU, TDP, DRAW, FPS veličini ili centriranju.
+
+---
+
 # Claw Metrics v0.2.4-test.23 — FPS broj & automatsko horizontalno centriranje
 
 - FPS broj ima zasebni slider od 100% do 200% s korakom od 10% i prikaz veličine u Layout panelu. Ostali tekst i metrike ostaju nepromijenjeni. Modificirani MangoHud učitava dodatne FPS fontove i koristi samo jedan povećani font pri iscrtavanju FPS broja.

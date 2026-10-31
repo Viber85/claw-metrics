@@ -13,6 +13,7 @@ import {
   TextField,
   Router,
   ToggleField,
+  DropdownItem,
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
@@ -21,6 +22,13 @@ import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
+type GraphStyle = "area" | "line" | "bars" | "dual";
+const graphStyleOptions: {data:GraphStyle;label:string}[] = [
+  {data:"area",label:"A · Ispuna"},
+  {data:"line",label:"B · Linijski graf"},
+  {data:"bars",label:"C · Histogram"},
+  {data:"dual",label:"F · Linija + blaga ispuna"},
+];
 type WeightSelection = "inherit" | FontWeight;
 type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
 type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
@@ -47,7 +55,7 @@ const styleTabs: [StyleCategory,string][] = [
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Vrijednosti"],
 ];
 type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
-  sans?:boolean; inline_metrics?:boolean; version?:number;
+  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; version?:number;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
   token_colors: Partial<Record<TokenKey, string>>;
@@ -155,7 +163,7 @@ type Settings = Record<Group, boolean> & {
   custom_labels: Record<string,string>;
   enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
-  padding_x: number; element_gap: number; table_gap: number; graph_width: number;
+  padding_x: number; element_gap: number; table_gap: number; graph_width: number; graph_style: GraphStyle;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
   metrics: Record<string, boolean>;
   colors: ColorSettings;
@@ -199,7 +207,7 @@ const defaults: Settings = {
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
-  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150,
+  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
   inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
@@ -630,7 +638,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.23">
+      <PanelSection title="Claw Metrics · v0.2.4-test.24">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -700,6 +708,11 @@ function Content() {
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
 
+        <PanelSectionRow><DropdownItem label="Tip frametime grafa"
+          description="Odaberi prikaz A, B, C ili F. Bez promjene drugih metrika."
+          rgOptions={graphStyleOptions} selectedOption={settings.graph_style}
+          disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(option)=>update({graph_style:option.data as GraphStyle})}/></PanelSectionRow>
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
@@ -707,7 +720,7 @@ function Content() {
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
-          graph_width:defaults.graph_width,inline_metrics:defaults.inline_metrics
+          graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Automatsko centriranje zanemaruje ručni X-pomak, ali ga čuva. Isključivanjem centriranja vraća se ručni položaj po 1 px." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
