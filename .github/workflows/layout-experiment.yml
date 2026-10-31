@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.6
+  group: claw-metrics-v0.2.4-test.7
   cancel-in-progress: true
 
 jobs:
@@ -21,6 +21,8 @@ jobs:
         with:
           node-version: "22"
       - name: Python tests
+        env:
+          CLAW_METRICS_SKIP_FONT_DOWNLOAD: "1"
         run: python3 -m unittest discover -s tests
       - name: Install Decky dependencies
         run: npm install --no-audit --no-fund
@@ -48,11 +50,17 @@ jobs:
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          grep -q 'IM_COL32' src/overlay.cpp
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
           grep -q 'params.horizontal_separator_color' src/overlay.cpp
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          grep -q 'claw_bold_fps_font' src/font.cpp
           grep -q 'ClawMetricGap' src/hud_elements.cpp
           grep -q 'position.x + 1.8f' src/hud_elements.cpp
           meson setup build --prefix=/usr --buildtype=release \
@@ -75,7 +83,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.6.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.7.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -89,14 +97,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.6
-          path: ClawMetrics-v0.2.4-test.6.zip
+          name: ClawMetrics-v0.2.4-test.7
+          path: ClawMetrics-v0.2.4-test.7.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.6 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.6 ClawMetrics-v0.2.4-test.6.zip \
+          gh release delete v0.2.4-test.7 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.7 ClawMetrics-v0.2.4-test.7.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.6 – spacing experiment" \
-            --notes "Claw Metrics v0.2.4-test.6: controller-friendly HSL color pickers for FPS, CPU, GPU, RAM, VRAM, battery labels, numeric values, frametime graph, and independently adjustable separator color. Same one-line layout as confirmed test.5; includes separate native MangoHud separator patch. SteamOS hardware test still required; default palette and Panel de Control unchanged."
+            --title "Claw Metrics v0.2.4-test.7 – spacing experiment" \
+            --notes "Claw Metrics v0.2.4-test.7: separator color now packed with visible alpha using IM_COL32; Barlow Semi Condensed Light/Regular/Bold selectable in QAM; real Bold face for FPS instead of faux strokes when fonts are available. Fonts fetched from pinned Google Fonts source on first installation (internet required); if offline previous Claw Sans stays active. Preserves proven test.5/6 layout and Panel de Control."
