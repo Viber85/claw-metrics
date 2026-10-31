@@ -22,12 +22,28 @@ class TdpReadOnlyTests(unittest.TestCase):
         self.assertEqual(calls[0][0], ["/usr/bin/ryzenadj", "-i"])
         self.assertEqual(calls[0][1]["timeout"], 2)
 
+    def test_pdc_actual_bundled_binary_path_and_nonzero_valid_stdout(self):
+        with tempfile.TemporaryDirectory() as temp:
+            plugin_root = pathlib.Path(temp) / "plugins"
+            binary = plugin_root / "Panel de Control" / "bin" / "ryzenadj"
+            binary.parent.mkdir(parents=True)
+            binary.write_text("#!/bin/sh\\nexit 0\\n")
+            binary.chmod(0o755)
+            with patch.object(main.shutil, "which", return_value=None):
+                self.assertEqual(main.resolve_ryzenadj([plugin_root]), str(binary))
+            def readback(argv, **kwargs):
+                return SimpleNamespace(returncode=2,
+                    stdout="| STAPM LIMIT | 25.000 |", stderr="unrelated probe unavailable")
+            self.assertEqual(main.read_tdp_limit(root=pathlib.Path(temp),
+                binary=str(binary), runner=readback, panel_roots=[]),
+                (25, "RyzenAdj STAPM"))
+
     def test_kernel_read_block_yields_unknown_without_guess(self):
         def runner(argv, **kwargs):
             return SimpleNamespace(returncode=1, stdout="", stderr="cannot open /dev/mem")
         with tempfile.TemporaryDirectory() as temp:
             self.assertEqual(main.read_tdp_limit(root=pathlib.Path(temp),
-                             binary="ryzenadj", runner=runner), (None, "Nije dostupno"))
+                             binary="ryzenadj", runner=runner, panel_roots=[root]), (None, "Nije dostupno"))
         self.assertEqual(main.valid_tdp_w(0), None)
         self.assertEqual(main.valid_tdp_w("garbage"), None)
         self.assertEqual(main.valid_tdp_w(500), None)
@@ -45,6 +61,38 @@ class TdpReadOnlyTests(unittest.TestCase):
             node.write_text("0\n")
             self.assertEqual(main.read_tdp_limit(root=root, binary="ryzenadj",
                              runner=runner), (None, "Nije dostupno"))
+
+    def test_panel_configured_setpoint_used_when_hw_readback_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            pdc = root / "Panel de Control"
+            pdc.mkdir()
+            (pdc / "tdp_profiles.json").write_text(
+                '{"global":{"pl1":23,"mode":"estable"}, "games":{}}')
+            (pdc / "state.json").write_text('{"tdp_control_enabled":true}')
+            def denied(argv, **kwargs):
+                return SimpleNamespace(returncode=1, stdout="", stderr="dev/mem denied")
+            value, source = main.read_tdp_limit(root=root, binary="ryzenadj",
+                runner=denied, panel_roots=[root])
+            self.assertEqual(value, 23)
+            self.assertIn("postavljeno", source)
+            self.assertIn("nije hardverski potvrđeno", source)
+
+    def test_panel_profiles_do_not_misreport_game_or_auto_mode(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            pdc = root / "Panel de Control"
+            pdc.mkdir()
+            path = pdc / "tdp_profiles.json"
+            path.write_text('{"global":{"pl1":23}, "games":{"123":{"pl1":30}}}')
+            value, reason = main.read_panel_setpoint([root])
+            self.assertIsNone(value)
+            self.assertIn("profili igara", reason)
+            path.write_text('{"global":{"pl1":23,"auto_tdp":true}, "games":{}}')
+            self.assertIsNone(main.read_panel_setpoint([root])[0])
+            path.write_text('{"global":{"pl1":23}, "games":{}}')
+            (pdc / "state.json").write_text('{"tdp_control_enabled":false}')
+            self.assertIsNone(main.read_panel_setpoint([root])[0])
 
     def test_native_config_and_styles_ordered_independently(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -72,6 +120,15 @@ class TdpReadOnlyTests(unittest.TestCase):
         self.assertFalse(d["tdp"])
         self.assertEqual(d["order"][d["order"].index("draw")-1], "tdp")
         self.assertEqual(d["colors"]["tdp"], "FFBD69")
+
+    def test_native_draw_tdp_use_regular_hud_font_in_horizontal_mode(self):
+        code = (pathlib.Path(__file__).resolve().parents[1] /
+                "experiments/apply_token_styles.py").read_text()
+        self.assertIn("const bool claw_exec_small_font", code)
+        self.assertIn("if (claw_exec_small_font) ImGui::PushFont", code)
+        self.assertIn("if (claw_exec_small_font) ImGui::PopFont", code)
+        self.assertIn("ClawText(27,", code)
+        self.assertIn("ClawText(25,", code)
 
     def test_source_never_requests_tdp_writes(self):
         # No --stapm, --fast-limit, --slow-limit, --tctl-temp flags permitted.

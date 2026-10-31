@@ -274,7 +274,24 @@ s = replace_once(s,
     'ClawText(22, HUDElements.colors.battery, "BATT");',
     'ClawText(22, HUDElements.colors.battery, "%s", HUDElements.params->claw_battery_label.empty() ? "BATT" : HUDElements.params->claw_battery_label.c_str());',
     "native battery label")
-s = replace_once(s,
+# Upstream _exec() always selects font1 (font_size_text, ~78% of normal
+# size). In our one-row renderer this made TDP and DRAW visibly tiny.
+# Use the normal HUD font for horizontal exec elements, while retaining
+# upstream compact font in vertical mode and honoring explicit token weights.
+exec_start = s.index("void HudElements::_exec(){")
+exec_end = s.index("void HudElements::gamemode(){", exec_start)
+exec_block = s[exec_start:exec_end]
+exec_block = replace_once(
+    exec_block, "    ImGui::PushFont(HUDElements.sw_stats->font1);",
+    "    const bool claw_exec_small_font = !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];\n"
+    "    if (claw_exec_small_font) ImGui::PushFont(HUDElements.sw_stats->font1);",
+    "exec compact font push")
+exec_block = replace_once(
+    exec_block, "    ImGui::PopFont();",
+    "    if (claw_exec_small_font) ImGui::PopFont();",
+    "exec compact font pop")
+exec_block = replace_once(
+    exec_block,
     '            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])\n'
     '                HUDElements.TextColored(HUDElements.colors.text, "%s",item.ret.c_str());',
     '            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {\n'
@@ -284,5 +301,6 @@ s = replace_once(s,
     '                    ClawText(25, HUDElements.colors.text, "%s", item.ret.c_str());\n'
     '            }',
     "native DRAW and TDP token style")
+s = s[:exec_start] + exec_block + s[exec_end:]
 hud.write_text(s)
 print("Applied per-token font/color renderer:", root)

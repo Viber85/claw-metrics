@@ -298,18 +298,92 @@ def tdp_path():
     return BASE / "tdp.txt"
 
 
-def resolve_ryzenadj():
-    """Use an installed binary, including Panel de Control's own executable."""
+def resolve_ryzenadj(plugin_roots=None):
+    """Locate the actual Panel de Control binary without invoking write commands.
+
+    Decky installs it in 'Panel de Control/bin/ryzenadj' (spaces included).
+    Other Decky installations mount homebrew either under /homebrew or HOME.
+    """
+    roots = plugin_roots if plugin_roots is not None else [
+        pathlib.Path(__file__).resolve().parent.parent,
+        pathlib.Path("/homebrew/plugins"),
+        user_home() / "homebrew" / "plugins",
+        pathlib.Path("/home/deck/homebrew/plugins"),
+        pathlib.Path("/home/gamer/homebrew/plugins"),
+    ]
     candidates = [shutil.which("ryzenadj")]
-    homebrew = pathlib.Path("/homebrew/plugins")
-    for plugin in ("panel-de-control", "Panel-de-Control", "panel_de_control"):
-        candidates.append(str(homebrew / plugin / "bin" / "ryzenadj"))
+    for root in roots:
+        for plugin in ("Panel de Control", "panel-de-control", "Panel-de-Control",
+                       "panel_de_control"):
+            candidates.append(str(root / plugin / "bin" / "ryzenadj"))
     for name in candidates:
         if name:
             path = pathlib.Path(name)
             if path.is_file() and os.access(path, os.X_OK):
                 return str(path)
     return None
+
+
+def panel_settings_roots():
+    """Known Decky settings roots; never scan arbitrary files or game directories."""
+    configured = os.environ.get("DECKY_PLUGIN_SETTINGS_DIR", "")
+    roots = []
+    if configured and pathlib.Path(configured).is_absolute():
+        roots.append(pathlib.Path(configured).parent)
+    roots.extend([
+        pathlib.Path("/homebrew/settings"),
+        user_home() / "homebrew/settings",
+        pathlib.Path("/home/deck/homebrew/settings"),
+        pathlib.Path("/home/gamer/homebrew/settings"),
+    ])
+    return list(dict.fromkeys(roots))
+
+
+def read_panel_setpoint(roots=None):
+    """Read the configured PDC global PL1, not an asserted hardware readback.
+
+    If independent per-game or auto TDP profiles could select a different value,
+    do not pretend the global setpoint is necessarily current.
+    """
+    locations = roots if roots is not None else panel_settings_roots()
+    for directory in locations:
+        for name in ("Panel de Control", "panel-de-control", "Panel-de-Control",
+                     "panel_de_control"):
+            plugin = pathlib.Path(directory) / name
+            profiles_path = plugin / "tdp_profiles.json"
+            try:
+                if not profiles_path.is_file() or profiles_path.stat().st_size > 262144:
+                    continue
+                profiles = json.loads(profiles_path.read_text(encoding="utf-8"))
+                state_path = plugin / "state.json"
+                if state_path.is_file() and state_path.stat().st_size <= 262144:
+                    state = json.loads(state_path.read_text(encoding="utf-8"))
+                    if isinstance(state, dict) and state.get("tdp_control_enabled") is False:
+                        return None, "PDC: upravljanje TDP-om isključeno"
+                if not isinstance(profiles, dict):
+                    continue
+                global_profile = profiles.get("global")
+                if not isinstance(global_profile, dict):
+                    continue
+                global_watts = valid_tdp_w(global_profile.get(
+                    "pl1", global_profile.get("watts")))
+                if global_watts is None:
+                    continue
+                if global_profile.get("auto_tdp") is True:
+                    return None, "PDC: Auto TDP (promjenjiv limit)"
+                games = profiles.get("games", {})
+                if isinstance(games, dict):
+                    for profile in games.values():
+                        if not isinstance(profile, dict) or profile.get("follow_global"):
+                            continue
+                        game_watts = valid_tdp_w(profile.get(
+                            "pl1", profile.get("watts")))
+                        if (game_watts != global_watts or profile.get("auto_tdp") is True):
+                            return None, "PDC: različiti profili igara, trenutni nije potvrđen"
+                return global_watts, "Panel de Control · postavljeno (nije hardverski potvrđeno)"
+            except (OSError, ValueError, TypeError):
+                continue
+    return None, "Nije dostupno"
 
 
 def valid_tdp_w(value):
@@ -323,12 +397,13 @@ def valid_tdp_w(value):
 
 
 def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
-                   binary=None, runner=None):
+                   binary=None, runner=None, panel_roots=None):
     """Return (readback in watts, source). No cached/setpoint guesses.
 
     On official SteamOS prefer the same RyzenAdj STAPM readback used by
     Panel de Control. Some newer kernels deny this read; MSI firmware PL1
-    is a strictly read-only secondary source if available.
+    is a strictly read-only secondary source if available. The saved PDC
+    setpoint is the last fallback and is explicitly tagged unverified.
     """
     executable = resolve_ryzenadj() if binary is None else binary
     if executable:
@@ -338,11 +413,12 @@ def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
             env["LD_LIBRARY_PATH"] = ""
             result = invoke([executable, "-i"], capture_output=True,
                             text=True, timeout=2, env=env)
-            if result.returncode == 0:
-                match = STAPM_LIMIT_RE.search(result.stdout or "")
-                watts = valid_tdp_w(match.group(1)) if match else None
-                if watts is not None:
-                    return watts, "RyzenAdj STAPM"
+            # PDC also accepts a valid parsed STAPM row even when RyzenAdj
+            # reports a non-zero exit code for an unrelated system probe.
+            match = STAPM_LIMIT_RE.search(result.stdout or "")
+            watts = valid_tdp_w(match.group(1)) if match else None
+            if watts is not None:
+                return watts, "RyzenAdj STAPM"
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
     try:
@@ -353,7 +429,9 @@ def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
                 return watts, "MSI firmware PL1"
     except (OSError, ValueError):
         pass
-    return None, "Nije dostupno"
+    # Intended setpoint remains useful when modern SteamOS blocks HW readback.
+    # Do not silently claim it was applied, especially with game overrides.
+    return read_panel_setpoint(panel_roots)
 
 
 def tdp_text(settings, watts):
@@ -724,14 +802,19 @@ class Plugin:
     async def get_tdp_status(self):
         watts = getattr(self, "_tdp_last_value", None)
         source = getattr(self, "_tdp_last_source", "Nije provjereno")
+        is_configured = watts is not None and source.startswith("Panel de Control")
         return {
             "readable": watts is not None,
+            "hardware_verified": watts is not None and not is_configured,
             "watts": watts,
             "source": source,
-            "description": ("Potvrđeni TDP limit: " + str(watts) + "W · " + source
-                            if watts is not None else
-                            "TDP -- · sustav ne dopušta pouzdano očitavanje. "
-                            "Provjeri RyzenAdj i firmware podršku.")
+            "description": (
+                ("Postavljeni TDP: " if is_configured else "Očitani TDP limit: ") +
+                str(watts) + "W · " + source
+                if watts is not None else
+                "TDP -- · " + source + ". RyzenAdj i MSI firmware nisu dali očitanje; "
+                "provjeri Panel de Control profile."
+            )
         }
 
     async def get_renderer_status(self):

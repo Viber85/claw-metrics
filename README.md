@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.17 — TDP configured setpoint and normal text size
+
+- TDP probes RyzenAdj from the real Decky plugin directory **Panel de Control/bin/ryzenadj** (with spaces), checks additional installed locations, and reads a valid STAPM row even when an unrelated RyzenAdj probe exits nonzero.
+- If hardware readback is blocked by official SteamOS, it can read Panel de Control's persisted **configured global TDP** from `tdp_profiles.json` (read-only). The Advanced screen reports that a configured setpoint is **not hardware verified**. It refuses that fallback for Auto TDP and conflicting per-game overrides.
+- The native 1-line HUD now renders TDP and DRAW at the same normal font size as other metric groups; each retains its own token color and font-weight overrides.
+- No power limits are written. DRAW continues to show measured system battery discharge, not an APU-only estimate. Test.16 SteamOS TextField keyboard fix and compact layout are included.
+- This version requires device validation on official SteamOS. A running game reporting no TDP can mean no usable hardware readback and no unambiguous configured PDC profile.
+
+---
+
 # Claw Metrics v0.2.4-test.16 — SteamOS virtual keyboard fix (experimental)
 
 The Rename Metric modal now uses Decky's Steam-native `TextField` rather than a raw browser `<input>`. In Game Mode, highlight "Naziv stavke" and press A to invoke the SteamOS text keyboard. The built-in focus behavior is used rather than DOM `autoFocus` or unsupported keyboard APIs. Renaming stays limited to 24 characters; Confirm, Cancel, and Restore Default keep their prior behavior.

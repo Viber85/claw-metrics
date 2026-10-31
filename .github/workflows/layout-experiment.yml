@@ -1,30 +1,141 @@
-name: Claw Metrics WIP validation (no release)
+name: Claw Metrics v0.2.4-test.17 full validation (no release)
 on:
   push:
-    branches: [feature/gamepad-keyboard-test.16]
+    branches: [feature/tdp-readback-font-test.17]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Cancel previous auto-release workflow on this branch. No ZIP is published.
+# Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.16
+  group: claw-metrics-v0.2.4-test.17
   cancel-in-progress: true
 
 jobs:
-  ui-check:
+  layout-experiment:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run Python regressions
-        run: python3 -m unittest discover -s tests -v
-      - name: Install UI dependencies
-        run: npm ci
-      - name: Check Decky TypeScript
+      - name: Bundle four licensed Barlow font weights in build artifact
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import urllib.request
+
+          revision = "89f5431ff0db41bd2fe3f7ba21a723a01622428b"
+          prefix = "https://raw.githubusercontent.com/google/fonts/" + revision + "/ofl/barlowsemicondensed/"
+          expected = {
+              "Light": "f7e0277904b0d7e560d5b178e0ad680d9a096cfd",
+              "Regular": "473604976bc07e69c0a8e6dca63e159fac54f5fe",
+              "SemiBold": "082c76327d21d663948c8ccd2271fa527bd0c145",
+              "Bold": "ee04b09e31e98d2509354d7003797ec6540e796f",
+          }
+          target = pathlib.Path("assets/fonts")
+          target.mkdir(parents=True, exist_ok=True)
+          for weight, digest in expected.items():
+              name = f"BarlowSemiCondensed-{weight}.ttf"
+              with urllib.request.urlopen(prefix + name, timeout=30) as r:
+                  data = r.read(220000)
+              actual = hashlib.sha1(b"blob " + str(len(data)).encode() + bytes([0]) + data).hexdigest()
+              assert actual == digest, f"Unexpected contents for {name}"
+              (target / name).write_bytes(data)
+              print("Verified", name, len(data), "bytes")
+          with urllib.request.urlopen(prefix + "OFL.txt", timeout=30) as r:
+              license_text = r.read(20000)
+          assert b"SIL OPEN FONT LICENSE" in license_text.upper()
+          (target / "OFL.txt").write_bytes(license_text)
+          print("Four font weights and OFL license bundled successfully")
+          PY
+      - name: Python tests
+        env:
+          CLAW_METRICS_SKIP_FONT_DOWNLOAD: "1"
+        run: python3 -m unittest discover -s tests
+      - name: Install Decky dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check QAM
         run: npm run typecheck
-      - name: Build UI only (no ZIP, no release)
+      - name: Build QAM
         run: npm run build
+      - name: Check original ImGui geometry
+        run: python3 tools/check_native_layout.py
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git g++ pkg-config meson ninja-build python3-mako \
+            libvulkan-dev glslang-tools libgl-dev libegl-dev \
+            libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
+            libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
+            libpciaccess-dev libglvnd-dev
+      - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan)
+        run: |
+          git clone --depth 1 --recurse-submodules --branch v0.8.1 \
+            https://github.com/flightlessmango/MangoHud.git native-source
+          cd native-source
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          grep -q 'IM_COL32' src/overlay.cpp
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
+          grep -q 'params.horizontal_separator_color' src/overlay.cpp
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          python3 ../experiments/apply_token_styles.py src
+          grep -q 'ClawText(3' src/hud_elements.cpp
+          grep -q 'claw_metric_semibold' src/font.cpp
+          grep -q 'claw_weight_map' src/overlay_params.cpp
+          grep -q 'claw_bold_fps_font' src/font.cpp
+          grep -q 'ClawMetricGap' src/hud_elements.cpp
+          grep -q 'position.x + 1.8f' src/hud_elements.cpp
+          meson setup build --prefix=/usr --buildtype=release \
+            -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
+            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
+            -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
+          ninja -C build -j 2
+          mkdir -p ../native64
+          file=$(find build -type f -name 'libMangoHud.so' -size +100k | head -1)
+          test -n "$file"
+          cp "$file" ../native64/libMangoHud.so
+          file ../native64/libMangoHud.so
+          readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
+          test -s ../native64/libMangoHud.so
+      - name: Package isolated experimental Decky ZIP
+        run: |
+          mkdir -p artifact/ClawMetrics
+          cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
+          cp -r dist assets native64 artifact/ClawMetrics/
+          python3 - <<'PY'
+          import pathlib, json, zipfile, sys
+          root=pathlib.Path('artifact')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.17.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
+              for f in sorted(root.rglob('*')):
+                  if f.is_file():
+                      out.write(f, str(f.relative_to(root)))
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              for p in ['main.py','plugin.json','dist/index.js','native64/libMangoHud.so',
+                        'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
+                        'assets/fonts/BarlowSemiCondensed-Light.ttf',
+                        'assets/fonts/BarlowSemiCondensed-Regular.ttf',
+                        'assets/fonts/BarlowSemiCondensed-SemiBold.ttf',
+                        'assets/fonts/BarlowSemiCondensed-Bold.ttf',
+                        'assets/fonts/OFL.txt']:
+                  assert 'ClawMetrics/'+p in z.namelist(), p
+          print(archive,archive.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClawMetrics-v0.2.4-test.17
+          path: ClawMetrics-v0.2.4-test.17.zip
