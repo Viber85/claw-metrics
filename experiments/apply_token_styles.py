@@ -231,7 +231,8 @@ update_inline("battery", [
     ('HUDElements.TextColored(HUDElements.colors.battery, "BATT");',
      'ClawText(22, HUDElements.colors.battery, "BATT");'),
     ('HUDElements.TextColored(HUDElements.colors.text, "%s", icon);',
-     'ClawText(23, HUDElements.colors.text, "%s", icon);'),
+     'ImVec4 icon_ink = ClawColorForToken(23, HUDElements.colors.text);\n'
+     '            HUDElements.TextColored(icon_ink, "%s", icon);'),
     ('HUDElements.TextColored(HUDElements.colors.text, "%.0f%%", Battery_Stats.current_percent);',
      'ClawText(23, HUDElements.colors.text, "%.0f%%", Battery_Stats.current_percent);'),
     ('HUDElements.TextColored(HUDElements.colors.text, "%.1f", Battery_Stats.current_watt);',
@@ -241,7 +242,8 @@ update_inline("battery", [
     ('HUDElements.TextColored(HUDElements.colors.text, "%02d:%02d",',
      'ClawText(24, HUDElements.colors.text, "%02d:%02d",'),
     ('HUDElements.TextColored(HUDElements.colors.text, "%s", ICON_FK_PLUG);',
-     'ClawText(23, HUDElements.colors.text, "%s", ICON_FK_PLUG);'),
+     'ImVec4 plug_ink = ClawColorForToken(23, HUDElements.colors.text);\n'
+     '            HUDElements.TextColored(plug_ink, "%s", ICON_FK_PLUG);'),
 ])
 # Independent clock font and color, while preserving the fallback layout.
 s = replace_once(s,
