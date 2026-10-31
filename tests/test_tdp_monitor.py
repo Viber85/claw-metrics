@@ -27,7 +27,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             plugin_root = pathlib.Path(temp) / "plugins"
             binary = plugin_root / "Panel de Control" / "bin" / "ryzenadj"
             binary.parent.mkdir(parents=True)
-            binary.write_text("#!/bin/sh\\nexit 0\\n")
+            binary.write_text("#!/bin/sh\nexit 0\n")
             binary.chmod(0o755)
             with patch.object(main.shutil, "which", return_value=None):
                 self.assertEqual(main.resolve_ryzenadj([plugin_root]), str(binary))
@@ -43,7 +43,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             return SimpleNamespace(returncode=1, stdout="", stderr="cannot open /dev/mem")
         with tempfile.TemporaryDirectory() as temp:
             self.assertEqual(main.read_tdp_limit(root=pathlib.Path(temp),
-                             binary="ryzenadj", runner=runner, panel_roots=[root]), (None, "Nije dostupno"))
+                             binary="ryzenadj", runner=runner, panel_roots=[pathlib.Path(temp)]), (None, "Nije dostupno"))
         self.assertEqual(main.valid_tdp_w(0), None)
         self.assertEqual(main.valid_tdp_w("garbage"), None)
         self.assertEqual(main.valid_tdp_w(500), None)
@@ -57,10 +57,10 @@ class TdpReadOnlyTests(unittest.TestCase):
             def runner(argv, **kwargs):
                 return SimpleNamespace(returncode=1, stdout="", stderr="")
             self.assertEqual(main.read_tdp_limit(root=root, binary="ryzenadj",
-                             runner=runner), (18, "MSI firmware PL1"))
+                             runner=runner, panel_roots=[root]), (18, "MSI firmware PL1"))
             node.write_text("0\n")
             self.assertEqual(main.read_tdp_limit(root=root, binary="ryzenadj",
-                             runner=runner), (None, "Nije dostupno"))
+                             runner=runner, panel_roots=[root]), (None, "Nije dostupno"))
 
     def test_panel_configured_setpoint_used_when_hw_readback_blocked(self):
         with tempfile.TemporaryDirectory() as temp:
