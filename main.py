@@ -12,8 +12,10 @@ import base64
 import gzip
 import hashlib
 import re
+import shutil
+import subprocess
 
-ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"]
+ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"]
 COLORS = {
     "text": "F0F2F5",        # numeric metrics, clock and DRAW text
     "separator": "777C87",   # independent of VRAM
@@ -27,6 +29,7 @@ COLORS = {
     "graph": "30E5A0",
     "time": "F0F2F5",  # native Clock token
     "draw": "F0F2F5",  # native DRAW text
+    "tdp": "FFBD69",  # TDP limit readback
 }
 
 METRICS = {
@@ -37,7 +40,7 @@ METRICS = {
     "gpu_fan": False, "gpu_voltage": False,
     "battery_icon": False, "battery_time": True,
 }
-TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value"]
+TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value"]
 FONT_WEIGHTS = ("inherit", "light", "regular", "semibold", "bold")
 FONT_DIGITS = {name: str(index) for index, name in enumerate(FONT_WEIGHTS)}
 
@@ -286,6 +289,78 @@ def short_launcher_ready():
         return False
 
 
+# TDP monitoring is read-only. Never invoke ryzenadj with write flags.
+STAPM_LIMIT_RE = re.compile(r"(?im)^\\s*STAPM LIMIT\\s*\\|\\s*([0-9]+(?:\\.[0-9]+)?)")
+TDP_MIN_W, TDP_MAX_W = 3, 100
+
+
+def tdp_path():
+    return BASE / "tdp.txt"
+
+
+def resolve_ryzenadj():
+    """Use an installed binary, including Panel de Control's own executable."""
+    candidates = [shutil.which("ryzenadj")]
+    homebrew = pathlib.Path("/homebrew/plugins")
+    for plugin in ("panel-de-control", "Panel-de-Control", "panel_de_control"):
+        candidates.append(str(homebrew / plugin / "bin" / "ryzenadj"))
+    for name in candidates:
+        if name:
+            path = pathlib.Path(name)
+            if path.is_file() and os.access(path, os.X_OK):
+                return str(path)
+    return None
+
+
+def valid_tdp_w(value):
+    try:
+        watts = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not (TDP_MIN_W <= watts <= TDP_MAX_W):
+        return None
+    return round(watts)
+
+
+def read_tdp_limit(root=pathlib.Path("/sys/class/firmware-attributes"),
+                   binary=None, runner=None):
+    """Return (readback in watts, source). No cached/setpoint guesses.
+
+    On official SteamOS prefer the same RyzenAdj STAPM readback used by
+    Panel de Control. Some newer kernels deny this read; MSI firmware PL1
+    is a strictly read-only secondary source if available.
+    """
+    executable = resolve_ryzenadj() if binary is None else binary
+    if executable:
+        try:
+            invoke = runner or subprocess.run
+            env = dict(os.environ)
+            env["LD_LIBRARY_PATH"] = ""
+            result = invoke([executable, "-i"], capture_output=True,
+                            text=True, timeout=2, env=env)
+            if result.returncode == 0:
+                match = STAPM_LIMIT_RE.search(result.stdout or "")
+                watts = valid_tdp_w(match.group(1)) if match else None
+                if watts is not None:
+                    return watts, "RyzenAdj STAPM"
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+    try:
+        for attr in sorted(root.glob(
+                "msi-wmi-platform*/attributes/ppt_pl1_spl/current_value")):
+            watts = valid_tdp_w(attr.read_text(encoding="utf-8").strip())
+            if watts is not None:
+                return watts, "MSI firmware PL1"
+    except (OSError, ValueError):
+        pass
+    return None, "Nije dostupno"
+
+
+def tdp_text(settings, watts):
+    label = normalize_custom_labels(settings.get("custom_labels", {})).get("tdp", "TDP")
+    return label + (" --" if watts is None else f" {watts}W")
+
+
 def draw_text(settings):
     reading = battery_draw()
     label = normalize_custom_labels(settings.get("custom_labels", {})).get("draw", "DRAW")
@@ -365,6 +440,10 @@ def normalize(payload):
         for key in payload["order"]:
             if isinstance(key, str) and key in ORDER and key not in seen:
                 seen.append(key)
+        # Put newly introduced TDP immediately before DRAW on upgrades.
+        if "tdp" not in seen:
+            i = seen.index("draw") if "draw" in seen else len(seen)
+            seen.insert(i, "tdp")
         d["order"] = seen + [key for key in ORDER if key not in seen]
     return d
 
@@ -525,7 +604,8 @@ def mango_config(settings, native_spacing=False):
             "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
             "claw_color_map=" + ":".join(
                 d["token_colors"].get(slot, c["time"] if slot == "time.value" else
-                                      c["draw"] if slot == "battery.power" else "------")
+                                      c["draw"] if slot == "battery.power" else
+                                      c["tdp"] if slot == "tdp.value" else "------")
                 for slot in TOKEN_SLOTS
             ),
         ])
@@ -540,7 +620,10 @@ def mango_config(settings, native_spacing=False):
                "gpu": "gpu_stats", "ram": "ram", "vram": "vram",
                "battery": "battery", "time": "time"}
     for group in d["order"]:
-        if group == "draw":
+        if group == "tdp":
+            if active("tdp"):
+                lines.append("exec=cat " + shlex.quote(str(tdp_path())))
+        elif group == "draw":
             if active("draw"):
                 # Read a host-generated value: no Python/runtime dependency in games.
                 lines.append("exec=cat " + shlex.quote(str(draw_path())))
@@ -569,8 +652,12 @@ class Plugin:
             write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
             install_short_launcher()
         self._current_settings = settings
+        self._tdp_last_value = None
+        self._tdp_last_source = "Nije provjereno"
         write_atomic(draw_path(), draw_text(settings) + "\n")
+        write_atomic(tdp_path(), tdp_text(settings, None) + "\n")
         self._draw_task = asyncio.create_task(self._draw_loop())
+        self._tdp_task = asyncio.create_task(self._tdp_loop())
 
     async def _draw_loop(self):
         while True:
@@ -584,14 +671,35 @@ class Plugin:
                 # A temporary filesystem failure must not kill the Decky backend.
                 pass
 
-    async def _unload(self):
-        task = getattr(self, "_draw_task", None)
-        if task is not None:
-            task.cancel()
+    async def _tdp_loop(self):
+        while True:
             try:
-                await task
-            except asyncio.CancelledError:
-                pass
+                watts, source = await asyncio.to_thread(read_tdp_limit)
+                self._tdp_last_value = watts
+                self._tdp_last_source = source
+                settings = getattr(self, "_current_settings", DEFAULTS)
+                value = tdp_text(settings, watts) + "\n"
+                if not tdp_path().is_file() or tdp_path().read_text() != value:
+                    write_atomic(tdp_path(), value)
+            except OSError:
+                self._tdp_last_value = None
+                self._tdp_last_source = "Greška čitanja"
+                try:
+                    write_atomic(tdp_path(), tdp_text(
+                        getattr(self, "_current_settings", DEFAULTS), None) + "\n")
+                except OSError:
+                    pass
+            await asyncio.sleep(5)
+
+    async def _unload(self):
+        for key in ("_draw_task", "_tdp_task"):
+            task = getattr(self, key, None)
+            if task is not None:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
     async def get_settings(self):
         try:
@@ -605,12 +713,26 @@ class Plugin:
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
         self._current_settings = data
         write_atomic(draw_path(), draw_text(data) + "\n")
+        write_atomic(tdp_path(), tdp_text(data, getattr(self, "_tdp_last_value", None)) + "\n")
         write_atomic(HUD, mango_config(data))
         if native_renderer_available():
             install_native_manifest()
             write_atomic(native_hud_path(), mango_config(data, native_spacing=True))
             install_short_launcher()
         return {"ok": True, "settings": data, "config_path": str(HUD)}
+
+    async def get_tdp_status(self):
+        watts = getattr(self, "_tdp_last_value", None)
+        source = getattr(self, "_tdp_last_source", "Nije provjereno")
+        return {
+            "readable": watts is not None,
+            "watts": watts,
+            "source": source,
+            "description": ("Potvrđeni TDP limit: " + str(watts) + "W · " + source
+                            if watts is not None else
+                            "TDP -- · sustav ne dopušta pouzdano očitavanje. "
+                            "Provjeri RyzenAdj i firmware podršku.")
+        }
 
     async def get_renderer_status(self):
         """Detect both Vulkan request propagation and actual native library maps.
@@ -704,6 +826,9 @@ class Plugin:
                 + " MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path()))
                 + " %command%" if native_renderer_available() else ""
             ),
-            "tdp_note": "TDP: očitanje primijenjenog limita iz Panel de Controla još nije dostupno.",
+            "tdp_note": ("TDP: " + str(getattr(self, "_tdp_last_value", None)) + "W · " +
+                         getattr(self, "_tdp_last_source", "") if
+                         getattr(self, "_tdp_last_value", None) is not None else
+                         "TDP -- · očitavanje limita nije dostupno."),
             "power_note": "CPU/GPU sensor power is not the same as total system battery draw."
         }
