@@ -44,12 +44,17 @@
     params->io_color = 0xa491d3;
 --- a/src/overlay.cpp
 +++ b/src/overlay.cpp
-@@ -651,7 +651,7 @@
+@@ -651,7 +651,12 @@
     }
  
      // Draw the separator line
 -    drawList->AddLine(startPos, endPos, params.vram_color, outlineThickness);
-+    drawList->AddLine(startPos, endPos, params.horizontal_separator_color, outlineThickness);
++    // MangoHud config colors are 0xRRGGBB but ImDrawList needs packed
++    // ImU32 RGBA with an opaque alpha channel.
++    const unsigned rgb = params.horizontal_separator_color;
++    const ImU32 rgba = IM_COL32((rgb >> 16) & 0xff, (rgb >> 8) & 0xff,
++                                rgb & 0xff, 0xff);
++    drawList->AddLine(startPos, endPos, rgba, outlineThickness);
  
      ImGui::SameLine();
      ImGui::Spacing();
