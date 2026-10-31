@@ -15,7 +15,7 @@ class GroupedQamTests(unittest.TestCase):
         for key in sections:
             self.assertIn(f'<AccordionCard id="{key}"', SOURCE)
         self.assertEqual(SOURCE.count("<AccordionCard id="), 6)
-        self.assertIn('useState<SectionKey | null>("metrics")', SOURCE)
+        self.assertIn('useState<SectionKey | null>(() => lastOpenSection)', SOURCE)
         self.assertIn('setOpenSection(old => old === id ? null : id)', SOURCE)
         self.assertIn("<DialogButton onClick={onToggle}", SOURCE)
 
