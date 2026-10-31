@@ -30,6 +30,25 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(option, SOURCE, option)
         self.assertNotIn("ColorPickerModal", SOURCE)
 
+    def test_active_category_survives_react_remounts(self):
+        self.assertIn('lastOpenSection: SectionKey | null = "metrics"', SOURCE)
+        self.assertIn('useState<SectionKey | null>(() => lastOpenSection)', SOURCE)
+        self.assertIn('lastOpenSection = next', SOURCE)
+        self.assertIn('lastExpandedMetric = key', SOURCE)
+        self.assertIn('lastStyleCategory = id', SOURCE)
+        self.assertIn('setStyleCategory(id)', SOURCE)
+
+    def test_metric_style_ui_is_real_not_placeholder(self):
+        for action in (
+            "cycleTokenWeight(token.key)", "openTokenColorPicker(token)",
+            "resetTokenColor(token.key)", "savePreset(slot)", "loadPreset(slot)",
+            "token_weights:", "token_colors:", "style_presets:", "weightOptions",
+        ):
+            self.assertIn(action, SOURCE, action)
+        self.assertIn('font_weight: FontWeight;', SOURCE)
+        self.assertIn('styleCategory==="global"', SOURCE)
+        self.assertEqual(SOURCE.count('<AccordionCard id='), 6)
+
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
         self.assertIn("copyLaunchCommand(true)", SOURCE)
