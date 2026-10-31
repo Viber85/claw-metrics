@@ -276,7 +276,10 @@ s = replace_once(s,
     "native battery label")
 s = replace_once(s,
     '                HUDElements.TextColored(HUDElements.colors.text, "%s",item.ret.c_str());',
-    '                ClawText(25, HUDElements.colors.text, "%s",item.ret.c_str());',
-    "native DRAW token style")
+    '                if (item.value.find("tdp.txt") != std::string::npos)\\n'
+    '                    ClawText(27, HUDElements.colors.text, "%s", item.ret.c_str());\\n'
+    '                else\\n'
+    '                    ClawText(25, HUDElements.colors.text, "%s", item.ret.c_str());'.replace('\\n','\\n'),
+    "native DRAW and TDP token style")
 hud.write_text(s)
 print("Applied per-token font/color renderer:", root)

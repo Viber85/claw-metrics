@@ -17,11 +17,11 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 import {styleLayoutFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 
-type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "draw" | "time";
+type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
 type WeightSelection = "inherit" | FontWeight;
-type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "draw" | "values";
-type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value";
+type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
+type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
 type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
 const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
   fps: [{key:"fps.label", label:"FPS naziv", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS broj", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}],
@@ -32,16 +32,17 @@ const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
   battery: [{key:"battery.label", label:"BATT naziv", defaultColor:"battery"}, {key:"battery.value", label:"Baterija (%) / ikona", defaultColor:"text"}, {key:"battery.time", label:"Preostalo vrijeme", defaultColor:"text"}],
   time: [{key:"time.value", label:"Sat", defaultColor:"time"}],
   draw: [{key:"battery.power",label:"DRAW",defaultColor:"draw"}],
+  tdp: [{key:"tdp.value",label:"TDP limit (W)",defaultColor:"tdp"}],
   values: [],
 };
-tokenGroups.values=Object.entries(tokenGroups).filter(([key])=>!["time","draw","values"].includes(key)).flatMap(([,tokens])=>tokens.filter(token=>!token.key.endsWith(".label")));
+tokenGroups.values=Object.entries(tokenGroups).filter(([key])=>!["time","draw","tdp","values"].includes(key)).flatMap(([,tokens])=>tokens.filter(token=>!token.key.endsWith(".label")));
 const weightOptions: WeightSelection[] = ["inherit", "light", "regular", "semibold", "bold"];
 const weightLabel: Record<WeightSelection, string> = {
   inherit: "Global", light: "Light", regular: "Regular", semibold: "SemiBold", bold: "Bold",
 };
 const styleTabs: [StyleCategory,string][] = [
   ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
-  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["draw","DRAW"],["values","Vrijednosti"],
+  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Vrijednosti"],
 ];
 type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
   sans?:boolean; inline_metrics?:boolean; version?:number;
@@ -50,15 +51,15 @@ type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"pa
   token_colors: Partial<Record<TokenKey, string>>;
 };
 
-type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph" | "time" | "draw";
+type ColorKey = "text" | "separator" | "fps_label" | "fps_value" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "graph" | "time" | "tdp" | "draw";
 type ColorSettings = Record<ColorKey, string>;
 const defaultColors: ColorSettings = {
   text: "F0F2F5", separator: "777C87", fps_label: "30E5A0", fps_value: "30E5A0",
   cpu: "37C9EF", gpu: "8BDA62", ram: "B077DF", vram: "D76AB8",
-  battery: "30E5A0", graph: "30E5A0", time:"F0F2F5", draw:"F0F2F5",
+  battery: "30E5A0", graph: "30E5A0", time:"F0F2F5", draw:"F0F2F5", tdp:"FFBD69",
 };
 const colorRows: [ColorKey, string][] = [
-  ["text", "Vrijednosti"], ["time", "Clock"], ["draw", "DRAW"], ["separator", "Separatori između grupa"],
+  ["text", "Vrijednosti"], ["time", "Clock"], ["tdp", "TDP"], ["draw", "DRAW"], ["separator", "Separatori između grupa"],
   ["fps_label", "FPS"],
   ["cpu", "CPU naziv"], ["gpu", "GPU naziv"], ["ram", "RAM naziv"],
   ["vram", "VRAM naziv"], ["battery", "BATT naziv"], ["graph", "Frametime graf"],
@@ -128,7 +129,7 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
     </ConfirmModal>
   );
 }
-const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,draw:<FaBolt/>,values:<FaHashtag/>};
+const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,tdp:<FaBolt/>,draw:<FaBolt/>,values:<FaHashtag/>};
 function RenameMetricModal({name,original,onConfirm,onCancel}:any){
  const [value,setValue]=useState(name);
  return <ConfirmModal strTitle="Promijeni naziv metrike" onCancel={onCancel} onOK={()=>onConfirm(cleanName(value))}>
@@ -151,7 +152,7 @@ type Settings = Record<Group, boolean> & {
   token_colors: Partial<Record<TokenKey, string>>;
   style_presets: Record<string, SavedStyle>;
 };
-const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "draw", "time"];
+const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"];
 const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
   fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "MangoHud koristi istu glavnu veličinu fonta za FPS i ostale vrijednosti."},
   frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "Broj u ms prati FPS blok; strelice premještaju graf. Za ms uključi i FPS."},
@@ -160,10 +161,12 @@ const groups: Record<Group, {label: string; color: string; metrics: [string, str
   ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: []},
   vram: {label: "VRAM", color: "#d76ab8", always: "VRAM usage", metrics: [], note: "MangoHud za VRAM koristi podatke GPU bloka; uključi i GPU."},
   battery: {label: "Battery", color: "#30e5a0", always: "Battery level", metrics: [["battery_icon", "Battery icon (replaces %)"], ["battery_time", "Remaining time"]], note: "Ikona i postotak su alternativni načini prikaza u ovom MangoHud rendereru."},
+  tdp: {label: "TDP", color: "#ffbd69", metrics: [], always: "Postavljeni TDP limit", note: "Samo očitanje: RyzenAdj STAPM ili MSI firmware PL1. Ako očitanje nije moguće, prikazuje TDP --. Ne upravlja potrošnjom."},
   draw: {label: "DRAW", color: "#ee6279", metrics: [], always: "Battery discharge watts", note: "Ukupno pražnjenje baterije. Na punjaču ili bez senzora prikazuje DRAW --, a ne izmišljenu potrošnju."},
   time: {label: "Clock", color: "#f0f2f5", metrics: [], always: "Clock · 24 h"},
 };
 
+type TdpStatus = { readable:boolean; watts:number|null; source:string; description:string };
 type Info = {
   layout_spacing_supported: boolean;
   experimental_launch_option: string;
@@ -198,6 +201,7 @@ const defaults: Settings = {
 const load = callable<[], Settings>("get_settings");
 const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 const getInfo = callable<[], Info>("get_info");
+const getTdpStatus = callable<[], TdpStatus>("get_tdp_status");
 type RendererStatus = {
   native_loaded: boolean; native_processes: number; stock_processes: number;
   layer_requests: number; config_requests: number; path_requests: number;
@@ -275,7 +279,12 @@ function Content() {
   const [copyStatus, setCopyStatus] = useState("");
   const [showLegacyCommand, setShowLegacyCommand] = useState(false);
   const [rendererStatus, setRendererStatus] = useState("Nije provjereno. Pokreni igru za test.");
+  const [tdpStatus, setTdpStatus] = useState("TDP još nije provjeren.");
   const [rendererBusy, setRendererBusy] = useState(false);
+  const verifyTdp = async () => {
+    try { const result=await withTimeout(getTdpStatus());setTdpStatus(result.description); }
+    catch(error) {setTdpStatus("Provjera TDP-a nije uspjela: "+String(error));}
+  };
   const verifyRenderer = async () => {
     setRendererBusy(true);
     setRendererStatus("Provjeravam procese igre...");
@@ -460,7 +469,7 @@ function Content() {
   };
 
   const paletteLabel = (key:ColorKey,label:string) => {
-    const category:Partial<Record<ColorKey,Group>>={fps_label:"fps",cpu:"cpu",gpu:"gpu",ram:"ram",vram:"vram",battery:"battery",graph:"frametime",time:"time",draw:"draw"};
+    const category:Partial<Record<ColorKey,Group>>={fps_label:"fps",cpu:"cpu",gpu:"gpu",ram:"ram",vram:"vram",battery:"battery",graph:"frametime",time:"time",tdp:"tdp",draw:"draw"};
     return category[key]?named(category[key]!):related(label);
   };
   const openColorPicker = (key: ColorKey, label: string) => {
@@ -523,7 +532,7 @@ function Content() {
           border-radius: 4px; color: #fff;
         }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.13">
+      <PanelSection title="Claw Metrics · v0.2.4-test.14">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -763,7 +772,11 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="advanced" title="Advanced" subtitle="Dijagnostika, senzori i tehničke informacije"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
-        <PanelSectionRow><Field label="TDP · Panel de Control" description="Očitanje primijenjenog limita još nije dostupno." disabled /></PanelSectionRow>
+        <PanelSectionRow><Field label="TDP limit (read-only)" description="Ne mijenja TDP. Senzor očitava postavljeni limit; Panel de Control i dalje upravlja TDP-om." /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
+          Provjeri TDP očitanje
+        </ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Izvor TDP-a" description={tdpStatus} /></PanelSectionRow>
         {info?.layout_spacing_supported && <PanelSectionRow>
           <ButtonItem layout="below" disabled={rendererBusy} onClick={() => { void verifyRenderer(); }}>
             Provjeri koristi li igra eksperimentalni renderer
@@ -774,7 +787,7 @@ function Content() {
         </PanelSectionRow>}
 
           <PanelSectionRow><Field label="Stanje konfiguracije" description={info?.config_path ?? "Nije učitano"} /></PanelSectionRow>
-          <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "Nije dostupno očitanje Panel de Control limita."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "TDP -- · nema potvrđenog očitanja."} /></PanelSectionRow>
           <PanelSectionRow><Field label="DRAW" description={info?.power_note ?? "Očitavanje ovisi o baterijskom senzoru."} /></PanelSectionRow>
           <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => { void refresh(); }}>Ponovno učitaj status</ButtonItem></PanelSectionRow>
         </AccordionCard>
