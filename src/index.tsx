@@ -499,6 +499,30 @@ function Content() {
 
   return (
     <>
+      <style>{`
+        [data-section="metrics"] .metric-card:focus-within {
+          border-color: #ffffff !important; box-shadow: 0 0 0 1px #ffffff;
+        }
+        [data-section="metrics"] button:focus-visible {
+          outline: 2px solid #ffffff !important; outline-offset: -3px;
+          box-shadow: inset 0 0 0 1px #ffffff;
+        }
+        [data-section="colors"] .style-group-icon {
+          display: inline-flex; align-items: center; margin-right: 5px;
+          color: #bceaff; font-size: 14px;
+        }
+        [data-section="colors"] .loaded-style-status {
+          padding: 9px 8px; margin: 0 0 12px; background: #0b263b;
+          border: 1px solid #306689; border-radius: 5px;
+          font-size: 12px; color: #d8edff;
+        }
+        .rename-field { display: block; font-size: 14px; }
+        .rename-field input {
+          display: block; width: 100%; margin: 10px 0 16px; padding: 12px;
+          background: #0c1727; border: 1px solid #6182a5;
+          border-radius: 4px; color: #fff;
+        }
+      `}</style>
       <PanelSection title="Claw Metrics · v0.2.4-test.13">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
