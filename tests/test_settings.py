@@ -112,6 +112,7 @@ class Settings(unittest.TestCase):
         self.assertEqual(main.normalize({})['font_weight'], 'regular')
         self.assertEqual(main.normalize({'font_weight': 'light'})['font_weight'], 'light')
         self.assertEqual(main.normalize({'font_weight': 'bold'})['font_weight'], 'bold')
+        self.assertEqual(main.normalize({'font_weight': 'semibold'})['font_weight'], 'semibold')
         self.assertEqual(main.normalize({'font_weight': 'invalid'})['font_weight'], 'regular')
         dummy = bytes([0, 1, 0, 0]) + bytes(range(256)) * 100
         digest = hashlib.sha1(b'blob ' + str(len(dummy)).encode() +
@@ -123,11 +124,14 @@ class Settings(unittest.TestCase):
                 with patch.object(main, 'BARLOW_BLOBS', {
                     'light': ('Light', digest),
                     'regular': ('Regular', digest),
+                    'semibold': ('SemiBold', digest),
                     'bold': ('Bold', digest),
                 }):
-                    for weight in ('light', 'regular', 'bold'):
+                    for weight in ('light', 'regular', 'semibold', 'bold'):
                         main.write_atomic(main.condensed_font_path(weight), dummy)
                     self.assertTrue(main.condensed_fonts_ready())
+                    medium = main.mango_config(main.normalize({'font_weight': 'semibold'}))
+                    self.assertIn('font_file=' + str(main.condensed_font_path('semibold')) + '\n', medium)
                     native = main.mango_config(main.normalize({
                         'font_weight': 'light'}), native_spacing=True)
                     self.assertIn('font_file=' + str(main.condensed_font_path('light')) + '\n', native)
@@ -135,6 +139,31 @@ class Settings(unittest.TestCase):
                     normal = main.mango_config(main.normalize({'font_weight': 'bold'}))
                     self.assertIn('font_file=' + str(main.condensed_font_path('bold')) + '\n', normal)
                     self.assertNotIn('claw_bold_font_file=', normal)
+
+    def test_embedded_font_installation_works_offline(self):
+        import hashlib
+        from unittest.mock import patch
+        dummy = bytes([0, 1, 0, 0]) + bytes(range(256)) * 100
+        digest = hashlib.sha1(b'blob ' + str(len(dummy)).encode() +
+                              bytes([0]) + dummy).hexdigest()
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            assets = root / 'package' / 'assets' / 'fonts'
+            assets.mkdir(parents=True)
+            fake_weights = {
+                'light': ('Light', digest), 'regular': ('Regular', digest),
+                'semibold': ('SemiBold', digest), 'bold': ('Bold', digest)
+            }
+            for name, (suffix, _) in fake_weights.items():
+                (assets / ('BarlowSemiCondensed-' + suffix + '.ttf')).write_bytes(dummy)
+            with patch.object(main, 'BASE', root / 'config'), patch.object(main, 'BARLOW_BLOBS', fake_weights), patch.object(main, 'bundled_font_path', side_effect=lambda weight: assets / ('BarlowSemiCondensed-' + fake_weights[weight][0] + '.ttf')):
+                main.install_condensed_fonts()
+                self.assertTrue(main.condensed_fonts_ready())
+                # Invalid local font is replaced by a valid packaged copy.
+                main.condensed_font_path('semibold').write_bytes(b'corrupt')
+                main.install_condensed_fonts()
+                self.assertTrue(main.condensed_fonts_ready())
+                # No file requires network access during startup.
 
     def test_experimental_layer_manifest_is_explicit(self):
         from unittest.mock import patch
