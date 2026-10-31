@@ -197,6 +197,29 @@ class Settings(unittest.TestCase):
         self.assertNotIn("claw_weight_map=", stock)
         self.assertNotIn("claw_color_map=", stock)
 
+    def test_fps_scale_and_center_are_bounded_and_native_only(self):
+        d = main.normalize({"fps_scale": 170, "center_horizontal": True, "offset_x": -37})
+        self.assertEqual(d["fps_scale"], 170)
+        self.assertTrue(d["center_horizontal"])
+        self.assertEqual(d["offset_x"], -37)
+        native = main.mango_config(d, native_spacing=True)
+        self.assertIn("claw_fps_scale=170\n", native)
+        self.assertIn("claw_center_horizontal=1\n", native)
+        self.assertIn("offset_x=-37\n", native)
+        stock = main.mango_config(d)
+        self.assertNotIn("claw_fps_scale=", stock)
+        self.assertNotIn("claw_center_horizontal=", stock)
+        self.assertEqual(main.normalize({"fps_scale": 300})["fps_scale"], 200)
+        self.assertEqual(main.normalize({"fps_scale": 40})["fps_scale"], 100)
+        self.assertFalse(main.normalize({"center_horizontal": "yes"})["center_horizontal"])
+
+    def test_style_slot_retains_fps_size_and_manual_position(self):
+        saved = {"1":{"version":2,"fps_scale":160,"center_horizontal":True,"offset_x":-25}}
+        style = main.normalize({"style_presets":saved,"active_style":"1"})["style_presets"]["1"]
+        self.assertEqual(style["fps_scale"], 160)
+        self.assertTrue(style["center_horizontal"])
+        self.assertEqual(style["offset_x"], -25)
+
     def test_style_presets_validate_before_reuse(self):
         payload = {"style_presets": {
             "1": {"font_weight": "semibold", "fps_bold": False,
