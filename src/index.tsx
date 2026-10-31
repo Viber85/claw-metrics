@@ -240,8 +240,15 @@ function Content() {
     }
   };
   const [expanded, setExpanded] = useState<Group | null>(null);
-  const [openSection, setOpenSection] = useState<SectionKey | null>("metrics");
-  const toggleSection = (id: SectionKey) => setOpenSection(old => old === id ? null : id);
+  const [openSection, setOpenSection] = useState<SectionKey | null>(() => {
+    try { return (sessionStorage.getItem("claw-metrics-open-section") as SectionKey) || "metrics"; }
+    catch { return "metrics"; }
+  });
+  const toggleSection = (id: SectionKey) => setOpenSection(old => {
+    const next = old === id ? null : id;
+    try { if (next) sessionStorage.setItem("claw-metrics-open-section", next); else sessionStorage.removeItem("claw-metrics-open-section"); } catch { /* Storage unavailable in some SteamUI contexts */ }
+    return next;
+  });
   const [ready, setReady] = useState(false);
 
   const current = useRef<Settings>(defaults);
@@ -356,7 +363,7 @@ function Content() {
 
   return (
     <>
-      <PanelSection title="Claw Metrics · v0.2.4-test.9">
+      <PanelSection title="Claw Metrics · v0.2.4-test.10">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
