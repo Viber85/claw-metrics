@@ -1,0 +1,70 @@
+--- a/src/overlay_params.h
++++ b/src/overlay_params.h
+@@ -118,7 +118,8 @@
+    OVERLAY_PARAM_CUSTOM(fps_sampling_period)         \
+    OVERLAY_PARAM_CUSTOM(output_folder)               \
+    OVERLAY_PARAM_CUSTOM(output_file)                 \
+-   OVERLAY_PARAM_CUSTOM(font_file)                   \
++   OVERLAY_PARAM_CUSTOM(font_file)                   \
++   OVERLAY_PARAM_CUSTOM(claw_bold_font_file)          \
+    OVERLAY_PARAM_CUSTOM(font_file_text)              \
+    OVERLAY_PARAM_CUSTOM(font_glyph_ranges)           \
+    OVERLAY_PARAM_CUSTOM(no_small_font)               \
+@@ -320,7 +321,7 @@
+    std::vector<std::string> media_player_format;
+    std::vector<std::string> benchmark_percentiles;
+    std::vector<std::string> gpu_text;
+-   std::string font_file, font_file_text;
++   std::string font_file, font_file_text, claw_bold_font_file;
+    uint32_t font_glyph_ranges;
+    std::string custom_text_center;
+    std::string custom_text;
+--- a/src/overlay_params.cpp
++++ b/src/overlay_params.cpp
+@@ -465,7 +465,8 @@
+ #define parse_time_format(s) parse_str(s)
+ #define parse_output_folder(s) parse_path(s)
+ #define parse_output_file(s) parse_path(s)
+-#define parse_font_file(s) parse_path(s)
++#define parse_font_file(s) parse_path(s)
++#define parse_claw_bold_font_file(s) parse_path(s)
+ #define parse_font_file_text(s) parse_path(s)
+ #define parse_io_read(s) parse_unsigned(s)
+ #define parse_io_write(s) parse_unsigned(s)
+--- a/src/font.cpp
++++ b/src/font.cpp
+@@ -5,7 +5,10 @@
+ #include "IconsForkAwesome.h"
+ #include "forkawesome.h"
+ 
+-void create_fonts(ImFontAtlas* font_atlas, const overlay_params& params, ImFont*& small_font, ImFont*& text_font)
++// Shared ImGui font pointer used only by the experimental FPS bold branch.
++ImFont* claw_bold_fps_font = nullptr;
++
++void create_fonts(ImFontAtlas* font_atlas, const overlay_params& params, ImFont*& small_font, ImFont*& text_font)
+ {
+    auto& io = ImGui::GetIO();
+    if (!font_atlas)
+@@ -10,7 +13,8 @@
+    auto& io = ImGui::GetIO();
+    if (!font_atlas)
+         font_atlas = io.Fonts;
+-   font_atlas->Clear();
++   font_atlas->Clear();
++   claw_bold_fps_font = nullptr;
+ 
+    ImGui::GetIO().FontGlobalScale = params.font_scale; // set here too so ImGui::CalcTextSize is correct
+    float font_size = params.font_size;
+@@ -98,6 +102,11 @@
+    else
+       text_font = font_atlas->Fonts[0];
+ 
+-   font_atlas->Build();
++   if (!params.claw_bold_font_file.empty() && file_exists(params.claw_bold_font_file)) {
++      // A real Bold font at the SAME font size, without faux strokes.
++      claw_bold_fps_font = font_atlas->AddFontFromFileTTF(
++          params.claw_bold_font_file.c_str(), font_size, nullptr, default_range);
++   }
++   font_atlas->Build();
+ }
+ 
