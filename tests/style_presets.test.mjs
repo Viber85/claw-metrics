@@ -78,4 +78,8 @@ assert.equal(styleLayoutFrom({}).hud_orientation,undefined);
 assert.equal(styleModified({...legacy,hud_orientation:"vertical"},{...live,hud_orientation:"horizontal"}),true);
 assert.equal(styleModified({...legacy,hud_orientation:"vertical"},{...live,hud_orientation:"vertical"}),false);
 assert.equal(styleModified(legacy,{...live,hud_orientation:"vertical"}),false);
+assert.equal(styleLayoutFrom({hud_orientation:"vertical",vertical_width:280}).vertical_width,280);
+assert.equal(styleLayoutFrom({}).vertical_width,undefined);
+assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:280}),false);
+assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:300}),true);
 console.log("Style metric snapshots: save, restore, old styles, dirty state and invalid toggles passed");

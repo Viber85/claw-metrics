@@ -60,12 +60,36 @@ class VerticalHudPreview(unittest.TestCase):
                     else:
                         self.assertNotIn("claw_weight_map", cfg)
 
+    def test_vertical_width_is_optional_bounded_and_orientation_specific(self):
+        self.assertEqual(main.normalize({})["vertical_width"], 0)
+        for raw, normalized in ((-1, 0), (10, 160), (160, 160), (280, 280), (999, 420)):
+            with self.subTest(width=raw):
+                self.assertEqual(main.normalize({"vertical_width": raw})["vertical_width"], normalized)
+        self.assertEqual(main.normalize({"vertical_width": "240"})["vertical_width"], 0)
+        for native in (False, True):
+            baseline = options_for({"hud_orientation": "horizontal"}, native)
+            horizontal = options_for({"hud_orientation": "horizontal", "vertical_width": 300}, native)
+            self.assertEqual(baseline, horizontal)
+            self.assertNotIn("width", baseline)
+            self.assertNotIn("width", options_for({"hud_orientation": "vertical"}, native))
+            cfg = options_for({"hud_orientation": "vertical", "vertical_width": 280}, native)
+            self.assertEqual(cfg["width"], "280")
+            self.assertEqual(cfg["horizontal"], "0")
+            self.assertEqual(cfg["table_columns"], "3")
+            for edge in main.HUD_POSITIONS:
+                cfg = options_for({"hud_orientation": "vertical",
+                                   "vertical_width": 280, "hud_position": edge}, native)
+                self.assertEqual(cfg["width"], "280")
+                self.assertEqual(cfg["position"], edge)
+
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
-            "1": {"version": 3, "hud_orientation": "vertical", "fontsize": 20},
+            "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "fontsize": 20},
             "2": {"version": 2, "fontsize": 17}
         }})["style_presets"]
         self.assertEqual(slots["1"]["hud_orientation"], "vertical")
+        self.assertEqual(slots["1"]["vertical_width"], 290)
+        self.assertNotIn("vertical_width", slots["2"])
         self.assertNotIn("hud_orientation", slots["2"])
         self.assertNotIn("hud_orientation", main.normalize({"style_presets":{
             "1": {"hud_orientation":"sideways"}

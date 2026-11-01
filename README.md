@@ -1,3 +1,19 @@
+# Claw Metrics v0.2.4-test.51 — vertical HUD width
+
+This isolated development version extends the native vertical preview from test.50.
+Under **Layout → Size & appearance** choose **Automatic vertical width** (default)
+or set a fixed width from 160 to 420 pixels. MangoHud v0.8.1 supports its
+vertical `width` setting without modifying the Vulkan renderer. Horizontal
+configuration ignores this preference and remains unchanged. Both saved style
+slots store it; old styles retain their existing behavior. Restart the running
+game to apply layout changes.
+
+The native vertical renderer still needs device validation. FPS-only scaling,
+custom inline gaps, and all horizontal graph-style behaviors are not yet
+implemented for vertical mode; disabled controls remain available in horizontal.
+
+---
+
 # Claw Metrics v0.2.4-test.42 — popravak GitHub provjere ažuriranja
 
 U test.41 pritisak na **Advanced → Provjeri novu verziju** mogao je završiti

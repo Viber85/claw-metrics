@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/vertical-hud-preview-50]
+    branches: [test/vertical-width-51]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.50
+  group: claw-metrics-v0.2.4-test.51
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.50.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.51.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -176,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.50', package['version']
+              assert package['version'] == '0.2.4-test.51', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.50
-          path: ClawMetrics-v0.2.4-test.50.zip
+          name: ClawMetrics-v0.2.4-test.51
+          path: ClawMetrics-v0.2.4-test.51.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.50 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.50 ClawMetrics-v0.2.4-test.50.zip \
+          gh release delete v0.2.4-test.51 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.51 ClawMetrics-v0.2.4-test.51.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.50 – Vertical HUD Preview" \
-            --notes "First functional Vertical HUD Preview. Layout now selects Horizontal or Vertical with controller-friendly buttons. Existing installations default to unchanged horizontal. Native and stock MangoHud configs use horizontal=0 and the standard 3-column multi-row layout in Vertical mode, including proper edge anchors. Both Saved Styles now retain orientation. Font, color, metrics, padding, opacity and positions remain configurable. FPS-only scaling, custom inline gap, custom frametime styles/width still require native vertical adaptations; those controls are disabled only in Vertical mode to avoid misleading settings. No changes to horizontal native renderer. MSI Claw game testing required before claiming feature parity."
+            --title "Claw Metrics v0.2.4-test.51 – Vertical HUD Width" \
+            --notes "Vertical HUD Preview now supports Auto or fixed width 160-420 px using the stock MangoHud width parameter. New width setting persists with Saved Styles and is ignored by Horizontal HUD. Existing settings retain Auto width by default; older styles remain compatible. UI keeps controller-friendly compact controls. Native renderer unchanged. Python, TypeScript, frontend, and native ImGui fixture checks are required; still requires on-device validation."

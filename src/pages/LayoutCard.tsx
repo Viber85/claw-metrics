@@ -50,7 +50,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>}/>
           {settings.hud_orientation==="vertical" && <PanelSectionRow>
             <Field label="Vertical preview"
-              description="Uses MangoHud's native multi-row layout. Font, colors, metrics, anchors and main spacing remain configurable. FPS-only scaling, inline gaps and graph style/width are being adapted for vertical mode."/>
+              description="Uses MangoHud's native multi-row layout. Column width can be automatic or fixed. FPS-only scaling, inline gaps and graph styles still require native vertical adaptation."/>
           </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
@@ -104,6 +104,18 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           <PanelSectionRow key={key}><div className="claw-layout-slider"><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></div></PanelSectionRow>)}
 
+        {settings.hud_orientation==="vertical" && <>
+          <PanelSectionRow><ToggleField label="Automatic vertical width"
+            checked={settings.vertical_width===0} disabled={!ready}
+            onChange={(enabled:boolean)=>update({vertical_width:enabled?0:240})}/></PanelSectionRow>
+          {settings.vertical_width>0 && <PanelSectionRow>
+            <div className="claw-layout-slider"><SliderField label="Vertical HUD width (px)"
+              value={settings.vertical_width} min={160} max={420} step={10} showValue disabled={!ready}
+              onChange={(value:number)=>update({vertical_width:value})}/></div>
+          </PanelSectionRow>}
+          <PanelSectionRow><Field label="Width behavior"
+            description="Automatic follows MangoHud's font-dependent size. A fixed width also changes the space available to the vertical frametime graph. Very long metric values may need a wider HUD." /></PanelSectionRow>
+        </>}
         <PanelSectionRow><Field label="FPS value scale"
           description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
@@ -182,7 +194,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           onClick={()=>confirmAction("Reset layout?",
             "Restores the default position, size, spacing and graph. Saved styles are not deleted.",
             ()=>update({
-          hud_orientation:defaults.hud_orientation,fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
+          hud_orientation:defaults.hud_orientation,vertical_width:defaults.vertical_width,fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
            center_horizontal:defaults.center_horizontal,hud_position:defaults.hud_position,
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,

@@ -75,6 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12),
     "inner_gap": (0, 16), "graph_width": (80, 200),
+    "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
@@ -150,6 +151,8 @@ def normalize_style_presets(payload):
             value = item.get(field)
             if type(value) is int:
                 preset[field] = min(hi, max(lo, value))
+                if field == "vertical_width" and 0 < preset[field] < 160:
+                    preset[field] = 160
         for field in STYLE_LAYOUT_FLAGS:
             if type(item.get(field)) is bool:
                 preset[field] = item[field]
@@ -180,7 +183,7 @@ def normalize_color_overrides(payload):
 
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
-    "hud_position": "top-left", "hud_orientation": "horizontal", "opacity": 80,
+    "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -622,10 +625,12 @@ def normalize(payload):
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
                            ("table_gap", 0, 12), ("graph_width", 80, 200),
-                           ("inner_gap", 0, 16)):
+                           ("inner_gap", 0, 16), ("vertical_width", 0, 420)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
+    if 0 < d["vertical_width"] < 160:
+        d["vertical_width"] = 160
     # Existing settings do not contain orientation: keep the old horizontal HUD.
     if payload.get("hud_orientation") in HUD_ORIENTATIONS:
         d["hud_orientation"] = payload["hud_orientation"]
@@ -829,6 +834,10 @@ def mango_config(settings, native_spacing=False):
         flag("battery_time", active("battery") and m["battery_time"]),
         "battery_watt=0",
     ]
+    # MangoHud v0.8.1 supports native width= in its vertical renderer.
+    # Zero keeps its calculated width, and horizontal output is untouched.
+    if not is_horizontal and d["vertical_width"]:
+        lines.append("width=" + str(d["vertical_width"]))
     if native_spacing:
         # Visible diagnostic: FPS* confirms this experimental config was read.
         # An ordinary FPS label means the game is still using the stock profile.

@@ -33,6 +33,10 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('settings.hud_orientation==="vertical"', SOURCE)
         self.assertIn('hud_orientation:defaults.hud_orientation', SOURCE)
         self.assertIn('Vertical preview', SOURCE)
+        self.assertIn('Automatic vertical width', SOURCE)
+        self.assertIn('Vertical HUD width (px)', SOURCE)
+        self.assertIn('vertical_width:defaults.vertical_width', SOURCE)
+        self.assertIn('settings.vertical_width===0', SOURCE)
         self.assertIn('Uses MangoHud', SOURCE)
         self.assertIn('FPS-only scaling', SOURCE)
 
