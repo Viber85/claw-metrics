@@ -253,11 +253,8 @@ class GroupedQamTests(unittest.TestCase):
         patch = (pathlib.Path(__file__).resolve().parents[1] /
                  'experiments/enable_fixed_numeric_slots.py').read_text()
         self.assertIn('ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y)',patch)
-        self.assertIn('drawList->AddText', # Source uses MangoHud native outline renderer;
-                      # this marker is present only in unmodified original source.
-                      (pathlib.Path(__file__).resolve().parents[1] /
-                       'tools/check_native_layout.py').read_text()
-                      if False else 'drawList->AddText')
+        self.assertIn('HUDElements.TextColored(color, "%s", rendered);', patch)
+        self.assertIn('const float stable_width = ImMax(textSize.x, claw_pending_text_width);', patch)
         self.assertIn('claw_pending_text_width = 0.0f;', patch)
         self.assertIn('pos.x + stable_width', patch)
         self.assertNotIn('ImGui::ItemSize(ImVec2(stable_width, 1.0f)', patch)
