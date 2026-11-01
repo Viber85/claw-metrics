@@ -1,0 +1,192 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { callable, definePlugin } from "@decky/api";
+import {
+  ButtonItem,
+  ConfirmModal,
+  showModal,
+  DialogButton,
+  Focusable,
+  Field,
+  PanelSection,
+  PanelSectionRow,
+  SliderField,
+  TextField,
+  Router,
+  ToggleField,
+} from "@decky/ui";
+import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+
+import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
+import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
+import * as Core from "../controller";
+
+type FontWeight = Core.FontWeight;
+type StyleCategory = Core.StyleCategory;
+const { GamepadGrid, tokenGroups, weightLabel, styleTabs, defaultColors, colorRows, groupIcons, groups, save, AccordionCard } = Core;
+
+/** Standalone colors presentation; all mutable state is owned by the Decky controller. */
+export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
+  const { settings, info, status, openSection, styleCategory, toggleSection, ready, current, update, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, metric, visible, hidden } = vm;
+  return (
+<AccordionCard id="colors" title="Colors & Font" subtitle="Palette, typography and saved styles"
+          icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
+          <PanelSectionRow><Field label="COLORS & FONT"
+            description="Edit global appearance or individual metric elements." /></PanelSectionRow>
+          <PanelSectionRow><Field label="SAVED STYLES"
+            description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
+          <div className="loaded-style-status" role="status">
+            {loadedPreset?`Active: ${styleTitle(settings.active_style!)}${presetDirty?" · modified":""}`:"Active: none"}
+          </div>
+          <Focusable flow-children="column" className="claw-preset-list">
+            {(["1","2"] as const).map(slot=>{
+              const stored=Boolean(settings.style_presets?.[slot]);
+              const active=stored && settings.active_style===slot;
+              return <div className="claw-preset-card" data-loaded={active} key={slot}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  gap:6,minWidth:0,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>{styleTitle(slot)}</span>
+                  <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
+                    {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
+                    {stored && <span style={{display:"block",marginTop:3,fontSize:10}}>
+                      {settings.style_presets[slot]?.groups
+                        ? Object.values(settings.style_presets[slot].groups!).filter(Boolean).length+" active"
+                        : "Legacy preset"}
+                    </span>}
+                  </span>
+                </div>
+                <Focusable flow-children="row" className="claw-preset-actions">
+                  <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
+                    onClick={()=>loadPreset(slot)}
+                    style={{background:active?"#e0f7ff":"#0874a5",
+                      color:active?"#083957":"#ffffff",
+                      border:"1px solid #3c91c0",borderRadius:7}}>
+                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
+                  </DialogButton>
+                  <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>{
+                      if(stored) confirmAction("Overwrite "+styleTitle(slot)+"?",
+                        "This replaces saved layout, appearance and metric selection.",
+                        ()=>savePreset(slot));
+                      else savePreset(slot);
+                    }}
+                    style={{background:"#294968",border:"1px solid #507394",
+                      borderRadius:7,color:"#ffffff"}}>
+                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
+                  </DialogButton>
+                </Focusable>
+                <DialogButton className="claw-control-button" disabled={!ready}
+                  onClick={()=>renameStyle(slot)} aria-label={"Rename "+styleTitle(slot)}
+                  style={{margin:"7px 0 0",width:"100%",minWidth:0,minHeight:38,
+                    background:"#203b58",border:"1px solid #466681",fontSize:12}}>
+                  <FaPen style={{marginRight:6}}/> Rename
+                </DialogButton>
+              </div>;
+            })}
+          </Focusable>
+          <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>
+          <Focusable flow-children="column" className="claw-style-rows">
+            {Array.from({length:Math.ceil(styleTabs.length/3)},(_,rowIndex)=>{
+              const row=styleTabs.slice(rowIndex*3,rowIndex*3+3);
+              return <Focusable key={rowIndex} flow-children="column" className="claw-style-row">
+                <GamepadGrid items={row} columns={3} className="claw-tiles claw-style-tiles"
+            renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
+              aria-pressed={styleCategory===key} aria-label={"Style: "+(key==="global"?name:named(key))}
+              onClick={()=>chooseStyleCategory(key)}
+              style={{minWidth:0,width:"100%",minHeight:49,margin:0,padding:"6px 3px",
+                background:styleCategory===key?"#087daf":"#263d5b",
+                border:styleCategory===key?"2px solid #29dcff":"1px solid #476687",
+                borderRadius:8,color:"#eef5ff"}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",gap:4,minWidth:0,width:"100%"}}>
+                <span className="style-group-icon" aria-hidden="true">{groupIcons[key]}</span>
+                <span style={{fontSize:11.5,lineHeight:1.2,overflowWrap:"anywhere",
+                  textAlign:"center",width:"100%",minWidth:0}}>{key==="global"?name:named(key)}</span>
+              </span>
+            </DialogButton>}/>
+                {row.some(([key])=>key===styleCategory) && <div className="claw-style-detail">
+          {styleCategory==="global" ? <>
+          <PanelSectionRow><Field label="GLOBAL" description="Global settings apply by default. Custom element overrides remain until explicitly reset." /></PanelSectionRow>
+          {toggle("sans", "Use bundled font")}
+          <PanelSectionRow><Field label="Barlow Semi Condensed" description={
+            info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold loaded."
+              : "Bundled weights unavailable; using Claw Sans."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Base font weight" description="Default for all elements without a custom font weight." /></PanelSectionRow>
+          <GamepadGrid items={(["light","regular","semibold","bold"] as FontWeight[])}
+            columns={2} className="claw-tiles claw-weight-tiles" renderItem={(weight)=>
+              <DialogButton key={weight} className="claw-control-button" disabled={!ready || !settings.sans}
+                aria-pressed={settings.font_weight===weight}
+                onClick={()=>update({font_weight:weight})}
+                style={{minWidth:0,width:"100%",minHeight:39,margin:0,padding:"7px 2px",
+                  background:settings.font_weight===weight?"#096e9e":"#23364c",
+                  border:"1px solid #406080",borderRadius:7,
+                  fontSize:11,fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
+                {weightLabel[weight]}
+              </DialogButton>}/>
+          <GamepadGrid items={colorRows} columns={3} className="claw-tiles claw-color-tiles"
+            renderItem={([key,label])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
+              onClick={()=>openColorPicker(key,label)}
+              aria-label={"Change color: "+paletteLabel(key,label)}
+              style={{minWidth:0,width:"100%",minHeight:51,margin:0,padding:"6px 3px",
+                background:"#21354c",border:"1px solid #496783",borderRadius:8,color:"#e8f4ff"}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                gap:4,minWidth:0,width:"100%"}}>
+                <span aria-hidden="true" style={{width:14,height:14,flexShrink:0,borderRadius:4,
+                  background:"#"+(settings.colors[key]??defaultColors[key]),
+                  border:"1px solid #b8c7d9"}}/>
+                <span style={{fontSize:11,lineHeight:1.2,overflowWrap:"anywhere",
+                  textAlign:"center",minWidth:0,width:"100%"}}>{paletteLabel(key,label)}</span>
+              </span>
+            </DialogButton>}/>
+          <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
+            onClick={()=>confirmAction("Restore default colors?",
+              "Reset the global palette. Individual custom colors will be preserved.",
+              ()=>update({colors:{...defaultColors}}))}>Restore default colors</ButtonItem></PanelSectionRow>
+          </> : <>
+          <PanelSectionRow><Field label={named(styleCategory)}
+            description="Each element can override color and font weight. Global inherits the default." /></PanelSectionRow>
+          {tokenGroups[styleCategory as Exclude<StyleCategory,"global">].map(token=>(
+            <div key={token.key} style={{padding:"8px 4px",marginBottom:8,
+              background:"#1a2c43",border:"1px solid #375878",borderRadius:8}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:5}}>{tokenTitle(token)}</div>
+              <PanelSectionRow>
+                <ButtonItem disabled={!ready} layout="below" onClick={()=>cycleTokenWeight(token.key)}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span>Font: {weightLabel[settings.token_weights?.[token.key]??"inherit"]}</span>
+                    <span style={{opacity:.7}}>Change <FaChevronRight /></span>
+                  </span>
+                </ButtonItem>
+              </PanelSectionRow>
+              <PanelSectionRow><Focusable flow-children="row" style={{display:"flex",gap:5}}>
+                <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}
+                  style={{flex:1,margin:0,padding:8}}>
+                  <span style={{display:"flex",alignItems:"center",gap:7}}>
+                    <span style={{width:17,height:17,borderRadius:4,
+                      background:"#"+(settings.token_colors?.[token.key]??
+                        settings.colors[token.defaultColor]??defaultColors[token.defaultColor]),
+                      border:"1px solid #adc7e7"}}/>
+                    {settings.token_colors?.[token.key]?"Custom color":"Global color"}
+                  </span>
+                </DialogButton>
+                <DialogButton className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}
+                  onClick={()=>resetTokenColor(token.key)}
+                  style={{minWidth:70,padding:7,margin:0}}>Reset</DialogButton>
+              </Focusable></PanelSectionRow>
+            </div>
+          ))}
+          <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
+            onClick={()=>confirmAction("Reset category overrides?",
+              "Clear custom colors and font weights for this category.",
+              ()=>{
+                const nw={...current.current.token_weights},nc={...current.current.token_colors};
+                for(const t of tokenGroups[styleCategory as Exclude<StyleCategory,"global">]){
+                  delete nw[t.key]; delete nc[t.key];
+                }
+                update({token_weights:nw,token_colors:nc});
+              })}>Reset category overrides</ButtonItem></PanelSectionRow>
+          </>}
+                </div>}
+              </Focusable>;
+            })}
+          </Focusable>
+        </AccordionCard>
+  );
+}
