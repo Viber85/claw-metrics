@@ -178,6 +178,29 @@ class GroupedQamTests(unittest.TestCase):
                       "AddQuadFilled","AddLine","GetWindowDrawList"):
             self.assertIn(token,patcher)
 
+
+    def test_fps_scale_font_atlas_supports_all_slider_steps(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_fps_size_center.py").read_text()
+        align = (root / "experiments/center_hud_vertically.py").read_text()
+        self.assertIn("font_size * 2.0f", patch)
+        self.assertIn("claw_fps_digits", patch)
+        self.assertIn("chosen->Scale = ImClamp(", patch)
+        self.assertIn("claw_fps_scale) / 200.0f", patch)
+        self.assertNotIn("font_size * params.claw_fps_scale / 100.0f", patch)
+        self.assertIn("fps_font->FontSize * fps_font->Scale", align)
+        for scale in range(100, 201, 10):
+            with self.subTest(scale=scale):
+                self.assertAlmostEqual(2.0 * (scale / 200.0), scale / 100.0)
+
+    def test_closed_main_cards_highlight_controller_focus(self):
+        self.assertIn('data-focused={focused ? "true" : "false"}', SOURCE)
+        self.assertIn('onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}', SOURCE)
+        self.assertIn('border:(open||focused)?"2px solid #ffffff"', SOURCE)
+        self.assertIn('.claw-accordion-header:focus-within .claw-accordion-selection-ring', SOURCE)
+        self.assertIn('.claw-accordion-header:has(.gpfocus) .claw-accordion-selection-ring', SOURCE)
+        self.assertIn('[data-section][data-focused="true"] .claw-accordion-selection-ring', SOURCE)
+
     def test_fps_enlargement_centers_full_inline_hud_vertically(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
