@@ -1027,6 +1027,23 @@ class Plugin:
             ) + "\nSources: " + details
         }
 
+    async def get_installed_version(self):
+        """Report the actual version of this installed plugin package.
+
+        This endpoint is read-only, local, and independent from GitHub or
+        optional updater imports; a missing package reports an error rather
+        than a misleading hard-coded UI version.
+        """
+        try:
+            package = pathlib.Path(__file__).with_name("package.json")
+            manifest = json.loads(package.read_text(encoding="utf-8"))
+            version = manifest.get("version") if isinstance(manifest, dict) else None
+            if not isinstance(version, str) or not re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z.+-]{0,63}", version):
+                raise ValueError("Invalid package version")
+            return {"version": version}
+        except (OSError, ValueError, TypeError) as error:
+            raise RuntimeError("Unable to read the installed plugin package version.") from error
+
     async def check_updates(self):
         """Optional updater: errors must not affect the plugin's core settings."""
         try:
