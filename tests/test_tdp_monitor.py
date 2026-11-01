@@ -43,7 +43,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             return SimpleNamespace(returncode=1, stdout="", stderr="cannot open /dev/mem")
         with tempfile.TemporaryDirectory() as temp:
             self.assertEqual(main.read_tdp_limit(root=pathlib.Path(temp),
-                             binary="ryzenadj", runner=runner, panel_roots=[pathlib.Path(temp)]), (None, "Nije dostupno"))
+                             binary="ryzenadj", runner=runner, panel_roots=[pathlib.Path(temp)]), (None, "Unavailable"))
         self.assertEqual(main.valid_tdp_w(0), None)
         self.assertEqual(main.valid_tdp_w("garbage"), None)
         self.assertEqual(main.valid_tdp_w(500), None)
@@ -60,7 +60,7 @@ class TdpReadOnlyTests(unittest.TestCase):
                              runner=runner, panel_roots=[root]), (18, "MSI firmware PL1"))
             node.write_text("0\n")
             self.assertEqual(main.read_tdp_limit(root=root, binary="ryzenadj",
-                             runner=runner, panel_roots=[root]), (None, "Nije dostupno"))
+                             runner=runner, panel_roots=[root]), (None, "Unavailable"))
 
     def test_panel_configured_setpoint_used_when_hw_readback_blocked(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -75,7 +75,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             value, source = main.read_tdp_limit(root=root, binary="ryzenadj",
                 runner=denied, panel_roots=[root])
             self.assertEqual(value, 23)
-            self.assertIn("postavljeno", source)
+            self.assertIn("configured", source)
             self.assertIn("nije hardverski potvrđeno", source)
 
     def test_panel_profiles_do_not_misreport_game_or_auto_mode(self):
@@ -87,7 +87,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             path.write_text('{"global":{"pl1":23}, "games":{"123":{"pl1":30}}}')
             value, reason = main.read_panel_setpoint([root])
             self.assertIsNone(value)
-            self.assertIn("profili igara", reason)
+            self.assertIn("game profiles", reason)
             path.write_text('{"global":{"pl1":23,"auto_tdp":true}, "games":{}}')
             self.assertIsNone(main.read_panel_setpoint([root])[0])
             path.write_text('{"global":{"pl1":23}, "games":{}}')
@@ -110,11 +110,11 @@ class TdpReadOnlyTests(unittest.TestCase):
                 report = main.tdp_source_diagnostics(
                     firmware_root=root / "fw", plugin_roots=[root / "plugins"],
                     settings_roots=[root / "settings"])
-            self.assertIn("MSI firmware PL1: nečitljivo", report)
+            self.assertIn("MSI firmware PL1: unreadable", report)
             self.assertIn("RyzenAdj: izvršna datoteka nije pronađena", report)
-            self.assertIn("PDC: globalno 23W", report)
-            self.assertIn("različitih profila igara 1", report)
-            self.assertIn("različiti profili igara", report)
+            self.assertIn("PDC: global 23W", report)
+            self.assertIn("game overrides 1", report)
+            self.assertIn("različiti game profiles", report)
             self.assertNotIn('"123"', report)
 
     def test_diagnostics_ryzenadj_read_is_non_mutating(self):
@@ -132,7 +132,7 @@ class TdpReadOnlyTests(unittest.TestCase):
                 report = main.tdp_source_diagnostics(
                     firmware_root=root / "fw", plugin_roots=[root / "plugins"],
                     settings_roots=[root / "settings"], runner=reader)
-            self.assertIn("RyzenAdj: 19W, izlazni kod 2", report)
+            self.assertIn("RyzenAdj: 19W, exit code 2", report)
             self.assertEqual(calls, [[str(binpath), "-i"]])
 
 
