@@ -18,6 +18,7 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
+import type {SectionKey} from "./components/AccordionCard";
 
 export type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 export type FontWeight = "light" | "regular" | "semibold" | "bold";
@@ -58,22 +59,8 @@ export const graphStyleChoices: {id:GraphStyle;label:string}[] = [
   {id:"dual",label:"Line + fill"},
 ];
 
-/** Match the real SteamOS navigation tree to the visible grid.
- * The parent handles up/down, each row handles left/right. */
-export function GamepadGrid<T>({items, columns, className, renderItem}:{
-  items:readonly T[]; columns:2|3; className:string;
-  renderItem:(item:T,index:number)=>ReactNode;
-}) {
-  const rows:T[][]=[];
-  for(let at=0;at<items.length;at+=columns) rows.push(items.slice(at,at+columns));
-  return <Focusable flow-children="column" className={className}>
-    {rows.map((row,rowIndex)=>
-      <Focusable key={rowIndex} flow-children="row"
-        className={"claw-grid-row claw-grid-cols-"+columns}>
-        {row.map((item,colIndex)=>renderItem(item,rowIndex*columns+colIndex))}
-      </Focusable>)}
-  </Focusable>;
-}
+export {GamepadGrid} from "./components/GamepadGrid";
+
 export type WeightSelection = "inherit" | FontWeight;
 export type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
 export type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
@@ -346,91 +333,13 @@ export function withTimeout<T>(request: Promise<T>): Promise<T> {
   });
 }
 
-export type SectionKey = "overlay" | "layout" | "metrics" | "colors" | "activation" | "advanced";
-export type AccordionCardProps = {
-  id: SectionKey;
-  title: string;
-  subtitle: string;
-  icon: ReactNode;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-};
-
-export function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: AccordionCardProps) {
-  const [focused, setFocused] = useState(false);
-  const active = open || focused;
-  return (
-    <div data-section={id} data-selected={open ? "true" : "false"}
-      data-focused={focused ? "true" : "false"} style={{
-      background: active ? "#0d2945" : "#111e30",
-      width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box",
-      border: active ? "1px solid #2c709d" : "1px solid #395579",
-      borderLeft: active ? "4px solid #08d3fa" : "4px solid #8b65e7",
-      borderRadius: 12,
-      overflow: "hidden",
-      marginBottom: 10,
-      boxShadow: active ? "0 0 12px rgba(0,153,237,0.13)" : "none",
-    }}>
-      {/* Steam and Decky retain normal button navigation; highlight is in the background. */}
-      <div className="claw-accordion-header"
-        onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}
-        style={{position:"relative",width:"100%",minWidth:0,
-        maxWidth:"100%",boxSizing:"border-box"}}>
-        <DialogButton onClick={onToggle} aria-pressed={open} style={{
-          width: "100%", minWidth: 0, boxSizing: "border-box",
-          display: "flex", alignItems: "center",
-          textAlign: "left", margin: 0, padding: "12px 10px",
-          background: active ? "#073858" : "#14243b",
-          border: "none", borderRadius: 0, minHeight: 66, whiteSpace: "normal",
-          outline: "none", boxShadow: "none",
-        }}>
-          <span style={{display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0}}>
-            <span className="claw-accordion-icon"
-              style={{display: "flex", alignItems: "center", justifyContent: "center",
-              background: active ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
-              fontSize: 20, color: active ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
-            <span style={{display: "flex", flex: 1, minWidth: 0, flexDirection: "column", gap: 3}}>
-              <span style={{fontWeight: 700, fontSize: 16, color: "#f1f7ff"}}>{title}</span>
-              <span style={{fontWeight: 400, fontSize: 11, lineHeight: 1.35,
-                color: "#a9c7e8", overflowWrap: "anywhere"}}>{subtitle}</span>
-            </span>
-            <span style={{display: "flex", color: "#9edbff", fontSize: 16, flexShrink: 0}}>
-              {open ? <FaChevronDown /> : <FaChevronRight />}
-            </span>
-          </span>
-        </DialogButton>
-      </div>
-      {open && <div style={{padding: "10px 8px 12px", borderTop: "1px solid #235b81"}}>
-        {children}
-      </div>}
-    </div>
-  );
-}
+export {AccordionCard} from "./components/AccordionCard";
+export type {SectionKey,AccordionCardProps} from "./components/AccordionCard";
 
 export type LayoutPanel = "position" | "size" | "spacing" | "frametime";
 export type AdvancedPanel = "updates" | "diagnostics" | "backup";
-export function ControlGroup({title,summary,open,onToggle,children}:{
- title:string;summary:string;open:boolean;onToggle:()=>void;children:ReactNode;
-}) {
- return <div className="claw-control-group" style={{margin:"7px 0",minWidth:0,
-   border:"1px solid #355873",borderRadius:9,background:"#14253a",overflow:"hidden"}}>
-   <DialogButton aria-expanded={open} onClick={onToggle}
-     style={{display:"block",width:"100%",margin:0,minWidth:0,minHeight:57,
-       padding:"10px 9px",background:open?"#16466a":"#172c43",
-       border:"none",borderRadius:0,textAlign:"left"}}>
-     <span style={{display:"flex",gap:9,alignItems:"center",justifyContent:"space-between"}}>
-       <span style={{minWidth:0,display:"flex",flexDirection:"column",gap:3}}>
-         <strong style={{fontSize:13,color:"#f3f8ff"}}>{title}</strong>
-         <span style={{fontSize:11.5,color:"#afc5d7",lineHeight:1.3}}>{summary}</span>
-       </span>{open?<FaChevronDown/>:<FaChevronRight/>}
-     </span>
-   </DialogButton>
-   {open && <div style={{padding:"10px 7px 12px",borderTop:"1px solid #365b79"}}>
-     {children}
-   </div>}
- </div>;
-}
+export {ControlGroup} from "./components/ControlGroup";
+
 // Decky can remount Content after backend saves. Keep navigation state
 // outside the React instance, so saving never jumps back to Metrics.
 export let lastOpenSection: SectionKey | null = "metrics";
