@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import time
+from updates import check_github_update
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"]
 COLORS = {
@@ -999,6 +1000,11 @@ class Plugin:
                 "provjeri Panel de Control profile."
             ) + "\nIzvori: " + details
         }
+
+    async def check_updates(self):
+        """User-initiated GitHub check; installation is handled by Decky Loader."""
+        return await asyncio.to_thread(
+            check_github_update, pathlib.Path(__file__).with_name("package.json"))
 
     async def get_renderer_status(self):
         """Detect both Vulkan request propagation and actual native library maps.
