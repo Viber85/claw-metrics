@@ -77,6 +77,33 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('lastStyleCategory = next', SOURCE)
         self.assertIn('setStyleCategory(next)', SOURCE)
 
+    def test_every_nested_subcard_toggles_closed_on_second_press(self):
+        controller=(SRC / "controller.tsx").read_text()
+        layout=(SRC / "pages/LayoutCard.tsx").read_text()
+        advanced=(SRC / "pages/AdvancedCard.tsx").read_text()
+        common=(SRC / "components/ControlGroup.tsx").read_text()
+        # Exactly the same behavior as Metrics and Appearance Editor:
+        # one active subcard at a time, second press collapses to null.
+        for id, prefix, options in (
+            ("LayoutPanel", "Layout", ("position","size","spacing","frametime")),
+            ("AdvancedPanel", "Advanced", ("updates","diagnostics","backup")),
+        ):
+            self.assertIn(f"last{id}: {id} | null", controller)
+            self.assertIn(f"useState<{id} | null>(()=>last{id})", controller)
+            self.assertIn(f"const next=last{id}===id?null:id;", controller)
+            self.assertIn(f"last{id}=next;", controller)
+            self.assertIn(f"set{id}(next);", controller)
+            card=layout if prefix=="Layout" else advanced
+            for option in options:
+                self.assertIn(f'onToggle={{()=>toggle{prefix}Panel("{option}")}}',card)
+                self.assertIn(f'open={{{prefix.lower()}Panel==="{option}"}}',card)
+            self.assertNotIn(f'onToggle={{()=>set{id}(',card)
+        self.assertIn('aria-expanded={open}',common)
+        self.assertIn('{open && <div',common)
+        # The already-working behavior on Metrics and Colors must remain.
+        self.assertIn('expandMetric(open ? null : key)',SOURCE)
+        self.assertIn('lastStyleCategory === id ? null : id',SOURCE)
+
     def test_appearance_category_is_collapsible_like_metrics(self):
         self.assertIn('lastStyleCategory: StyleCategory | null = "global"', SOURCE)
         self.assertIn('useState<StyleCategory | null>(() => lastStyleCategory)', SOURCE)
