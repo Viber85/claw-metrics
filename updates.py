@@ -77,8 +77,43 @@ def latest_compatible_release(releases):
     return best
 
 
-def check_github_update(package_file):
+def validate_github_feed(package_file, raw):
+    """Validate release JSON received by the Decky Loader HTTPS client.
+
+    Do not trust the frontend with release links: only canonical GitHub assets
+    and real release SHA-256 hashes may reach the update confirmation screen.
+    """
     current = installed_version(package_file)
+    if not isinstance(raw, str) or len(raw.encode("utf-8")) > MAX_RESPONSE:
+        raise RuntimeError("Nevaljani ili preveliki GitHub odgovor.")
+    try:
+        releases = json.loads(raw)
+    except ValueError as error:
+        raise RuntimeError("GitHub nije vratio valjane podatke o izdanjima.") from error
+    candidate = latest_compatible_release(releases)
+    return {
+        "current": current,
+        "available": bool(candidate and version_number(candidate["version"]) > version_number(current)),
+        "latest": candidate,
+    }
+
+
+def describe_error(error):
+    """User-safe diagnostic returned as RPC data, never a Python exception."""
+    if isinstance(error, urllib.error.HTTPError):
+        code = error.code
+        if code in (403, 429):
+            return f"GitHub ograničava zahtjeve (HTTP {code}). Pokušaj kasnije."
+        return f"GitHub API vratio je HTTP {code}."
+    message = str(error).strip() or "Nepoznata greška"
+    if isinstance(error, urllib.error.URLError):
+        reason = getattr(error, "reason", None)
+        message = str(reason or error)
+    # Avoid exposing arbitrary paths, URLs or entire HTTP responses in QAM.
+    return type(error).__name__ + ": " + message[:260]
+
+
+def check_github_update(package_file):
     request = urllib.request.Request(
         RELEASES_API,
         headers={
@@ -94,13 +129,4 @@ def check_github_update(package_file):
                 raise RuntimeError("GitHub odgovor je prevelik.")
     except (urllib.error.URLError, OSError, TimeoutError) as error:
         raise RuntimeError("Nije moguće povezati se s GitHubom. Provjeri internet.") from error
-    try:
-        releases = json.loads(raw)
-    except ValueError as error:
-        raise RuntimeError("GitHub nije vratio valjane podatke o izdanjima.") from error
-    candidate = latest_compatible_release(releases)
-    return {
-        "current": current,
-        "available": bool(candidate and version_number(candidate["version"]) > version_number(current)),
-        "latest": candidate,
-    }
+    return validate_github_feed(package_file, raw.decode("utf-8"))
