@@ -314,6 +314,7 @@ export type GithubUpdateInfo = {
 export type DeckyHttpResponse = {status:number;body:string};
 export const GITHUB_RELEASES_API = "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30";
 export const checkUpdates = callable<[], GithubUpdateInfo>("check_updates");
+export const getInstalledVersion = callable<[], {version:string}>("get_installed_version");
 export const validateGithubReleases = callable<[string],GithubUpdateInfo>("validate_github_releases");
 
 // Decky Loader handles ZIP download, SHA-256 verification, unloading and
@@ -344,7 +345,7 @@ export {ControlGroup} from "./components/ControlGroup";
 // outside the React instance, so saving never jumps back to Metrics.
 export let lastOpenSection: SectionKey | null = "metrics";
 export let lastExpandedMetric: Group | null = null;
-export let lastStyleCategory = "global";
+export let lastStyleCategory: StyleCategory | null = "global";
 
 export function useClawController() {
   const [settings, setSettings] = useState<Settings>(defaults);
@@ -362,6 +363,8 @@ export function useClawController() {
   const [rendererBusy, setRendererBusy] = useState(false);
   const [updateBusy, setUpdateBusy] = useState(false);
   const [updateStatus, setUpdateStatus] = useState("Check manually for updates.");
+  const [installedVersion,setInstalledVersion] = useState<string|null>(null);
+  const [installedVersionError,setInstalledVersionError] = useState("");
   const [updateFallback, setUpdateFallback] = useState<string|null>(null);
   const requestGithubInstall = (release:GithubRelease) => {
     const installer=deckyInstaller();
@@ -455,7 +458,7 @@ export function useClawController() {
         result=fallback;
       }
       if (!result.available || !result.latest) {
-        setUpdateStatus("Installed version "+(result.current||"nepoznata")+
+        setUpdateStatus("Installed version "+(result.current||"unknown")+
           " is up to date. No newer test release.");
       } else {
         setUpdateStatus("New version available: "+result.latest.tag+
@@ -496,7 +499,7 @@ export function useClawController() {
   };
   const [expanded, setExpanded] = useState<Group | null>(() => lastExpandedMetric);
   const [openSection, setOpenSection] = useState<SectionKey | null>(() => lastOpenSection);
-  const [styleCategory, setStyleCategory] = useState<StyleCategory>(() => lastStyleCategory as StyleCategory);
+  const [styleCategory, setStyleCategory] = useState<StyleCategory | null>(() => lastStyleCategory);
   const toggleSection = (id: SectionKey) => {
     const next = lastOpenSection === id ? null : id;
     lastOpenSection = next;
@@ -570,6 +573,25 @@ export function useClawController() {
     })();
     return ()=>{cancelled=true;};
   },[]);
+
+  useEffect(()=>{
+    if(!ready)return;
+    let cancelled=false;
+    // Read the version from the installed ZIP's package.json through Python,
+    // not from a hard-coded UI string or the newest GitHub release.
+    void withTimeout(getInstalledVersion()).then(result=>{
+      if(cancelled)return;
+      if(typeof result?.version !== "string" || !result.version.trim())
+        throw new Error("Invalid installed package version.");
+      setInstalledVersion(result.version);
+      setInstalledVersionError("");
+    }).catch(error=>{
+      if(cancelled)return;
+      setInstalledVersion(null);
+      setInstalledVersionError("Unable to read installed version: "+String(error));
+    });
+    return ()=>{cancelled=true;};
+  },[ready]);
 
   const update = (patch: Partial<Settings>) => {
     const next = { ...current.current, ...patch };
@@ -666,8 +688,10 @@ export function useClawController() {
   const presetDirty=loadedPreset?styleModified({...loadedPreset,colors:independentColors(loadedPreset.colors,defaultColors)},settings):false;
   const related=(label:string)=>relatedLabel(settings,label);
   const chooseStyleCategory = (id: StyleCategory) => {
-    lastStyleCategory = id;
-    setStyleCategory(id);
+    // Match Metrics: pressing the already expanded card closes its editor.
+    const next = lastStyleCategory === id ? null : id;
+    lastStyleCategory = next;
+    setStyleCategory(next);
   };
   const cycleTokenWeight = (key: TokenKey) => {
     const old: WeightSelection = current.current.token_weights?.[key] ?? "inherit";
@@ -752,7 +776,7 @@ export function useClawController() {
 
   // One central controller owns settings, Decky RPC and navigation state.
   // Cards only render this model; they never mount separate backend sessions.
-  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
+  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
 }
 
 export type ClawController = ReturnType<typeof useClawController>;
