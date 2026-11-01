@@ -278,7 +278,9 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('ImGui::TableSetColumnIndex(1);', patch)
         self.assertIn('item.value.find("tdp.txt")', patch)
         self.assertIn('if (HUDElements.params->claw_vertical_stack &&', patch)
-        self.assertRegex(layout, r'value=\\{settings\\.fps_scale\\} min=\\{100\\} max=\\{200\\} step=\\{10\\} showValue\\s+disabled=\\{!ready \\|\\| !info\\?\\.layout_spacing_supported\\}')
+        fps_slider = layout.split('value={settings.fps_scale}',1)[1].split('onChange={(value:number)=>update({fps_scale:value})}',1)[0]
+        self.assertIn('disabled={!ready || !info?.layout_spacing_supported}', fps_slider)
+        self.assertNotIn('settings.hud_orientation', fps_slider)
         self.assertIn('value={settings.fps_scale} min={100} max={200}', layout)
 
     def test_fps_size_preview_and_center_pill(self):
