@@ -213,6 +213,40 @@ class Settings(unittest.TestCase):
         self.assertEqual(main.normalize({"fps_scale": 40})["fps_scale"], 100)
         self.assertFalse(main.normalize({"center_horizontal": "yes"})["center_horizontal"])
 
+    def test_five_hud_anchors_and_legacy_center_migration(self):
+        self.assertEqual(main.normalize({})["hud_position"], "top-left")
+        legacy = main.normalize({"center_horizontal": True, "offset_x": -25})
+        self.assertEqual(legacy["hud_position"], "top-center")
+        self.assertEqual(legacy["offset_x"], -25)
+        self.assertIn("claw_center_horizontal=1\n", main.mango_config(legacy, native_spacing=True))
+        self.assertIn("position=top-left\n", main.mango_config(legacy, native_spacing=True))
+        for anchor, position, x, y, right in (
+            ("top-left", "top-left", "8", "14", "0"),
+            ("top-right", "top-right", "-8", "14", "1"),
+            ("bottom-left", "bottom-left", "8", "-14", "0"),
+            ("bottom-right", "bottom-right", "-8", "-14", "1"),
+        ):
+            with self.subTest(anchor=anchor):
+                d = main.normalize({"hud_position": anchor, "center_horizontal": True,
+                                    "offset_x": 8, "offset_y": 14})
+                self.assertFalse(d["center_horizontal"])
+                config = main.mango_config(d, native_spacing=True)
+                self.assertIn(f"position={position}\n", config)
+                self.assertIn(f"offset_x={x}\n", config)
+                self.assertIn(f"offset_y={y}\n", config)
+                self.assertIn(f"claw_align_right={right}\n", config)
+                self.assertIn("claw_center_horizontal=0\n", config)
+        self.assertEqual(main.normalize({"hud_position": "invalid"})["hud_position"], "top-left")
+
+    def test_style_slot_retains_hud_corner_and_legacy_center(self):
+        saved = {"1":{"version":2,"hud_position":"bottom-right","offset_x":12},
+                 "2":{"version":2,"center_horizontal":True}}
+        slots = main.normalize({"style_presets":saved})["style_presets"]
+        self.assertEqual(slots["1"]["hud_position"], "bottom-right")
+        self.assertFalse(slots["1"]["center_horizontal"])
+        self.assertEqual(slots["2"]["hud_position"], "top-center")
+        self.assertTrue(slots["2"]["center_horizontal"])
+
     def test_style_slot_retains_fps_size_and_manual_position(self):
         saved = {"1":{"version":2,"fps_scale":160,"center_horizontal":True,"offset_x":-25}}
         style = main.normalize({"style_presets":saved,"active_style":"1"})["style_presets"]["1"]
