@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/hud-six-edges-32]
+    branches: [test/padding-zero-stability-33]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.32
+  group: claw-metrics-v0.2.4-test.33
   cancel-in-progress: true
 
 jobs:
@@ -95,6 +95,7 @@ jobs:
           python3 ../experiments/apply_token_styles.py src
           python3 ../experiments/enable_fps_size_center.py src
           python3 ../experiments/enable_frametime_graph_styles.py src
+          python3 ../experiments/enable_zero_vertical_padding.py src
           python3 ../experiments/center_hud_vertically.py src
           python3 ../experiments/enable_fixed_numeric_slots.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
@@ -114,6 +115,9 @@ jobs:
           ! grep -q 'ImGui::BeginGroup()' src/hud_elements.cpp
           grep -q 'claw_graph_style' src/hud_elements.cpp
           grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
+          grep -q 'style.CellPadding.y = 0.0f;' src/hud_elements.cpp
+          grep -q 'claw_bottom_padding' src/overlay.cpp
+          grep -q 'std::isfinite(raw_value)' src/hud_elements.cpp
           grep -q 'chosen->Scale = ImClamp' src/hud_elements.cpp
           grep -q 'fps_font->FontSize \* fps_font->Scale' src/hud_elements.cpp
           grep -q 'claw_fps_row_top' src/hud_elements.cpp
@@ -138,7 +142,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.32.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.33.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -157,14 +161,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.32
-          path: ClawMetrics-v0.2.4-test.32.zip
+          name: ClawMetrics-v0.2.4-test.33
+          path: ClawMetrics-v0.2.4-test.33.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.32 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.32 ClawMetrics-v0.2.4-test.32.zip \
+          gh release delete v0.2.4-test.33 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.33 ClawMetrics-v0.2.4-test.33.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.32 – six HUD edge anchors with top and bottom center" \
-            --notes "Adds six edge-only HUD positions in a 3x2 gamepad grid: three at top and three at bottom. Both centered positions use true horizontal centering with native width measurements; bottom-center anchors to the bottom edge (not the middle of the screen). Preserves numeric slots, padding, TDP telemetry and saved styles. Hardware validation required."
+            --title "Claw Metrics v0.2.4-test.33 – zero vertical padding and frametime stability guards" \
+            --notes "Sets default vertical padding to 0px and removes fixed native 5px top/bottom and extra 10px bottom insets, controlled by the existing 0-24px slider. Keeps user-saved padding intact. Guards frametime graph against NaN/Inf on startup and resume. Preserves six HUD anchors and all telemetry. Intermittent game crashes still require device logs to confirm root cause."
