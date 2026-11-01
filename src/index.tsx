@@ -57,31 +57,49 @@ function Content(){
           min-width: 0 !important; max-width: 100%; box-sizing: border-box;
         }
         .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
-         /* SliderField has an intrinsic SteamOS width. Keep its track and
-            editable value inside each narrower nested Layout card. */
-         [data-section="layout"] .claw-control-group {
-           width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
-         }
+         /* Steam SliderField may reserve full-screen track width even in an inset card.
+           Limit the actual native slider and all of its flex ancestors, not just
+           a decorative wrapper. Preserve the full interactive range. */
+         [data-section="layout"] .claw-control-group,
          [data-section="layout"] .claw-control-group > div:last-child {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
          }
          [data-section="layout"] .claw-layout-slider {
-           width: calc(100% - 20px); max-width: calc(100% - 20px);
-           min-width: 0; margin: 2px 10px 9px; box-sizing: border-box;
+           display: block;
+           width: min(330px, calc(100% - 18px)) !important;
+           max-width: calc(100% - 18px) !important;
+           min-width: 0 !important; box-sizing: border-box !important;
+           margin: 2px 9px 9px !important;
+           padding: 0 20px 0 0 !important;
          }
-         [data-section="layout"] .claw-layout-slider > *,
-         [data-section="layout"] .claw-layout-slider [class*="DialogField"],
-         [data-section="layout"] .claw-layout-slider [class*="DialogSlider"],
-         [data-section="layout"] .claw-layout-slider [class*="Slider_"],
-         [data-section="layout"] .claw-layout-slider input[type="range"] {
-           min-width: 0 !important; max-width: 100% !important;
+         [data-section="layout"] .claw-layout-slider *,
+         [data-section="layout"] .claw-layout-slider *::before,
+         [data-section="layout"] .claw-layout-slider *::after {
            box-sizing: border-box !important;
          }
-         [data-section="layout"] .claw-layout-slider [class*="DialogSlider"] {
-           flex-shrink: 1 !important;
+         [data-section="layout"] .claw-layout-slider *,
+         [data-section="layout"] .claw-layout-slider > * {
+           min-width: 0 !important; max-width: 100% !important;
+         }
+         [data-section="layout"] .claw-layout-slider > * {
+           width: 100% !important; flex: 1 1 auto !important;
+         }
+         [data-section="layout"] .claw-layout-slider :is(
+           [class*="DialogSlider"], [class*="SliderRoot"],
+           [class*="SliderTrack"], [class*="sliderTrack"],
+           [class*="SliderField"], input[type="range"]
+         ) {
+           min-width: 0 !important; max-width: 100% !important;
+           width: 100% !important; flex-shrink: 1 !important;
+         }
+         [data-section="layout"] .claw-layout-slider :is(
+           [class*="Label"], [class*="label"]
+         ) { overflow-wrap: anywhere; }
+         [data-section="layout"] .claw-layout-slider input {
+           min-width: 0 !important; max-width: 100% !important;
          }
 
-        .claw-style-tiles .style-group-icon {
+         .claw-style-tiles .style-group-icon {
           display: inline-flex; align-items: center; justify-content: center;
           margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
         }
@@ -94,7 +112,27 @@ function Content(){
            background: #102236; border: 1px solid #365d7c;
            border-left: 3px solid #29dcff; border-radius: 8px;
          }
-        .claw-metric-tiles { padding-bottom: 2px; }
+        /* One accessible controller row per style token. */
+         [data-section="colors"] .claw-style-detail {
+           margin: 5px 0 7px; padding: 6px 5px;
+         }
+         [data-section="colors"] .claw-token-card {
+           width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+           padding: 6px 6px 7px; margin: 0 0 5px;
+           background: #1a2c43; border: 1px solid #375878; border-radius: 7px;
+         }
+         [data-section="colors"] .claw-token-title {
+           font-size: 12px; line-height: 1.2; font-weight: 700;
+           color: #e7f5ff; margin: 0 0 5px; overflow-wrap: anywhere;
+         }
+         [data-section="colors"] .claw-token-controls {
+           width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+           display: flex; gap: 5px;
+         }
+         [data-section="colors"] .claw-token-controls > button {
+           min-width: 0 !important; box-sizing: border-box;
+         }
+         .claw-metric-tiles { padding-bottom: 2px; }
         .claw-metric-tiles .metric-card:focus-within {
           outline: 2px solid #ffffff; outline-offset: -2px; border-radius: 8px;
         }
