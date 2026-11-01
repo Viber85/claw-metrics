@@ -1,3 +1,12 @@
+# Claw Metrics v0.2.4-test.27 — plavo isticanje fokusa kartica
+
+- Sve glavne kartice (Overlay, Layout, Metrics, Colors & Font, Activation i Advanced) osvijetljene su istom plavom pozadinom kad su otvorene ili u fokusu kontrolera.
+- Uklonjeni su bijeli obrubi, dodatni unutarnji selection ring i bijeli sjaj. Fokus ostaje vidljiv kroz svjetliju pozadinu, svjetliju ikonu, tirkizni lijevi rub i vrlo blag plavi sjaj.
+- Otvorena kartica ostaje vizualno aktivna kada fokus ode na drugu karticu. Nema promjena u ponašanju navigacije i otvaranja sekcija.
+- Podržani su standardni DOM fokus i Steam/Decky gpfocus. Postojeći FPS scale od 100% do 200%, vertikalno poravnanje, A/B/C/F frametime grafovi, stilovi te CPU/GPU, TDP i DRAW ostaju nepromijenjeni.
+- Potreban je test Game Mode fokusa na MSI Claw A8.
+
+---
 # Claw Metrics v0.2.4-test.26 — FPS skala i fokus kontrolera
 
 - FPS broj koristi font rasteriziran na 200% prilikom pokretanja igre. Native ImGui Scale potom prilagođava veličinu za 100, 110, 120 ... 190 i 200%, umjesto da veličina ovisi o početnoj vrijednosti pri gradnji font atlasa. Samo FPS broj je povećan; drugi fontovi ostaju isti. Skup FPS znamenki smanjuje trošak atlasa.
