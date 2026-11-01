@@ -38,14 +38,13 @@ swap("static void ImguiNextColumnFirstItem()\n{",
 """static bool claw_vertical_first_value = false;
 static void ImguiNextColumnFirstItem()
 {""")
-swap("    ImGui::TableNextColumn();\n    HUDElements.table_columns_count += 1;\n}\n",
-"""    ImGui::TableNextColumn();
-    HUDElements.table_columns_count += 1;
+helper_start=s.index("static void ImguiNextColumnFirstItem()")
+helper_brace=s.index("{",helper_start)
+helper_end=s.index("\n}",helper_brace)
+s=s[:helper_end]+"""
     claw_vertical_first_value = HUDElements.params &&
         HUDElements.params->claw_vertical_stack &&
-        !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];
-}
-""")
+        !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];"""+s[helper_end:]
 swap("""static void ClawMetricGap() {
     ImGui::SameLine(0.0f, HUDElements.params->claw_inner_gap);
 }""",
