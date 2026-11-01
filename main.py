@@ -153,7 +153,7 @@ DEFAULTS = {
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
-    "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 8,
+    "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 0,
     # Native MangoHud 0.8.1 hard-codes these; retain the desired values
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
@@ -753,7 +753,10 @@ def mango_config(settings, native_spacing=False):
         "hud_compact=0", "hud_no_margin", "position=" + native_position,
         "offset_x=" + str(hud_x), "offset_y=" + str(hud_y),
         # MangoHud multiplies this factor by real_font_size.y = font_size/2.
-        "cellpadding_y=" + format(d["padding_y"] / (d["fontsize"] / 2), ".6f"),
+        # Native renderer uses explicit window padding (top and bottom);
+        # stock MangoHud keeps its old cell-padding fallback.
+        "cellpadding_y=" + ( "0.000000" if native_spacing else
+                              format(d["padding_y"] / (d["fontsize"] / 2), ".6f")),
         "round_corners=" + str(d["rounding"]),
         "background_color=161820",
         "text_color=" + c["text"],
@@ -800,6 +803,7 @@ def mango_config(settings, native_spacing=False):
             "claw_vram_label=" + d["custom_labels"].get("vram", "VRAM"),
             "claw_battery_label=" + d["custom_labels"].get("battery", "BATT"),
             "claw_padding_x=" + str(d["padding_x"]),
+            "claw_padding_y=" + str(d["padding_y"]),
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
