@@ -23,6 +23,14 @@ import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
 type GraphStyle = "area" | "line" | "bars" | "dual";
+type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
+  {id:"top-left",label:"Gore lijevo",icon:"↖",column:1,row:1},
+  {id:"top-right",label:"Gore desno",icon:"↗",column:3,row:1},
+  {id:"top-center",label:"Centar",icon:"•",column:2,row:2},
+  {id:"bottom-left",label:"Dolje lijevo",icon:"↙",column:1,row:3},
+  {id:"bottom-right",label:"Dolje desno",icon:"↘",column:3,row:3},
+];
 
 // Tiny real graph silhouettes make every option recognizable in Decky's narrow menu.
 function GraphStyleIcon({kind}:{kind:GraphStyle}) {
@@ -186,7 +194,7 @@ function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 type Settings = Record<Group, boolean> & {
   active_style: string|null;
   custom_labels: Record<string,string>;
-  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; opacity: number; power: boolean; tdp: boolean;
+  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number; graph_style: GraphStyle;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
@@ -229,7 +237,7 @@ type Info = {
 
 const defaults: Settings = {
   active_style:null, custom_labels: {},
-  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, opacity: 80, fps: true, frametime: true,
+  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
@@ -690,7 +698,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.30">
+      <PanelSection title="Claw Metrics · v0.2.4-test.31">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -738,13 +746,33 @@ function Content() {
             <span style={{fontSize:12,color:"#a9bbcf",flexShrink:0}}>GPU 72%</span>
           </span>
         </div>
-        <PanelSectionRow><ToggleField label="Centriraj horizontalno"
-          description="Centrira cijeli izlistaj po širini ekrana. Pamti ručni X-pomak."
-          checked={settings.center_horizontal} disabled={!ready || !info?.layout_spacing_supported}
-          onChange={(v:boolean)=>update({center_horizontal:v})}/></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj HUD-a"
+          description="Odaberi jedan od četiri kuta ili centar na vrhu ekrana."/></PanelSectionRow>
+        <Focusable flow-children="row" style={{display:"grid",
+          gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(3,54px)",
+          gap:5,padding:"0 4px 12px",maxWidth:"100%",boxSizing:"border-box"}}>
+          {hudPositions.map((anchor)=>{
+            const selected=settings.hud_position===anchor.id;
+            return <DialogButton key={anchor.id} aria-label={anchor.label} aria-pressed={selected}
+              disabled={!ready || (anchor.id==="top-center" && !info?.layout_spacing_supported)}
+              onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id==="top-center"})}
+              style={{gridColumn:anchor.column,gridRow:anchor.row,margin:0,
+                padding:"4px 2px",minWidth:0,minHeight:50,
+                border:selected?"2px solid #31cefa":"1px solid #43607a",
+                borderRadius:8,background:selected?"#0b4c70":"#162b40",
+                color:selected?"#f6fcff":"#bfd5e7",outline:"none",boxShadow:"none"}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",gap:2,lineHeight:1.1,width:"100%"}}>
+                <span aria-hidden="true" style={{fontSize:19,fontWeight:700}}>{anchor.icon}</span>
+                <span style={{fontSize:10,fontWeight:selected?700:500,
+                  textAlign:"center"}}>{anchor.label}</span>
+              </span>
+            </DialogButton>;
+          })}
+        </Focusable>
         <PanelSectionRow><SliderField label="X — lijevo/desno (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
-          disabled={!ready || settings.center_horizontal}
+          disabled={!ready || settings.hud_position==="top-center"}
           onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
         <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
           ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
@@ -768,13 +796,14 @@ function Content() {
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
-          fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,center_horizontal:defaults.center_horizontal,
+          fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
+           center_horizontal:defaults.center_horizontal,hud_position:defaults.hud_position,
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Automatsko centriranje zanemaruje ručni X-pomak, ali ga čuva. Isključivanjem centriranja vraća se ručni položaj po 1 px." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Pozitivni X/Y pomaci idu prema unutrašnjosti od odabranog ruba. Centar zanemaruje X, ali čuva njegovu vrijednost." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
         </AccordionCard>
