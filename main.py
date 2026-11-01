@@ -114,8 +114,21 @@ def normalize_style_presets(payload):
             "token_weights": normalize_token_weights(item.get("token_weights")),
             "token_colors": normalize_token_colors(item.get("token_colors")),
         }
-        if item.get("version") == 2:
-            preset["version"] = 2
+        if item.get("version") in (2, 3):
+            preset["version"] = item["version"]
+        # New styles carry per-group visibility and per-sensor toggles. Reject
+        # unknown IDs or non-boolean values (including numeric 0/1). Old styles
+        # lacked these fields and MUST remain appearance-only until re-saved.
+        if isinstance(item.get("groups"), dict):
+            preset["groups"] = {
+                metric: item["groups"][metric] for metric in ORDER
+                if type(item["groups"].get(metric)) is bool
+            }
+        if isinstance(item.get("metrics"), dict):
+            preset["metrics"] = {
+                metric: item["metrics"][metric] for metric in METRICS
+                if type(item["metrics"].get(metric)) is bool
+            }
         # Legacy presets lacked layout fields; do NOT reset layout on load.
         for field, (lo, hi) in STYLE_LAYOUT_RANGES.items():
             value = item.get(field)
