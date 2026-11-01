@@ -507,6 +507,23 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('copyLaunchCommand(true)',fallback)
         self.assertIn('copyLaunchCommand();',fallback)
 
+    def test_backend_issues_do_not_lock_entire_qam(self):
+        # Settings are critical; renderer information is optional.
+        self.assertIn("const saved=await withTimeout(load());", SOURCE)
+        self.assertIn("setReady(true);", SOURCE)
+        self.assertIn("const details=await withTimeout(getInfo());", SOURCE)
+        self.assertLess(SOURCE.index("setReady(true);"),
+                        SOURCE.index("const details=await withTimeout(getInfo());"))
+        self.assertNotIn("Promise.all([load(), getInfo()])", SOURCE.replace(
+            "// Previous Promise.all([load(),getInfo()])", ""))
+        self.assertIn("setStatus(\"Settings connected; renderer information unavailable: \"", SOURCE)
+        self.assertIn('title="Connection recovery"', SOURCE)
+        self.assertIn("Retry backend connection", SOURCE)
+        self.assertIn('disabled={connecting}', SOURCE)
+        self.assertIn("if(await refresh() || cancelled)return;", SOURCE)
+        self.assertIn("connectionAttempt.current", SOURCE)
+        self.assertIn("Do not delete saved Claw Metrics settings.", SOURCE)
+
     def test_layout_nested_sliders_are_bounded_inside_cards(self):
         self.assertIn('className="claw-layout-slider"', SOURCE)
         self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 10)
