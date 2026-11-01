@@ -240,6 +240,17 @@ class Settings(unittest.TestCase):
         self.assertNotIn("graph_style",main.normalize({"style_presets":{
             "1":{"version":2,"graph_style":"invalid"}}})["style_presets"]["1"])
 
+
+    def test_native_fps_scale_from_100_to_200_by_tens(self):
+        for scale in range(100, 201, 10):
+            with self.subTest(scale=scale):
+                d = main.normalize({"fps_scale": scale})
+                self.assertEqual(d["fps_scale"], scale)
+                self.assertIn(f"claw_fps_scale={scale}\n",
+                              main.mango_config(d, native_spacing=True))
+                self.assertNotIn("claw_fps_scale=",
+                                 main.mango_config(d, native_spacing=False))
+
     def test_style_presets_validate_before_reuse(self):
         payload = {"style_presets": {
             "1": {"font_weight": "semibold", "fps_bold": False,
