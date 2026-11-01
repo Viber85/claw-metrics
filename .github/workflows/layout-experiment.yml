@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/ink-bounds-gamepad-grid-35]
+    branches: [test/qam-grid-navigation-36]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.35
+  group: claw-metrics-v0.2.4-test.36
   cancel-in-progress: true
 
 jobs:
@@ -149,7 +149,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.35.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.36.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -168,14 +168,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.35
-          path: ClawMetrics-v0.2.4-test.35.zip
+          name: ClawMetrics-v0.2.4-test.36
+          path: ClawMetrics-v0.2.4-test.36.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.35 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.35 ClawMetrics-v0.2.4-test.35.zip \
+          gh release delete v0.2.4-test.36 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.36 ClawMetrics-v0.2.4-test.36.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.35 – visible FPS ink height and two-axis controller grid" \
-            --notes "Corrects top/bottom black background whitespace at large 100%-200% FPS digits by measuring real ImGui ink bounds after merging the metric table and compensating for font linebox whitespace. Controller navigation is now two horizontal rows inside a vertical parent for D-pad up/down/left/right. Retains six edge anchors, 0px default padding, old profiles and stability guards. Native compile passes required; on-device visual/controller test remains necessary."
+            --title "Claw Metrics v0.2.4-test.36 – Metrics and Colors gamepad grids with graph tiles" \
+            --notes "Extends the proven two-axis gamepad navigation and high-contrast focus to Metrics cards, hidden metrics, Colors & Fonts category tiles, font weights, color tiles and style actions. Replaces the graph dropdown with a visual 2x2 A/B/C/F button grid. Preserves saved metric order, colors, weights, graph setting and all test.35 native layout fixes. Hardware controller validation required."
