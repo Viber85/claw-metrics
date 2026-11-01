@@ -27,8 +27,31 @@ const { hudPositions, GraphStyleIcon, graphStyleChoices, GamepadGrid, defaults, 
 export function LayoutCard({vm}:{vm:Core.ClawController}) {
   const { settings, info, layoutPanel, toggleLayoutPanel, openSection, toggleSection, ready, update, confirmAction, hidden } = vm;
   return (
-<AccordionCard id="layout" title="Layout" subtitle="Position, scale and spacing"
+<AccordionCard id="layout" title="Layout" subtitle="Orientation, position, size and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
+          <PanelSectionRow><Field label="HUD orientation"
+            description="Choose a horizontal strip or vertical stack. Restart the running game to apply." /></PanelSectionRow>
+          <GamepadGrid items={([
+            {id:"horizontal",label:"Horizontal",symbol:"↔"},
+            {id:"vertical",label:"Vertical",symbol:"↕"}
+          ] as const)} columns={2} className="claw-tiles claw-orientation-tiles"
+            renderItem={choice=><DialogButton key={choice.id}
+              disabled={!ready} className="claw-control-button"
+              aria-label={choice.label+" HUD"} aria-pressed={settings.hud_orientation===choice.id}
+              onClick={()=>update({hud_orientation:choice.id})}
+              style={{width:"100%",minWidth:0,margin:0,minHeight:55,padding:"7px 4px",
+                background:settings.hud_orientation===choice.id?"#0b597b":"#1c3450",
+                border:settings.hud_orientation===choice.id?"2px solid #31cefa":"1px solid #456987",
+                borderRadius:8,color:"#f2f8ff"}}>
+              <span style={{display:"flex",flexDirection:"column",gap:4,alignItems:"center"}}>
+                <span style={{fontSize:18}} aria-hidden="true">{choice.symbol}</span>
+                <span style={{fontSize:12,fontWeight:600}}>{choice.label}</span>
+              </span>
+            </DialogButton>}/>
+          {settings.hud_orientation==="vertical" && <PanelSectionRow>
+            <Field label="Vertical preview"
+              description="Uses MangoHud's native multi-row layout. Font, colors, metrics, anchors and main spacing remain configurable. FPS-only scaling, inline gaps and graph style/width are being adapted for vertical mode."/>
+          </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
         <PanelSectionRow><Field label="HUD position"
@@ -46,7 +69,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
                 const selected=settings.hud_position===anchor.id;
                 return <DialogButton key={anchor.id} className="claw-hud-anchor" data-anchor-position={anchor.id}
                   aria-label={anchor.label} aria-pressed={selected}
-                  disabled={!ready || (anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
+                  disabled={!ready || (settings.hud_orientation==="horizontal" && anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
                   onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
                   style={{margin:0,padding:"4px 2px",minWidth:0,minHeight:54,
                     border:selected?"2px solid #31cefa":"1px solid #43607a",
@@ -85,7 +108,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
-          disabled={!ready || !info?.layout_spacing_supported}
+          disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
           onChange={(value:number)=>update({fps_scale:value})}/></div></PanelSectionRow>
         <div className="claw-fps-scale-preview" aria-label="FPS scale preview"
           style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",
@@ -119,10 +142,10 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></div></PanelSectionRow>
         <PanelSectionRow><ToggleField label="Even spacing across inline metrics"
-          checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
+          checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
+          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics || settings.hud_orientation==="vertical"}
           onChange={(value: number) => update({inner_gap: value})} /></div></PanelSectionRow>
 
 
@@ -137,7 +160,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             const selected=settings.graph_style===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"
               aria-label={"Graph style: "+choice.label}
-              aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
+              aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
               onClick={()=>update({graph_style:choice.id})}
               style={{width:"100%",minWidth:0,margin:0,minHeight:84,padding:"8px 3px",
                 background:selected?"#0b4c70":"#162b40",
@@ -152,14 +175,14 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>;
           }}/>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
+          disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
             </> : <Field label="Graph disabled" description="Enable Frametime → Graph in Metrics to edit graph settings."/>}
           </ControlGroup>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
           onClick={()=>confirmAction("Reset layout?",
             "Restores the default position, size, spacing and graph. Saved styles are not deleted.",
             ()=>update({
-          fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
+          hud_orientation:defaults.hud_orientation,fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
            center_horizontal:defaults.center_horizontal,hud_position:defaults.hud_position,
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
