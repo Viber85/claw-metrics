@@ -142,9 +142,10 @@ class GroupedQamTests(unittest.TestCase):
         for item in ('label="FPS – veličina broja"',
                      'value={settings.fps_scale} min={100} max={200} step={10}',
                      'fontSize:Math.round(18*settings.fps_scale/100)',
-                     'label="Centriraj horizontalno"',
-                     'checked={settings.center_horizontal}',
-                     'disabled={!ready || settings.center_horizontal}',
+                     'label="Položaj HUD-a"',
+                     'hudPositions.map((anchor)',
+                     'settings.hud_position===anchor.id',
+                     'anchor.id==="top-center"',
                      'value={settings.offset_x} min={-1920} max={1920} step={1}',
                      'center_horizontal:defaults.center_horizontal'):
             self.assertIn(item, SOURCE, item)
@@ -157,7 +158,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertLess(workflow.index("apply_token_styles.py"),
                         workflow.index("enable_fps_size_center.py"))
         for marker in ("claw_fps_scale", "claw_center_horizontal",
-                       "ClawFpsFontForToken", "AddFontFromFileTTF",
+                       "claw_align_right", "ClawFpsFontForToken", "AddFontFromFileTTF",
                        "ImGui::GetIO().DisplaySize"):
             self.assertIn(marker, native)
 
