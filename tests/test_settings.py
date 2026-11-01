@@ -45,8 +45,8 @@ class Settings(unittest.TestCase):
                        "bottom-left", "bottom-center", "bottom-right"):
             with self.subTest(anchor=anchor):
                 config = main.mango_config({"hud_position": anchor}, native_spacing=True)
-                self.assertIn("offset_y=0\\n", config)
-                self.assertIn("hud_no_margin\\n", config)
+                self.assertIn("offset_y=0\n", config)
+                self.assertIn("hud_no_margin\n", config)
         # Do not overwrite intentional positions in previously saved profiles.
         self.assertEqual(main.normalize({"offset_y": 8})["offset_y"], 8)
         self.assertEqual(main.normalize({"offset_y": -27})["offset_y"], -27)
