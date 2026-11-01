@@ -671,6 +671,21 @@ function Content() {
     if(token.key.endsWith(".label")||token.key.endsWith(".value")||token.key==="battery.power")return named(key);
     return (styleCategory==="values"?named(key)+" · ":"")+relatedLabel(settings,token.label).replace(/\s+(naziv|broj)\b/gi,"");
   };
+  const styleTitle=(slot:string)=>settings.style_names?.[slot] || ("Style "+slot);
+  const renameStyle=(slot:string)=>{
+    const dialog=showModal(<RenameStyleModal value={settings.style_names?.[slot]??""}
+      slot={slot} onCancel={()=>dialog.Close()} onConfirm={value=>{
+        const names={...current.current.style_names};
+        if(value) names[slot]=value; else delete names[slot];
+        update({style_names:names});dialog.Close();
+      }}/>);
+  };
+  const confirmAction=(title:string,description:string,action:()=>void)=>{
+    const dialog=showModal(<ConfirmModal strTitle={title} strOKButtonText="Confirm"
+      onCancel={()=>dialog.Close()} onOK={()=>{dialog.Close();action();}}>
+      <div style={{padding:"8px 4px",fontSize:13,lineHeight:1.5}}>{description}</div>
+    </ConfirmModal>);
+  };
   const loadedPreset=settings.active_style?settings.style_presets?.[settings.active_style]:null;
   const presetDirty=loadedPreset?styleModified({...loadedPreset,colors:independentColors(loadedPreset.colors,defaultColors)},settings):false;
   const related=(label:string)=>relatedLabel(settings,label);
@@ -1123,6 +1138,48 @@ function Content() {
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
           <PanelSectionRow><Field label="COLORS & FONT"
             description="Edit global appearance or individual metric elements." /></PanelSectionRow>
+          <PanelSectionRow><Field label="SAVED STYLES"
+            description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
+          <div className="loaded-style-status" role="status">
+            {loadedPreset?`Active: ${styleTitle(settings.active_style!)}${presetDirty?" · modified":""}`:"Active: none"}
+          </div>
+          <Focusable flow-children="column" className="claw-preset-list">
+            {(["1","2"] as const).map(slot=>{
+              const stored=Boolean(settings.style_presets?.[slot]);
+              const active=stored && settings.active_style===slot;
+              return <div className="claw-preset-card" data-loaded={active} key={slot}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  gap:6,minWidth:0,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>{styleTitle(slot)}</span>
+                  <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
+                    {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
+                    {stored && <span style={{display:"block",marginTop:3,fontSize:10}}>
+                      {settings.style_presets[slot]?.groups
+                        ? Object.values(settings.style_presets[slot].groups!).filter(Boolean).length+" active"
+                        : "Legacy preset"}
+                    </span>}
+                  </span>
+                </div>
+                <Focusable flow-children="row" className="claw-preset-actions">
+                  <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
+                    onClick={()=>loadPreset(slot)}
+                    style={{background:active?"#e0f7ff":"#0874a5",
+                      color:active?"#083957":"#ffffff",
+                      border:"1px solid #3c91c0",borderRadius:7}}>
+                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
+                  </DialogButton>
+                  <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>{
+                      if(stored) confirmAction("Overwrite "+styleTitle(slot)+"?",
+                        "This replaces saved layout, appearance and metric selection.",
+                        ()=>savePreset(slot));
+                      else savePreset(slot);
+                    }}
+                    style={{background:"#294968",border:"1px solid #507394",
+                      borderRadius:7,color:"#ffffff"}}>
+                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
+                  </DialogButton>
+                </Focusable>
+          <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>
           <GamepadGrid items={styleTabs} columns={3} className="claw-tiles claw-style-tiles"
             renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               aria-pressed={styleCategory===key} aria-label={"Style: "+(key==="global"?name:named(key))}
@@ -1173,37 +1230,7 @@ function Content() {
             </DialogButton>}/>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
             onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Restore default colors</ButtonItem></PanelSectionRow>
-          <PanelSectionRow><Field label="SAVED STYLES"
-            description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
-          <div className="loaded-style-status" role="status">
-            {loadedPreset?`Active preset: Style ${settings.active_style}${presetDirty?" · modified":""}`:"Active preset: none"}
-          </div>
-          <Focusable flow-children="column" className="claw-preset-list">
-            {(["1","2"] as const).map(slot=>{
-              const stored=Boolean(settings.style_presets?.[slot]);
-              const active=stored && settings.active_style===slot;
-              return <div className="claw-preset-card" data-loaded={active} key={slot}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  gap:6,minWidth:0,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>Style {slot}</span>
-                  <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
-                    {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
-                  </span>
-                </div>
-                <Focusable flow-children="row" className="claw-preset-actions">
-                  <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
-                    onClick={()=>loadPreset(slot)}
-                    style={{background:active?"#e0f7ff":"#0874a5",
-                      color:active?"#083957":"#ffffff",
-                      border:"1px solid #3c91c0",borderRadius:7}}>
-                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
-                  </DialogButton>
-                  <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>savePreset(slot)}
-                    style={{background:"#294968",border:"1px solid #507394",
-                      borderRadius:7,color:"#ffffff"}}>
-                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
-                  </DialogButton>
-                </Focusable>
+
               </div>;
             })}
           </Focusable>
