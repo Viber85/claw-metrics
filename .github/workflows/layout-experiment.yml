@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/decky-backend-import-fix-41]
+    branches: [test/github-update-network-fallback-42]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.41
+  group: claw-metrics-v0.2.4-test.42
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.41.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.42.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -181,14 +181,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.41
-          path: ClawMetrics-v0.2.4-test.41.zip
+          name: ClawMetrics-v0.2.4-test.42
+          path: ClawMetrics-v0.2.4-test.42.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.41 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.41 ClawMetrics-v0.2.4-test.41.zip \
+          gh release delete v0.2.4-test.42 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.42 ClawMetrics-v0.2.4-test.42.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.41 – fix Decky backend import path for disabled controls" \
-            --notes "Fixes disabled/greyed-out settings caused by the test.40 updater module outside Decky's supported py_modules path. Packages updates.py under py_modules and regression-tests the actual Decky isolated import mechanism. All existing native HUD, launch commands, saved styles, settings and manual GitHub update UI remain unchanged. Install test.41 manually because the test.40 backend cannot load the updater."
+            --title "Claw Metrics v0.2.4-test.42 – fix GitHub updater Python Exception with Decky HTTPS" \
+            --notes "Fixes opaque Python Exception when manually checking for GitHub updates. Requests release metadata through Decky Loader's own HTTPS client, validates exact release URLs and SHA-256 checksums in the backend, and falls back to Python HTTPS with readable error details. No silent installs. All native renderer features, saved settings, styles, and short launch commands remain intact."
