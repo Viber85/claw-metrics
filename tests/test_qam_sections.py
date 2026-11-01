@@ -243,18 +243,24 @@ class GroupedQamTests(unittest.TestCase):
         self.assertNotIn('DropdownItem', SOURCE)
         self.assertIn('function GraphStyleIcon({kind}', SOURCE)
         self.assertIn('const graphStyleChoices:', SOURCE)
-        for kind, letter, label in (("area", "A", "Ispuna"),
-                                    ("line", "B", "Linijski graf"),
-                                    ("bars", "C", "Histogram"),
-                                    ("dual", "F", "Linija + ispuna")):
-            self.assertIn(f'id:"{kind}",letter:"{letter}",label:"{label}"', SOURCE)
+        for kind, label in (("area", "Ispuna"),
+                            ("line", "Linijski graf"),
+                            ("bars", "Histogram"),
+                            ("dual", "Linija + ispuna")):
+            self.assertIn(f'id:"{kind}",label:"{label}"', SOURCE)
+        self.assertNotIn('choice.letter', SOURCE)
+        self.assertNotIn('letter:"A"', SOURCE)
+        self.assertIn('aria-label={"Tip grafa: "+choice.label}', SOURCE)
+        self.assertIn('<GraphStyleIcon kind={choice.id}/>', SOURCE)
+        self.assertIn('width={46} height={35}', SOURCE)
+        self.assertIn('minHeight:84', SOURCE)
         self.assertIn('items={graphStyleChoices} columns={2}', SOURCE)
         self.assertIn('aria-pressed={selected}', SOURCE)
         self.assertIn('onClick={()=>update({graph_style:choice.id})}', SOURCE)
         self.assertIn('disabled={!ready || !info?.layout_spacing_supported}', SOURCE)
         self.assertIn('kind === "bars"', SOURCE)
-        self.assertIn('kind === "dual" ? 2.4 : 1.7', SOURCE)
-        self.assertIn('fillOpacity={kind === "area" ? 0.8 : 0.2}', SOURCE)
+        self.assertIn('kind === "dual" ? 2.8 : 2.3', SOURCE)
+        self.assertIn('fillOpacity={kind === "area" ? 0.88 : 0.19}', SOURCE)
         self.assertIn('graph_style:defaults.graph_style', SOURCE)
         
     def test_colors_subactions_support_controller_focus(self):
