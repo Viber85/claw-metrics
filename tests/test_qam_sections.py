@@ -632,7 +632,7 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_layout_nested_sliders_are_bounded_inside_cards(self):
         self.assertIn('className="claw-layout-slider"', SOURCE)
-        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 10)
+        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 11)
         self.assertIn('width: min(330px, calc(100% - 18px)) !important;', SOURCE)
         self.assertIn('max-width: calc(100% - 18px) !important;', SOURCE)
         self.assertIn('padding: 0 20px 0 0 !important;', SOURCE)
