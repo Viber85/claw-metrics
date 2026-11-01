@@ -291,8 +291,10 @@ type AccordionCardProps = {
 };
 
 function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: AccordionCardProps) {
+  const [focused, setFocused] = useState(false);
   return (
-    <div data-section={id} data-selected={open ? "true" : "false"} style={{
+    <div data-section={id} data-selected={open ? "true" : "false"}
+      data-focused={focused ? "true" : "false"} style={{
       background: "#111e30",
       width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box",
       border: open ? "2px solid #ffffff" : "1px solid #395579",
@@ -305,7 +307,8 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
       {/* Keep the selection border INSIDE the header: Decky can override DialogButton borders. */}
       <div className="claw-accordion-header" style={{position:"relative",width:"100%",minWidth:0,
         maxWidth:"100%",boxSizing:"border-box"}}>
-        <DialogButton onClick={onToggle} aria-pressed={open} style={{
+        <DialogButton onClick={onToggle} aria-pressed={open}
+          onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} style={{
           width: "100%", minWidth: 0, boxSizing: "border-box",
           display: "flex", alignItems: "center",
           textAlign: "left", margin: 0, padding: "12px 10px",
@@ -332,8 +335,9 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
         <div aria-hidden="true" className="claw-accordion-selection-ring"
           style={{position:"absolute",inset:3,zIndex:2,pointerEvents:"none",
             boxSizing:"border-box",borderRadius:8,
-            border:open?"2px solid #ffffff":"2px solid transparent",
-            boxShadow:open?"0 0 0 1px rgba(255,255,255,0.50)":"none"}} />
+            border:(open||focused)?"2px solid #ffffff":"2px solid transparent",
+            boxShadow:focused?"0 0 0 1px #ffffff, 0 0 12px rgba(255,255,255,0.8)"
+              :open?"0 0 0 1px rgba(255,255,255,0.50)":"none"}} />
       </div>
       {open && <div style={{padding: "10px 8px 12px", borderTop: "1px solid #235b81"}}>
         {children}
@@ -655,6 +659,23 @@ function Content() {
           display: block; flex: 0 0 auto;
           width: 12px; height: 12px;
         }
+        /* White focus border for closed as well as expanded cards.
+           Steam controller focus can be DOM :focus or the .gpfocus class.
+           The ring is above DialogButton so Decky's skin cannot cover it. */
+        [data-section] .claw-accordion-header:focus-within .claw-accordion-selection-ring,
+        [data-section] .claw-accordion-header:has(.gpfocus) .claw-accordion-selection-ring,
+        [data-section] .claw-accordion-header:has([class*="gpfocus"]) .claw-accordion-selection-ring,
+        [data-section][data-focused="true"] .claw-accordion-selection-ring {
+          border: 2px solid #ffffff !important;
+          box-shadow: 0 0 0 1px #ffffff, 0 0 12px rgba(255,255,255,0.8) !important;
+        }
+        [data-section] .claw-accordion-header > button:focus-visible,
+        [data-section] .claw-accordion-header > button:focus,
+        [data-section] .claw-accordion-header > button.gpfocus,
+        [data-section][data-focused="true"] .claw-accordion-header > button {
+          outline: 2px solid #ffffff !important;
+          outline-offset: -3px !important;
+        }
         /* Persistent selection, independent of Decky keyboard/controller focus. */
         [data-section][data-selected="true"] .claw-accordion-header > button {
           outline: 2px solid #ffffff !important;
@@ -663,7 +684,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.25">
+      <PanelSection title="Claw Metrics · v0.2.4-test.26">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
