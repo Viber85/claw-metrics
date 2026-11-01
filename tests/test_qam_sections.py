@@ -22,6 +22,20 @@ SOURCE = "\n".join(
 
 
 class GroupedQamTests(unittest.TestCase):
+    def test_vertical_orientation_control_and_safe_preview_limits(self):
+        self.assertIn('export type HudOrientation = "horizontal" | "vertical"', SOURCE)
+        self.assertIn('hud_orientation: HudOrientation', SOURCE)
+        self.assertIn('hud_orientation:"horizontal"', SOURCE)
+        self.assertIn('label="HUD orientation"', SOURCE)
+        self.assertIn('id:"vertical",label:"Vertical"', SOURCE)
+        self.assertIn('aria-pressed={settings.hud_orientation===choice.id}', SOURCE)
+        self.assertIn('onClick={()=>update({hud_orientation:choice.id})}', SOURCE)
+        self.assertIn('settings.hud_orientation==="vertical"', SOURCE)
+        self.assertIn('hud_orientation:defaults.hud_orientation', SOURCE)
+        self.assertIn('Vertical preview', SOURCE)
+        self.assertIn('Uses MangoHud', SOURCE)
+        self.assertIn('FPS-only scaling', SOURCE)
+
     def test_six_independent_card_modules_keep_one_shared_controller(self):
         entry = (SRC / "index.tsx").read_text()
         controller = (SRC / "controller.tsx").read_text()
