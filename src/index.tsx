@@ -967,8 +967,8 @@ function Content() {
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
           <PanelSectionRow><Field label="BOJE & FONT"
             description="Globalne postavke ili zasebne postavke naziva i vrijednosti svake metrike." /></PanelSectionRow>
-          <div className="claw-tiles claw-style-tiles">
-            {styleTabs.map(([key,name])=><DialogButton key={key} disabled={!ready}
+          <GamepadGrid items={styleTabs} columns={3} className="claw-tiles claw-style-tiles"
+            renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               aria-pressed={styleCategory===key} aria-label={"Stil: "+(key==="global"?name:named(key))}
               onClick={()=>chooseStyleCategory(key)}
               style={{minWidth:0,width:"100%",minHeight:49,margin:0,padding:"6px 3px",
@@ -981,8 +981,7 @@ function Content() {
                 <span style={{fontSize:11.5,lineHeight:1.2,overflowWrap:"anywhere",
                   textAlign:"center",width:"100%",minWidth:0}}>{key==="global"?name:named(key)}</span>
               </span>
-            </DialogButton>)}
-          </div>
+            </DialogButton>}/>
           {styleCategory==="global" ? <>
           <PanelSectionRow><Field label="GLOBALNO" description="Globalna debljina vrijedi za sve elemente. Promjena boje uklanja ručne boje povezanih elemenata; pojedinačne postavke možeš ponovno zadati nakon toga." /></PanelSectionRow>
           {toggle("sans", "Sans-serif font")}
@@ -990,9 +989,9 @@ function Content() {
             info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold učitani."
               : "Fontovi nisu dostupni; koristi se Claw Sans."} /></PanelSectionRow>
           <PanelSectionRow><Field label="Osnovna debljina" description="Primjenjuje se na sve elemente i uklanja njihove ručne debljine fonta. Poslije ih možeš ponovno podesiti pojedinačno." /></PanelSectionRow>
-          <div className="claw-tiles claw-weight-tiles">
-            {(["light","regular","semibold","bold"] as FontWeight[]).map(weight=>
-              <DialogButton key={weight} disabled={!ready || !settings.sans}
+          <GamepadGrid items={(["light","regular","semibold","bold"] as FontWeight[])}
+            columns={2} className="claw-tiles claw-weight-tiles" renderItem={(weight)=>
+              <DialogButton key={weight} className="claw-control-button" disabled={!ready || !settings.sans}
                 aria-pressed={settings.font_weight===weight}
                 onClick={()=>update({font_weight:weight,token_weights:{}})}
                 style={{minWidth:0,width:"100%",minHeight:39,margin:0,padding:"7px 2px",
@@ -1000,10 +999,9 @@ function Content() {
                   border:"1px solid #406080",borderRadius:7,
                   fontSize:11,fontWeight:weight==="bold"?700:weight==="semibold"?600:weight==="light"?300:400}}>
                 {weightLabel[weight]}
-              </DialogButton>)}
-          </div>
-          <div className="claw-tiles claw-color-tiles">
-            {colorRows.map(([key,label])=><DialogButton key={key} disabled={!ready}
+              </DialogButton>}/>
+          <GamepadGrid items={colorRows} columns={3} className="claw-tiles claw-color-tiles"
+            renderItem={([key,label])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               onClick={()=>openColorPicker(key,label)}
               aria-label={"Promijeni boju: "+paletteLabel(key,label)}
               style={{minWidth:0,width:"100%",minHeight:51,margin:0,padding:"6px 3px",
@@ -1016,8 +1014,7 @@ function Content() {
                 <span style={{fontSize:11,lineHeight:1.2,overflowWrap:"anywhere",
                   textAlign:"center",minWidth:0,width:"100%"}}>{paletteLabel(key,label)}</span>
               </span>
-            </DialogButton>)}
-          </div>
+            </DialogButton>}/>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
             onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="MOJI STILOVI"
