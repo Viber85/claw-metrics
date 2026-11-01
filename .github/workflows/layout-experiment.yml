@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/layout-slider-metrics-style-row-44]
+    branches: [test/backend-recovery-45]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.44
+  group: claw-metrics-v0.2.4-test.45
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.44.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.45.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -176,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.44', package['version']
+              assert package['version'] == '0.2.4-test.45', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.44
-          path: ClawMetrics-v0.2.4-test.44.zip
+          name: ClawMetrics-v0.2.4-test.45
+          path: ClawMetrics-v0.2.4-test.45.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.44 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.44 ClawMetrics-v0.2.4-test.44.zip \
+          gh release delete v0.2.4-test.45 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.45 ClawMetrics-v0.2.4-test.45.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.44 – Layout slider bounds, Metrics counts and row-local appearance editor" \
-            --notes "Fixes sliders overflowing nested Layout panels by constraining all ten native SliderFields. Restores active/total Metrics counts (e.g. 3/9). Colors and Font Appearance Editor opens its controls immediately below the selected three-column row, retaining gamepad navigation and existing color/font settings. English UI and MangoHud renderer preserved. Physical MSI Claw testing needed."
+            --title "Claw Metrics v0.2.4-test.45 – Recover backend connection without disabling QAM" \
+            --notes "Fixes all QAM controls disabled after a Decky update by decoupling settings from optional renderer-info calls. An updater module failure can no longer prevent the Python backend from starting. Adds a clear always-available Retry backend connection control, a startup retry for Decky reload races and visible failure details. Preserves v0.2.4-test.44 Layout, Metrics fractions and Colors editor layout; no changes to MangoHud renderer or saved settings. On-device testing required."
