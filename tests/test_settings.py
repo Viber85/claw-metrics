@@ -38,6 +38,21 @@ class Settings(unittest.TestCase):
         self.assertIn('hud_compact=0\n', config)
         self.assertIn('round_corners=10\n', config)
 
+    def test_zero_vertical_padding_is_default_and_legacy_is_preserved(self):
+        self.assertEqual(main.normalize({})["padding_y"], 0)
+        for native in (False, True):
+            config = main.mango_config(main.normalize({}), native_spacing=native)
+            self.assertIn("cellpadding_y=0.000000\n", config)
+            self.assertIn("hud_compact=0\n", config)
+            self.assertNotIn("claw_padding_y=", config)
+        # Previously saved profiles or style slots keep the user's actual value.
+        self.assertEqual(main.normalize({"padding_y": 11})["padding_y"], 11)
+        self.assertEqual(main.normalize({"style_presets":{
+            "1":{"version":2,"padding_y":13}
+        }})["style_presets"]["1"]["padding_y"], 13)
+        self.assertEqual(main.normalize({"padding_y":-999})["padding_y"], 0)
+        self.assertEqual(main.normalize({"padding_y":999})["padding_y"], 24)
+
     def test_padding_is_in_pixels_at_each_font_size(self):
         for font in (12, 18, 28):
             c = main.mango_config(main.normalize({'fontsize': font, 'padding_y': 12, 'offset_x': -100, 'offset_y': 60}))
