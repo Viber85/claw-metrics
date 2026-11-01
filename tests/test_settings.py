@@ -38,6 +38,20 @@ class Settings(unittest.TestCase):
         self.assertIn('hud_compact=0\n', config)
         self.assertIn('round_corners=10\n', config)
 
+    def test_default_y_offset_anchors_to_screen_edge_and_migrates_safely(self):
+        self.assertEqual(main.DEFAULTS["offset_y"], 0)
+        self.assertEqual(main.normalize({})["offset_y"], 0)
+        for anchor in ("top-left", "top-center", "top-right",
+                       "bottom-left", "bottom-center", "bottom-right"):
+            with self.subTest(anchor=anchor):
+                config = main.mango_config({"hud_position": anchor}, native_spacing=True)
+                self.assertIn("offset_y=0\\n", config)
+                self.assertIn("hud_no_margin\\n", config)
+        # Do not overwrite intentional positions in previously saved profiles.
+        self.assertEqual(main.normalize({"offset_y": 8})["offset_y"], 8)
+        self.assertEqual(main.normalize({"offset_y": -27})["offset_y"], -27)
+        self.assertEqual(main.normalize({"margin": 19})["offset_y"], 19)
+
     def test_zero_vertical_padding_is_default_and_legacy_is_preserved(self):
         self.assertEqual(main.normalize({})["padding_y"], 0)
         for native in (False, True):
