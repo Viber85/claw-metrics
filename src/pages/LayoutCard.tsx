@@ -50,7 +50,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>}/>
           {settings.hud_orientation==="vertical" && <PanelSectionRow>
             <Field label="Vertical preview"
-              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback."/>
+              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS-only scaling and custom graph styles are still horizontal-only."/>
           </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
