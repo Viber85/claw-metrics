@@ -196,6 +196,28 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(token,patcher)
 
 
+    def test_zero_vertical_padding_native_patch_and_slider(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_zero_vertical_padding.py").read_text()
+        native_build = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertIn('["padding_y", "Padding gore/dolje (px)", 0, 24, 1]', SOURCE)
+        self.assertIn('padding_y: 0,', SOURCE)
+        self.assertNotIn('"Dodatni padding gore/dolje (px)"', SOURCE)
+        self.assertIn('python3 ../experiments/enable_zero_vertical_padding.py src', native_build)
+        self.assertIn('ImVec2(params.claw_padding_x,5)', patch)
+        self.assertIn('params.cellpadding_y * real_font_size.y', patch)
+        self.assertIn('style.CellPadding.y = 0.0f;', patch)
+        self.assertIn('GetCursorPosY() + claw_bottom_padding', patch)
+        self.assertNotIn('claw_padding_y', patch)
+
+    def test_frametime_graph_ignores_nonfinite_input(self):
+        patch = (pathlib.Path(__file__).resolve().parents[1] /
+                 "experiments/enable_frametime_graph_styles.py").read_text()
+        self.assertIn('#include <cmath>', patch)
+        self.assertIn('std::isfinite(min_time)', patch)
+        self.assertIn('std::isfinite(max_time)', patch)
+        self.assertIn('std::isfinite(raw_value)', patch)
+
     def test_fps_scale_font_atlas_supports_all_slider_steps(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         patch = (root / "experiments/enable_fps_size_center.py").read_text()
