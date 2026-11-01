@@ -953,7 +953,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.42">
+      <PanelSection title="Claw Metrics · v0.2.4-test.43">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -1243,6 +1243,15 @@ function Content() {
                     <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
                   </DialogButton>
                 </Focusable>
+                <DialogButton className="claw-control-button" disabled={!ready}
+                  onClick={()=>renameStyle(slot)} aria-label={"Rename "+styleTitle(slot)}
+                  style={{margin:"7px 0 0",width:"100%",minWidth:0,minHeight:38,
+                    background:"#203b58",border:"1px solid #466681",fontSize:12}}>
+                  <FaPen style={{marginRight:6}}/> Rename
+                </DialogButton>
+              </div>;
+            })}
+          </Focusable>
           <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>
           <GamepadGrid items={styleTabs} columns={3} className="claw-tiles claw-style-tiles"
             renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
@@ -1293,11 +1302,9 @@ function Content() {
               </span>
             </DialogButton>}/>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
-            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Restore default colors</ButtonItem></PanelSectionRow>
-
-              </div>;
-            })}
-          </Focusable>
+            onClick={()=>confirmAction("Restore default colors?",
+              "Reset the global palette. Individual custom colors will be preserved.",
+              ()=>update({colors:{...defaultColors}}))}>Restore default colors</ButtonItem></PanelSectionRow>
           </> : <>
           <PanelSectionRow><Field label={named(styleCategory)}
             description="Each element can override color and font weight. Global inherits the default." /></PanelSectionRow>
@@ -1331,13 +1338,15 @@ function Content() {
             </div>
           ))}
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
-            onClick={()=>{
-              const nw={...current.current.token_weights},nc={...current.current.token_colors};
-              for(const t of tokenGroups[styleCategory as Exclude<StyleCategory,"global">]){
-                delete nw[t.key]; delete nc[t.key];
-              }
-              update({token_weights:nw,token_colors:nc});
-            }}>Reset category overrides</ButtonItem></PanelSectionRow>
+            onClick={()=>confirmAction("Reset category overrides?",
+              "Clear custom colors and font weights for this category.",
+              ()=>{
+                const nw={...current.current.token_weights},nc={...current.current.token_colors};
+                for(const t of tokenGroups[styleCategory as Exclude<StyleCategory,"global">]){
+                  delete nw[t.key]; delete nc[t.key];
+                }
+                update({token_weights:nw,token_colors:nc});
+              })}>Reset category overrides</ButtonItem></PanelSectionRow>
           </>}
         </AccordionCard>
         <AccordionCard id="activation" title="Activation" subtitle="Launch Claw Metrics in games"
