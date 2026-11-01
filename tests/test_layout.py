@@ -71,7 +71,8 @@ class VerticalHudPreview(unittest.TestCase):
             horizontal = options_for({"hud_orientation": "horizontal", "vertical_width": 300}, native)
             self.assertEqual(baseline, horizontal)
             self.assertNotIn("width", baseline)
-            self.assertNotIn("width", options_for({"hud_orientation": "vertical"}, native))
+            self.assertEqual(options_for({"hud_orientation": "vertical"}, native).get("width"),
+                             "270" if native else None)
             cfg = options_for({"hud_orientation": "vertical", "vertical_width": 280}, native)
             self.assertEqual(cfg["width"], "280")
             self.assertEqual(cfg["horizontal"], "0")
@@ -103,9 +104,9 @@ class VerticalHudPreview(unittest.TestCase):
             "battery", "tdp", "draw", "time"]}
         native = main.mango_config(payload, native_spacing=True)
         stock = main.mango_config(payload, native_spacing=False)
-        self.assertLess(native.index("\nfps\n"), native.index("\ngpu_stats\n"))
-        self.assertGreater(native.index("\nframe_timing\n"), native.index("\ntime\n"))
-        self.assertLess(stock.index("\ngpu_stats\n"), stock.index("\nfps\n"))
+        self.assertLess(native.index("\nfps=1\n"), native.index("\ngpu_stats=1\n"))
+        self.assertGreater(native.index("\nframe_timing=1\n"), native.index("\ntime=1\n"))
+        self.assertLess(stock.index("\ngpu_stats=1\n"), stock.index("\nfps=1\n"))
 
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
