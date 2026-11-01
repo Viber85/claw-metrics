@@ -442,6 +442,9 @@ function Content() {
   const [info, setInfo] = useState<Info | null>(null);
   const [status, setStatus] = useState("Loading…");
   const [copyStatus, setCopyStatus] = useState("");
+  const [connecting,setConnecting] = useState(true);
+  const [connectionError,setConnectionError] = useState("");
+  const connectionAttempt = useRef(0);
   const [layoutPanel,setLayoutPanel]=useState<LayoutPanel>("position");
   const [advancedPanel,setAdvancedPanel]=useState<AdvancedPanel>("updates");
   const [showTechnical,setShowTechnical] = useState(false);
@@ -600,25 +603,64 @@ function Content() {
   const queue = useRef<Promise<void>>(Promise.resolve());
   const revision = useRef(0);
 
-  const refresh = async () => {
+  const refresh = async ():Promise<boolean> => {
+    const attempt=++connectionAttempt.current;
+    const started=revision.current;
+    setConnecting(true);
     setStatus("Connecting to backend…");
-    const started = revision.current;
     try {
-      const [saved, details] = await withTimeout(Promise.all([load(), getInfo()]));
-      if (revision.current === started) {
-        current.current = saved;
+      // Core settings must not depend on optional renderer diagnostics.
+      // Previous Promise.all([load(),getInfo()]) disabled EVERY control if
+      // getInfo failed or timed out, even when settings were fully available.
+      const saved=await withTimeout(load());
+      if(attempt!==connectionAttempt.current)return false;
+      if(!saved || !Array.isArray(saved.order) || !saved.metrics || !saved.colors)
+        throw new Error("The backend returned incomplete settings.");
+      if(revision.current===started){
+        current.current=saved;
         setSettings(saved);
       }
-      setInfo(details);
       setReady(true);
-      setStatus(details.config_readable
-        ? "Backend connected · game profile ready."
-        : "Backend connected, but the profile is unreadable. Restart Decky Loader.");
-    } catch (error) {
-      setStatus("Connection error: " + String(error));
+      setConnectionError("");
+      setStatus("Settings connected.");
+      try {
+        const details=await withTimeout(getInfo());
+        if(attempt!==connectionAttempt.current)return true;
+        setInfo(details);
+        setStatus(details.config_readable
+          ? "Backend connected · game profile ready."
+          : "Settings connected; the game configuration is not readable.");
+      } catch(error){
+        // Never lock working Metrics/Layout/Colors for an optional failure.
+        if(attempt===connectionAttempt.current){
+          setInfo(null);
+          setStatus("Settings connected; renderer information unavailable: "+String(error));
+        }
+      }
+      return true;
+    } catch(error){
+      if(attempt===connectionAttempt.current){
+        setReady(false);
+        setInfo(null);
+        const message="Connection error: "+String(error);
+        setConnectionError(message);
+        setStatus(message);
+      }
+      return false;
+    } finally {
+      if(attempt===connectionAttempt.current)setConnecting(false);
     }
   };
-  useEffect(() => { void refresh(); }, []);
+  useEffect(()=>{
+    let cancelled=false;
+    void (async()=>{
+      if(await refresh() || cancelled)return;
+      // Decky may still be restarting its Python process after an update.
+      await new Promise<void>(resolve=>setTimeout(resolve,1800));
+      if(!cancelled)await refresh();
+    })();
+    return ()=>{cancelled=true;};
+  },[]);
 
   const update = (patch: Partial<Settings>) => {
     const next = { ...current.current, ...patch };
@@ -985,7 +1027,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.44">
+      <PanelSection title="Claw Metrics · v0.2.4-test.45">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -998,6 +1040,19 @@ function Content() {
           </div>
         </PanelSectionRow>
       </PanelSection>
+      {!ready && <PanelSection title="Connection recovery">
+        <PanelSectionRow>
+          <Field label={connecting?"Connecting to Python backend…":"Backend not connected"}
+            description={connectionError||"Checking the Decky backend after installation."}/>
+        </PanelSectionRow>
+        <PanelSectionRow><ButtonItem layout="below" disabled={connecting}
+          onClick={()=>{void refresh();}}>
+          {connecting?"Connecting…":"Retry backend connection"}
+        </ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="If retry fails"
+          description="Restart Decky Loader from Decky Settings. Do not delete saved Claw Metrics settings."/>
+        </PanelSectionRow>
+      </PanelSection>}
       <div style={{padding: "0 7px 14px"}}>
         <AccordionCard id="overlay" title="Overlay" subtitle="Display and connection status"
           icon={<FaDesktop />} open={openSection === "overlay"} onToggle={() => toggleSection("overlay")}>
