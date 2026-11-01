@@ -829,6 +829,8 @@ function Content() {
           display: inline-flex; align-items: center; justify-content: center;
           margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
         }
+        .claw-metric-row { margin-bottom: 7px; width: 100%; min-width: 0; }
+        .claw-metric-tiles { padding-bottom: 2px; }
         .claw-metric-tiles .metric-card:focus-within {
           outline: 2px solid #ffffff; outline-offset: -2px; border-radius: 8px;
         }
@@ -1119,7 +1121,11 @@ function Content() {
         <PanelSectionRow><div style={{fontSize: 12, color: "#b8c7d5", marginBottom: 8}}>
           Select a metric to edit its readings, order or label.
         </div></PanelSectionRow>
-        <GamepadGrid items={visible} columns={3} className="claw-tiles claw-metric-tiles"
+        <Focusable flow-children="column" className="claw-metric-rows">
+        {Array.from({length:Math.ceil(visible.length/3)},(_,rowIndex)=>{
+          const row=visible.slice(rowIndex*3,rowIndex*3+3);
+          return <Focusable key={rowIndex} flow-children="column" className="claw-metric-row">
+          <GamepadGrid items={row} columns={3} className="claw-tiles claw-metric-tiles"
           renderItem={(key) => {
             const group = groups[key];
             const open = expanded === key;
@@ -1138,11 +1144,11 @@ function Content() {
                   <span aria-hidden="true" style={{fontSize:15,color:group.color,lineHeight:1}}>{groupIcons[key]}</span>
                   <span style={{fontSize:12,fontWeight:600,lineHeight:1.15,overflowWrap:"anywhere",
                     textAlign:"center",width:"100%",minWidth:0}}>{named(key)}</span>
-                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count}/{total}</span>}
+                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count} active</span>}
                 </span>
               </DialogButton>;
           }}/>
-        {expanded && settings[expanded] && (() => {
+        {expanded && row.includes(expanded) && settings[expanded] && (() => {
           const key=expanded;
           const group=groups[key];
           const index=visible.indexOf(key);
@@ -1153,13 +1159,13 @@ function Content() {
             <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
               <DialogButton className="claw-control-button" aria-label={"Rename: "+named(key)} disabled={!ready}
                 onClick={()=>renameMetric(key)} style={smallButton}><FaPen aria-hidden="true"/></DialogButton>
-              <DialogButton className="claw-control-button" aria-label={"Move up: "+named(key)} disabled={!ready || index<=0}
-                onClick={()=>move(key,-1)} style={smallButton}>⌃</DialogButton>
-              <DialogButton className="claw-control-button" aria-label={"Move down: "+named(key)} disabled={!ready || index===visible.length-1}
-                onClick={()=>move(key,1)} style={smallButton}>⌄</DialogButton>
+              <DialogButton className="claw-control-button" aria-label={"Move earlier: "+named(key)} disabled={!ready || index<=0}
+                onClick={()=>move(key,-1)} style={smallButton}>←</DialogButton>
+              <DialogButton className="claw-control-button" aria-label={"Move later: "+named(key)} disabled={!ready || index===visible.length-1}
+                onClick={()=>move(key,1)} style={smallButton}>→</DialogButton>
               <DialogButton className="claw-control-button" aria-label={"Hide: "+named(key)} disabled={!ready}
                 onClick={()=>{expandMetric(null);update({[key]:false});}}
-                style={{...smallButton,minWidth:66,width:66,fontSize:12}}>Hide</DialogButton>
+                style={{...smallButton,minWidth:74,width:74,fontSize:12}}>Hide</DialogButton>
             </Focusable>
             {group.always && <Field label={related(group.always)} padding="compact">
               <span style={{fontSize:11,color:"#4acbff"}}>Always on</span>
@@ -1172,6 +1178,9 @@ function Content() {
             </div>}
           </div>;
         })()}
+          </Focusable>;
+        })}
+        </Focusable>
         {hidden.length > 0 && <>
           <PanelSectionRow><Field label="ADD METRIC" description="Restore a hidden metric group." /></PanelSectionRow>
           <GamepadGrid items={hidden} columns={3} className="claw-tiles claw-hidden-metric-tiles"
