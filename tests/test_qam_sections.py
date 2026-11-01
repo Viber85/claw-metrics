@@ -160,6 +160,32 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('settings.hud_position.endsWith("center")', SOURCE)
         self.assertNotIn('label:"Centar"', SOURCE)
 
+    def test_gamepad_anchor_focus_is_distinct_from_selected_anchor(self):
+        self.assertIn('className="claw-hud-anchor"', SOURCE)
+        self.assertIn('data-anchor-position={anchor.id}', SOURCE)
+        self.assertIn('aria-pressed={selected}', SOURCE)
+        for selector in ('.claw-hud-anchor:focus',
+                         '.claw-hud-anchor:focus-visible',
+                         '.claw-hud-anchor.gpfocus',
+                         '.claw-hud-anchor[class*="gpfocus"]',
+                         '.claw-hud-anchor:focus-within'):
+            self.assertIn(selector, SOURCE)
+        self.assertIn('border: 2px solid #ffffff !important;', SOURCE)
+        self.assertIn('outline: 2px solid #31deff !important;', SOURCE)
+        self.assertIn('box-shadow: 0 0 0 2px #31deff', SOURCE)
+        self.assertIn('offset_x: 8, offset_y: 0, padding_y: 0,', SOURCE)
+
+    def test_native_positioning_has_no_implicit_mangohud_edge_margin(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_exact_edge_anchors.py").read_text()
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertIn('python3 ../experiments/enable_exact_edge_anchors.py src', workflow)
+        self.assertLess(workflow.index('enable_fps_size_center.py'),
+                        workflow.index('enable_exact_edge_anchors.py'))
+        self.assertIn('const float margin = 0.0f;', patch)
+        self.assertIn('params.offset_y', patch)
+        self.assertIn('params.claw_center_horizontal', patch)
+
     def test_new_native_controls_are_patched_after_token_styling(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
