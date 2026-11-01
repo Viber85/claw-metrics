@@ -476,7 +476,7 @@ function Content() {
   };
   const confirmGithubInstall = (release:GithubRelease) => {
     const dialog=showModal(<ConfirmModal strTitle={"Claw Metrics "+release.tag}
-      strOKButtonText="Instaliraj" onCancel={()=>dialog.Close()}
+      strOKButtonText="Install" onCancel={()=>dialog.Close()}
       onOK={()=>{ dialog.Close(); requestGithubInstall(release); }}>
       <div style={{padding:"8px 4px",minWidth:0,maxWidth:"100%"}}>
         <p style={{fontSize:13,margin:"0 0 8px"}}>
@@ -694,7 +694,7 @@ function Content() {
     const group=token.key==="battery.power"?"draw":token.key.split(".")[0];
     const key=group==="time"?"time":group;
     if(token.key.endsWith(".label")||token.key.endsWith(".value")||token.key==="battery.power")return named(key);
-    return (styleCategory==="values"?named(key)+" · ":"")+relatedLabel(settings,token.label).replace(/\s+(naziv|broj)\b/gi,"");
+    return (styleCategory==="values"?named(key)+" · ":"")+relatedLabel(settings,token.label).replace(/\s+(label|value)\b/gi,"");
   };
   const styleTitle=(slot:string)=>settings.style_names?.[slot] || ("Style "+slot);
   const renameStyle=(slot:string)=>{
@@ -970,7 +970,11 @@ function Content() {
         <AccordionCard id="overlay" title="Overlay" subtitle="Display and connection status"
           icon={<FaDesktop />} open={openSection === "overlay"} onToggle={() => toggleSection("overlay")}>
           {toggle("enabled", "Enable overlay")}
-          <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Connection & save status" description={status} /></PanelSectionRow>
+          <PanelSectionRow><Field label="In-game renderer"
+            description={rendererStatus} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem layout="below" disabled={!ready || rendererBusy}
+            onClick={()=>{void verifyRenderer();}}>Check running game</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="Game configuration" description={info?.config_readable
             ? "Configuration is ready for games." : "Configuration is unavailable or still loading."} /></PanelSectionRow>
         </AccordionCard>
