@@ -499,7 +499,7 @@ function Content() {
   };
 
   const renameMetric = (key:Group) => {
-    const restoreFocus=()=>requestAnimationFrame(()=>{(document.querySelector('[data-metric="'+key+'"] button') as HTMLElement)?.focus()});
+    const restoreFocus=()=>requestAnimationFrame(()=>{(document.querySelector('[data-metric="'+key+'"]') as HTMLElement)?.focus()});
     const dialog=showModal(<RenameMetricModal name={metricName(current.current,key)} original={groups[key].label}
       onCancel={()=>{dialog.Close();restoreFocus()}} onConfirm={(value:string)=>{
         const labels={...current.current.custom_labels};
@@ -898,8 +898,8 @@ function Content() {
             const open = expanded === key;
             const total = group.metrics.length + (group.always ? 1 : 0);
             const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
-            return <div key={key} className="metric-card" data-metric={key}>
-              <DialogButton className="claw-control-button" disabled={!ready} aria-pressed={open}
+            return <DialogButton key={key} data-metric={key} className="metric-card claw-control-button"
+              disabled={!ready} aria-pressed={open}
                 aria-label={"Postavke metrike: " + named(key)}
                 onClick={() => expandMetric(open ? null : key)}
                 style={{width:"100%",minWidth:0,minHeight:62,margin:0,padding:"7px 3px",
@@ -913,8 +913,7 @@ function Content() {
                     textAlign:"center",width:"100%",minWidth:0}}>{named(key)}</span>
                   {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count}/{total}</span>}
                 </span>
-              </DialogButton>
-            </div>;
+              </DialogButton>;
           }}/>
         {expanded && settings[expanded] && (() => {
           const key=expanded;
@@ -925,13 +924,13 @@ function Content() {
             padding:"9px 7px",marginTop:9,minWidth:0}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Postavke</div>
             <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
-              <DialogButton aria-label={"Promijeni naziv: "+named(key)} disabled={!ready}
+              <DialogButton className="claw-control-button" aria-label={"Promijeni naziv: "+named(key)} disabled={!ready}
                 onClick={()=>renameMetric(key)} style={smallButton}><FaPen aria-hidden="true"/></DialogButton>
-              <DialogButton aria-label={"Pomakni gore: "+named(key)} disabled={!ready || index<=0}
+              <DialogButton className="claw-control-button" aria-label={"Pomakni gore: "+named(key)} disabled={!ready || index<=0}
                 onClick={()=>move(key,-1)} style={smallButton}>⌃</DialogButton>
-              <DialogButton aria-label={"Pomakni dolje: "+named(key)} disabled={!ready || index===visible.length-1}
+              <DialogButton className="claw-control-button" aria-label={"Pomakni dolje: "+named(key)} disabled={!ready || index===visible.length-1}
                 onClick={()=>move(key,1)} style={smallButton}>⌄</DialogButton>
-              <DialogButton aria-label={"Sakrij: "+named(key)} disabled={!ready}
+              <DialogButton className="claw-control-button" aria-label={"Sakrij: "+named(key)} disabled={!ready}
                 onClick={()=>{expandMetric(null);update({[key]:false});}}
                 style={{...smallButton,minWidth:66,width:66,fontSize:12}}>Sakrij</DialogButton>
             </Focusable>
@@ -949,7 +948,7 @@ function Content() {
         {hidden.length > 0 && <>
           <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>
           <GamepadGrid items={hidden} columns={3} className="claw-tiles claw-hidden-metric-tiles"
-            renderItem={(key)=><DialogButton key={key} className="claw-control-button" disabled={!ready
+            renderItem={(key)=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               aria-label={"Prikaži metriku: "+named(key)}
               onClick={()=>update({[key]:true})}
               style={{minWidth:0,width:"100%",minHeight:52,margin:0,padding:"6px 3px",
@@ -1022,7 +1021,7 @@ function Content() {
           <div className="loaded-style-status" role="status">
             {loadedPreset?`Trenutno učitan: Stil ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Trenutno učitan: nijedan"}
           </div>
-          <div className="claw-preset-list">
+          <Focusable flow-children="column" className="claw-preset-list">
             {(["1","2"] as const).map(slot=>{
               const stored=Boolean(settings.style_presets?.[slot]);
               const active=stored && settings.active_style===slot;
@@ -1034,23 +1033,23 @@ function Content() {
                     {active?(presetDirty?"Učitan · izmijenjen":"Učitan"):stored?"Spremljen":"Prazan"}
                   </span>
                 </div>
-                <div className="claw-preset-actions">
-                  <DialogButton disabled={!ready||!stored} aria-pressed={active}
+                <Focusable flow-children="row" className="claw-preset-actions">
+                  <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
                     onClick={()=>loadPreset(slot)}
                     style={{background:active?"#e0f7ff":"#0874a5",
                       color:active?"#083957":"#ffffff",
                       border:"1px solid #3c91c0",borderRadius:7}}>
                     <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Učitaj</span>
                   </DialogButton>
-                  <DialogButton disabled={!ready} onClick={()=>savePreset(slot)}
+                  <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>savePreset(slot)}
                     style={{background:"#294968",border:"1px solid #507394",
                       borderRadius:7,color:"#ffffff"}}>
                     <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Spremi</span>
                   </DialogButton>
-                </div>
+                </Focusable>
               </div>;
             })}
-          </div>
+          </Focusable>
           </> : <>
           <PanelSectionRow><Field label={named(styleCategory)}
             description="Svaka stavka ima svoju boju i težinu fonta. Global znači naslijedi osnovnu postavku." /></PanelSectionRow>
@@ -1066,8 +1065,8 @@ function Content() {
                   </span>
                 </ButtonItem>
               </PanelSectionRow>
-              <PanelSectionRow><div style={{display:"flex",gap:5}}>
-                <DialogButton disabled={!ready} onClick={()=>openTokenColorPicker(token)}
+              <PanelSectionRow><Focusable flow-children="row" style={{display:"flex",gap:5}}>
+                <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}
                   style={{flex:1,margin:0,padding:8}}>
                   <span style={{display:"flex",alignItems:"center",gap:7}}>
                     <span style={{width:17,height:17,borderRadius:4,
@@ -1077,10 +1076,10 @@ function Content() {
                     {settings.token_colors?.[token.key]?"Vlastita boja":"Boja: globalna"}
                   </span>
                 </DialogButton>
-                <DialogButton disabled={!ready || !settings.token_colors?.[token.key]}
+                <DialogButton className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}
                   onClick={()=>resetTokenColor(token.key)}
                   style={{minWidth:70,padding:7,margin:0}}>Vrati</DialogButton>
-              </div></PanelSectionRow>
+              </Focusable></PanelSectionRow>
             </div>
           ))}
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
