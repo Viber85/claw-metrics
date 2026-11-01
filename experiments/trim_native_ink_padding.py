@@ -102,8 +102,8 @@ replace_once(
     "finish measured HUD height without trailing blank space"
 )
 replace_once(
-    "ImGui::End();\n       if((now - logger->last_log_end())",
-    "ImGui::End();\n       if (claw_ink_trim) ImGui::PopStyleVar();\n       if((now - logger->last_log_end())",
+    "if((now - logger->last_log_end()) < 12s",
+    "if (claw_ink_trim) ImGui::PopStyleVar();\n       if((now - logger->last_log_end()) < 12s",
     "restore ImGui window-min style after main HUD"
 )
 
