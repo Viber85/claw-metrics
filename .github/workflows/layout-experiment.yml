@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/hud-position-presets-31]
+    branches: [test/hud-six-edges-32]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.31
+  group: claw-metrics-v0.2.4-test.32
   cancel-in-progress: true
 
 jobs:
@@ -104,6 +104,7 @@ jobs:
           grep -q 'ClawMetricGap' src/hud_elements.cpp
           grep -q 'ClawFpsFontForToken' src/hud_elements.cpp
           grep -q 'claw_center_horizontal' src/overlay.cpp
+          grep -q 'params.position == LAYER_POSITION_BOTTOM_LEFT' src/overlay.cpp
           grep -q 'claw_align_right' src/overlay.cpp
           grep -q 'claw_vertex_start' src/overlay.cpp
           grep -q 'claw_draw->VtxBuffer' src/overlay.cpp
@@ -137,7 +138,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.31.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.32.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -156,14 +157,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.31
-          path: ClawMetrics-v0.2.4-test.31.zip
+          name: ClawMetrics-v0.2.4-test.32
+          path: ClawMetrics-v0.2.4-test.32.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.31 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.31 ClawMetrics-v0.2.4-test.31.zip \
+          gh release delete v0.2.4-test.32 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.32 ClawMetrics-v0.2.4-test.32.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.31 – five HUD anchors with measured right-edge width" \
-            --notes "Adds five gamepad-selectable HUD positions: four corners and top-center. Right-anchored strips use measured native width; offset signs reverse for right/bottom corners. Preserves test.30 numeric slots, vertical padding, telemetry and style migration. Device validation required."
+            --title "Claw Metrics v0.2.4-test.32 – six HUD edge anchors with top and bottom center" \
+            --notes "Adds six edge-only HUD positions in a 3x2 gamepad grid: three at top and three at bottom. Both centered positions use true horizontal centering with native width measurements; bottom-center anchors to the bottom edge (not the middle of the screen). Preserves numeric slots, padding, TDP telemetry and saved styles. Hardware validation required."
