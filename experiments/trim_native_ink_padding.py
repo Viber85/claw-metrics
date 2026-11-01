@@ -32,7 +32,7 @@ replace_once(
 )
 
 replace_once(
-    '       ImGui::Begin("Main", &gui_open, ImGuiWindowFlags_NoDecoration);',
+    'ImGui::Begin("Main", &gui_open, ImGuiWindowFlags_NoDecoration);',
     """       // The pre-existing table height includes unused font ascender space.
        // Do not use it as the user-visible HUD background inset.
        const bool claw_ink_trim = params.enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
