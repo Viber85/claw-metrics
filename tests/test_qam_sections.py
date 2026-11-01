@@ -21,12 +21,12 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_existing_controls_and_safe_color_picker_survive(self):
         for option in (
-            "Kopiraj launch komandu", "Kopiraj dugu Vulkan komandu",
-            "Kopiraj standardnu komandu", "Prikaži rezervne komande",
-            "Razmak unutar grupa", "Širina frametime grafa",
-            "Vrati zadane boje", "OpaqueColorPicker",
+            "Copy launch command", "Copy extended Vulkan command",
+            "Copy stock launch command", "Backup launch commands",
+            "Within-group gap", "Frametime graph width",
+            "Restore default colors", "OpaqueColorPicker",
             "SemiBold", "font_weight", "MangoHud",
-            "Vrati zadane postavke Layouta", "Battery", "TDP limit (read-only)",
+            "Reset layout to defaults", "Battery", "TDP limit (read-only)",
         ):
             self.assertIn(option, SOURCE, option)
         self.assertNotIn("ColorPickerModal", SOURCE)
@@ -55,8 +55,8 @@ class GroupedQamTests(unittest.TestCase):
     def test_devlab_latest_controls_present(self):
         for name in ("custom_labels", "RenameMetricModal", "styleLayoutFrom",
                      "independentColors", "styleModified", "loaded-style-status",
-                     "active_style", "Vrijednosti", "DRAW", "Clock",
-                     "Vrati zadane postavke Layouta", "groupIcons"):
+                     "active_style", "Values", "DRAW", "Clock",
+                     "Reset layout to defaults", "groupIcons"):
             self.assertIn(name, SOURCE, name)
         self.assertIn("token_weights:{}", SOURCE)
         self.assertIn("token_colors:{}", SOURCE)
@@ -106,7 +106,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("const selected=styleMetricSelectionsFrom(preset)", helpers)
         self.assertIn("if(current?.[key]!==value)return true;", helpers)
         self.assertIn("if(current?.metrics?.[key]!==value)return true;", helpers)
-        self.assertIn("uključene/isključene grupe", SOURCE)
+        self.assertIn("Presets save colors", SOURCE)
         self.assertIn("tests/style_presets.test.mjs", (
             pathlib.Path(__file__).resolve().parents[1] /
             ".github/workflows/layout-experiment.yml").read_text())
@@ -120,9 +120,9 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
         self.assertIn('min-width: 0 !important; margin: 0 !important', SOURCE)
         self.assertIn('max-width: 100% !important', SOURCE)
-        self.assertIn('Trenutno učitan: Stil', SOURCE)
-        self.assertNotIn('Preimenuj stil', SOURCE)
-        self.assertNotIn('Obriši stil', SOURCE)
+        self.assertIn('Active: ', SOURCE)
+        self.assertIn('function RenameStyleModal', SOURCE)
+        self.assertNotIn('Delete style', SOURCE)
 
     def test_expanded_card_uses_blue_surface_without_white_outline(self):
         self.assertIn("const active = open || focused;", SOURCE)
@@ -149,8 +149,8 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_preset_buttons_use_visual_load_and_save_icons(self):
         self.assertIn('FaPlay, FaDownload', SOURCE)
-        self.assertIn('<FaPlay aria-hidden="true" /> Učitaj', SOURCE)
-        self.assertIn('<FaDownload aria-hidden="true" /> Spremi', SOURCE)
+        self.assertIn('<FaPlay aria-hidden="true" /> Load', SOURCE)
+        self.assertIn('<FaDownload aria-hidden="true" /> Save', SOURCE)
         self.assertIn('className="claw-preset-label"', SOURCE)
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
         self.assertIn('flex: 0 0 auto;', SOURCE)
@@ -174,7 +174,7 @@ class GroupedQamTests(unittest.TestCase):
         for item in ('label="FPS – veličina broja"',
                      'value={settings.fps_scale} min={100} max={200} step={10}',
                      'fontSize:Math.round(18*settings.fps_scale/100)',
-                     'label="Položaj HUD-a"',
+                     'label="HUD position"',
                      'hudPositions.filter((anchor)=>anchor.id.startsWith(edge)).map((anchor)',
                      'settings.hud_position===anchor.id',
                      'anchor.id.endsWith("center")',
@@ -191,8 +191,8 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('<Focusable key={edge} flow-children="row" style={{display:"grid"', SOURCE)
         self.assertIn('gridTemplateColumns:"repeat(3,minmax(0,1fr))"', SOURCE)
         self.assertNotIn('<Focusable flow-children="row" style={{display:"grid",', SOURCE)
-        self.assertIn('label:"Gore sredina"', SOURCE)
-        self.assertIn('label:"Dolje sredina"', SOURCE)
+        self.assertIn('label:"Top center"', SOURCE)
+        self.assertIn('label:"Bottom center"', SOURCE)
         self.assertIn('settings.hud_position.endsWith("center")', SOURCE)
         self.assertNotIn('label:"Centar"', SOURCE)
 
@@ -257,19 +257,19 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(marker, native)
 
     def test_frametime_styles_are_2x2_gamepad_buttons(self):
-        self.assertIn('label="Tip frametime grafa"', SOURCE)
+        self.assertIn('label="Frametime graph style"', SOURCE)
         self.assertNotIn('rgOptions={graphStyleOptions}', SOURCE)
         self.assertNotIn('DropdownItem', SOURCE)
         self.assertIn('function GraphStyleIcon({kind}', SOURCE)
         self.assertIn('const graphStyleChoices:', SOURCE)
-        for kind, label in (("area", "Ispuna"),
-                            ("line", "Linijski graf"),
+        for kind, label in (("area", "Filled area"),
+                            ("line", "Line"),
                             ("bars", "Histogram"),
-                            ("dual", "Linija + ispuna")):
+                            ("dual", "Line + fill")):
             self.assertIn(f'id:"{kind}",label:"{label}"', SOURCE)
         self.assertNotIn('choice.letter', SOURCE)
         self.assertNotIn('letter:"A"', SOURCE)
-        self.assertIn('aria-label={"Tip grafa: "+choice.label}', SOURCE)
+        self.assertIn('aria-label={"Graph style: "+choice.label}', SOURCE)
         self.assertIn('<GraphStyleIcon kind={choice.id}/>', SOURCE)
         self.assertIn('width={46} height={35}', SOURCE)
         self.assertIn('minHeight:84', SOURCE)
@@ -447,31 +447,31 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(marker, patcher, marker)
         # No telemetry, TDP, DRAW or HUD layout settings changed.
         self.assertNotIn("main.py", patcher)
-        self.assertIn('label="Tip frametime grafa"', SOURCE)
+        self.assertIn('label="Frametime graph style"', SOURCE)
         self.assertIn('value={settings.fps_scale} min={100} max={200}', SOURCE)
 
     def test_rename_modal_uses_steam_native_gamepad_textfield(self):
         # Raw HTML inputs do not reliably invoke the virtual keyboard in SteamOS Game Mode.
         self.assertIn("  TextField,", SOURCE)
-        self.assertIn('<TextField label="Naziv stavke" focusOnMount', SOURCE)
+        self.assertIn('<TextField label="Metric label" focusOnMount', SOURCE)
         self.assertIn("event.currentTarget.value.slice(0,24)", SOURCE)
-        self.assertIn("Vrati zadani naziv", SOURCE)
+        self.assertIn("Use default label", SOURCE)
         self.assertIn('onOK={()=>onConfirm(cleanName(value))}', SOURCE)
-        self.assertNotIn('<input autoFocus aria-label="Naziv stavke"', SOURCE)
+        self.assertNotIn('<input autoFocus aria-label="Metric label"', SOURCE)
         self.assertNotIn('e.key===\'Enter\'', SOURCE)
 
     def test_advanced_github_updater_uses_decky_installer_and_confirmation(self):
         self.assertIn('const checkUpdates = callable<[], GithubUpdateInfo>("check_updates")', SOURCE)
-        self.assertIn('Provjeri novu verziju', SOURCE)
-        self.assertIn('label="Status ažuriranja"', SOURCE)
-        self.assertIn('strOKButtonText="Instaliraj"', SOURCE)
+        self.assertIn('Check for updates', SOURCE)
+        self.assertIn('label="Update status"', SOURCE)
+        self.assertIn('strOKButtonText="Install"', SOURCE)
         self.assertIn('release.notes', SOURCE)
         self.assertIn('installer.callable("utilities/install_plugin")', SOURCE)
         self.assertIn('release.asset_url, "Claw Metrics", release.version', SOURCE)
         self.assertIn('release.sha256, 2 /* UPDATE */', SOURCE)
         self.assertIn('Decky Settings → Developer → Install Plugin from URL', SOURCE)
-        self.assertIn('Ako se novo sučelje ne pojavi', SOURCE)
-        self.assertIn('Ponovno pokreni', SOURCE)
+        self.assertIn('If the new interface does not appear', SOURCE)
+        self.assertIn('Restart', SOURCE)
         self.assertIn('checkGithubRelease();', SOURCE)
         self.assertNotIn('fetch("https://api.github.com', SOURCE)
         # Manual consent only; no background updates or silent installations.
@@ -488,7 +488,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('const fallback=await withTimeout(checkUpdates());', SOURCE)
         self.assertIn('if (!fallback.ok)', SOURCE)
         self.assertIn('Python HTTPS:', SOURCE)
-        self.assertIn('Nema novijeg testnog izdanja.', SOURCE)
+        self.assertIn('No newer test release.', SOURCE)
         self.assertIn('GitHub API: HTTP ', SOURCE)
         # No unverified GitHub data is forwarded to the Decky installer.
         self.assertNotIn('JSON.parse(http.body)', SOURCE)
@@ -499,13 +499,36 @@ class GroupedQamTests(unittest.TestCase):
         advanced=SOURCE.index('<AccordionCard id="advanced"',start)
         activation=SOURCE[start:advanced]
         fallback=SOURCE[advanced:]
-        self.assertIn('Kopiraj launch komandu',activation)
+        self.assertIn('Copy launch command',activation)
         self.assertIn('copyLaunchCommand("short")',activation)
-        self.assertNotIn('Kopiraj standardnu komandu',activation)
+        self.assertNotIn('Copy stock launch command',activation)
         self.assertNotIn('FPS* potvrđuje',activation)
-        self.assertIn('Prikaži rezervne komande',fallback)
+        self.assertIn('ControlGroup title="Backup launch commands"',fallback)
         self.assertIn('copyLaunchCommand(true)',fallback)
         self.assertIn('copyLaunchCommand();',fallback)
+
+    def test_ux_refresh_keeps_all_six_cards_controller_and_settings(self):
+        for title in ('Position','Size & appearance','Spacing','Frametime graph'):
+            self.assertIn('<ControlGroup title="'+title+'"', SOURCE)
+        for title in ('Updates','Diagnostics','Backup launch commands'):
+            self.assertIn('<ControlGroup title="'+title+'"', SOURCE)
+        self.assertIn('row.includes(expanded)', SOURCE)
+        self.assertIn('visible.slice(rowIndex*3,rowIndex*3+3)', SOURCE)
+        self.assertIn('aria-label={"Rename "+styleTitle(slot)}', SOURCE)
+        self.assertIn('onClick={()=>renameStyle(slot)}', SOURCE)
+        self.assertIn('if(stored) confirmAction("Overwrite "+styleTitle(slot)+"?"', SOURCE)
+        self.assertIn('style_names: Record<string,string>', SOURCE)
+        self.assertIn('onClick={()=>update({font_weight:weight})}', SOURCE)
+        self.assertNotIn('font_weight:weight,token_weights:{}', SOURCE)
+        self.assertIn('HEX color (#RRGGBB)', SOURCE)
+        self.assertIn('showTechnical?"Hide technical details":"Show technical details"', SOURCE)
+        self.assertIn('Enable Frametime', SOURCE)
+        # The previous confusing legacy testing guidance is gone.
+        self.assertNotIn('FPS*', SOURCE)
+        self.assertNotIn('testnu Vulkan', SOURCE)
+        # User-facing content is English: Croatian accented letters should not remain.
+        import re
+        self.assertIsNone(re.search(r'[čćžšđČĆŽŠĐ]', SOURCE))
 
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
@@ -513,7 +536,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('copyLaunchCommand("short")', SOURCE)
         self.assertIn("short_launcher_ready", SOURCE)
         self.assertIn("onChange={(value: number) => update(", SOURCE)
-        self.assertIn('Provjeri TDP očitanje', SOURCE)
+        self.assertIn('Check TDP sensor', SOURCE)
         self.assertIn('get_tdp_status', SOURCE)
 
 
