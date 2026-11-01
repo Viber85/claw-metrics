@@ -75,6 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "inner_gap": (0, 16), "graph_width": (80, 200),
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
+HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-right")
 GRAPH_STYLES = ("line", "area", "bars", "dual")
 
 
@@ -123,6 +124,12 @@ def normalize_style_presets(payload):
         for field in STYLE_LAYOUT_FLAGS:
             if type(item.get(field)) is bool:
                 preset[field] = item[field]
+        if item.get("hud_position") in HUD_POSITIONS:
+            preset["hud_position"] = item["hud_position"]
+        elif preset.get("center_horizontal") is True:
+            preset["hud_position"] = "top-center"
+        if "hud_position" in preset:
+            preset["center_horizontal"] = preset["hud_position"] == "top-center"
         if item.get("graph_style") in GRAPH_STYLES:
             preset["graph_style"] = item["graph_style"]
         out[key] = preset
@@ -141,7 +148,8 @@ def normalize_color_overrides(payload):
 
 
 DEFAULTS = {
-    "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False, "opacity": 80,
+    "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
+    "hud_position": "top-left", "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -587,6 +595,12 @@ def normalize(payload):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
+    # Migrate old center_horizontal profiles while making a new anchor authoritative.
+    if payload.get("hud_position") in HUD_POSITIONS:
+        d["hud_position"] = payload["hud_position"]
+    elif d["center_horizontal"]:
+        d["hud_position"] = "top-center"
+    d["center_horizontal"] = d["hud_position"] == "top-center"
     if payload.get("graph_style") in GRAPH_STYLES:
         d["graph_style"] = payload["graph_style"]
     # Preserve the old top-margin preference when upgrading to explicit X/Y.
@@ -725,12 +739,18 @@ def mango_config(settings, native_spacing=False):
     c = d["colors"]
     active = lambda key: d["enabled"] and d[key]
     flag = lambda key, value: key + "=" + str(int(bool(value)))
+    # Avoid the broken native top-center branch for non-stretched horizontal HUDs.
+    position = d["hud_position"]
+    native_position = "top-left" if position == "top-center" else position
+    # Offsets are distances IN from the selected corner.
+    hud_x = -d["offset_x"] if position.endswith("right") else d["offset_x"]
+    hud_y = -d["offset_y"] if position.startswith("bottom") else d["offset_y"]
     lines = [
         "# Claw Metrics v0.2.3 base — generated from QAM settings",
         "legacy_layout=0", "horizontal", "horizontal_stretch=0",
         # Critical: compact battery_time resets the cursor to column zero.
-        "hud_compact=0", "hud_no_margin", "position=top-left",
-        "offset_x=" + str(d["offset_x"]), "offset_y=" + str(d["offset_y"]),
+        "hud_compact=0", "hud_no_margin", "position=" + native_position,
+        "offset_x=" + str(hud_x), "offset_y=" + str(hud_y),
         # MangoHud multiplies this factor by real_font_size.y = font_size/2.
         "cellpadding_y=" + format(d["padding_y"] / (d["fontsize"] / 2), ".6f"),
         "round_corners=" + str(d["rounding"]),
@@ -787,7 +807,8 @@ def mango_config(settings, native_spacing=False):
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
             "claw_fps_scale=" + str(d["fps_scale"]),
-            "claw_center_horizontal=" + str(int(d["center_horizontal"])),
+            "claw_center_horizontal=" + str(int(position == "top-center")),
+            "claw_align_right=" + str(int(position.endswith("right"))),
             "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
             "claw_color_map=" + ":".join(
                 d["token_colors"].get(slot, c["time"] if slot == "time.value" else
