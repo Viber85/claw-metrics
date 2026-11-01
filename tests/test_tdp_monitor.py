@@ -76,7 +76,7 @@ class TdpReadOnlyTests(unittest.TestCase):
                 runner=denied, panel_roots=[root])
             self.assertEqual(value, 23)
             self.assertIn("configured", source)
-            self.assertIn("nije hardverski potvrđeno", source)
+            self.assertIn("not hardware-verified", source)
 
     def test_panel_profiles_do_not_misreport_game_or_auto_mode(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -111,7 +111,7 @@ class TdpReadOnlyTests(unittest.TestCase):
                     firmware_root=root / "fw", plugin_roots=[root / "plugins"],
                     settings_roots=[root / "settings"])
             self.assertIn("MSI firmware PL1: unreadable", report)
-            self.assertIn("RyzenAdj: izvršna datoteka nije pronađena", report)
+            self.assertIn("RyzenAdj: executable not found", report)
             self.assertIn("PDC: global 23W", report)
             self.assertIn("game overrides 1", report)
             self.assertIn("različiti game profiles", report)
