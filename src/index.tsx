@@ -849,11 +849,30 @@ function Content() {
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
 
-        <PanelSectionRow><DropdownItem label="Tip frametime grafa"
-          description="Odaberi prikaz A, B, C ili F. Bez promjene drugih metrika."
-          rgOptions={graphStyleOptions} selectedOption={settings.graph_style}
-          disabled={!ready || !info?.layout_spacing_supported}
-          onChange={(option)=>update({graph_style:option.data as GraphStyle})}/></PanelSectionRow>
+        <PanelSectionRow><Field label="Tip frametime grafa"
+          description="Odaberi A, B, C ili F. D-padom se krećeš u oba smjera kao kod sidrenja." /></PanelSectionRow>
+        <GamepadGrid items={graphStyleChoices} columns={2}
+          className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
+            const selected=settings.graph_style===choice.id;
+            return <DialogButton key={choice.id} className="claw-control-button"
+              aria-label={"Tip grafa "+choice.letter+": "+choice.label}
+              aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
+              onClick={()=>update({graph_style:choice.id})}
+              style={{width:"100%",minWidth:0,margin:0,minHeight:70,padding:"7px 3px",
+                background:selected?"#0b4c70":"#162b40",
+                border:selected?"2px solid #31cefa":"1px solid #43607a",
+                borderRadius:8,color:selected?"#f6fcff":"#bfd5e7"}}>
+              <span style={{display:"flex",alignItems:"center",justifyContent:"center",
+                gap:7,width:"100%",minWidth:0}}>
+                <GraphStyleIcon kind={choice.id}/>
+                <span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",
+                  minWidth:0,gap:3,textAlign:"left",lineHeight:1.1}}>
+                  <strong style={{fontSize:13}}>{choice.letter}</strong>
+                  <span style={{fontSize:11,overflowWrap:"anywhere"}}>{choice.label}</span>
+                </span>
+              </span>
+            </DialogButton>;
+          }}/>
         <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
@@ -873,14 +892,14 @@ function Content() {
         <PanelSectionRow><div style={{fontSize: 12, color: "#b8c7d5", marginBottom: 8}}>
           Odaberi karticu za detalje, preimenovanje, pomicanje i skrivanje. Tri metrike u redu.
         </div></PanelSectionRow>
-        <div className="claw-tiles claw-metric-tiles">
-          {visible.map(key => {
+        <GamepadGrid items={visible} columns={3} className="claw-tiles claw-metric-tiles"
+          renderItem={(key) => {
             const group = groups[key];
             const open = expanded === key;
             const total = group.metrics.length + (group.always ? 1 : 0);
             const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
             return <div key={key} className="metric-card" data-metric={key}>
-              <DialogButton disabled={!ready} aria-pressed={open}
+              <DialogButton className="claw-control-button" disabled={!ready} aria-pressed={open}
                 aria-label={"Postavke metrike: " + named(key)}
                 onClick={() => expandMetric(open ? null : key)}
                 style={{width:"100%",minWidth:0,minHeight:62,margin:0,padding:"7px 3px",
@@ -896,8 +915,7 @@ function Content() {
                 </span>
               </DialogButton>
             </div>;
-          })}
-        </div>
+          }}/>
         {expanded && settings[expanded] && (() => {
           const key=expanded;
           const group=groups[key];
@@ -930,8 +948,8 @@ function Content() {
         })()}
         {hidden.length > 0 && <>
           <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>
-          <div className="claw-tiles claw-hidden-metric-tiles">
-            {hidden.map(key=><DialogButton key={key} disabled={!ready}
+          <GamepadGrid items={hidden} columns={3} className="claw-tiles claw-hidden-metric-tiles"
+            renderItem={(key)=><DialogButton key={key} className="claw-control-button" disabled={!ready
               aria-label={"Prikaži metriku: "+named(key)}
               onClick={()=>update({[key]:true})}
               style={{minWidth:0,width:"100%",minHeight:52,margin:0,padding:"6px 3px",
@@ -941,8 +959,7 @@ function Content() {
                 <span aria-hidden="true" style={{fontSize:14,color:groups[key].color}}>{groupIcons[key]}</span>
                 <span style={{fontSize:11,overflowWrap:"anywhere",textAlign:"center"}}>+ {named(key)}</span>
               </span>
-            </DialogButton>)}
-          </div>
+            </DialogButton>}/>
         </>}
 
         </AccordionCard>
