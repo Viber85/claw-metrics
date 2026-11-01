@@ -1,3 +1,28 @@
+# Claw Metrics v0.2.4-test.42 — popravak GitHub provjere ažuriranja
+
+U test.41 pritisak na **Advanced → Provjeri novu verziju** mogao je završiti
+generičkom porukom **Python Exception**. Provjera se oslanjala samo na
+Python `urllib`, a Decky je sakrivao stvarnu poruku pogreške.
+
+**Novo u test.42:** provjera najprije šalje HTTPS zahtjev preko vlastitog
+Decky Loader mrežnog API-ja (`utilities/http_request`). Python backend
+zatim provjerava službeni GitHub release, točan naziv ZIP-a, HTTPS adresu
+iz našeg repozitorija, SHA-256 i numeričku verziju. Ako je Deckyjev HTTPS
+zahtjev nedostupan, Python pokušava rezervnu provjeru. U oba slučaja
+mrežne pogreške vraćaju se kao čitljiv status, a ne neobrađena iznimka.
+
+Instalacija i dalje zahtijeva potvrdu korisnika i koristi Deckyjev sustav
+za provjeru checksum-a i ponovno učitavanje plugina. Nikakve automatske
+instalacije ni promjene Vulkan renderera nisu uvedene.
+
+**Instalacija:** ručno instaliraj test.42 kao ZIP. Nakon toga u Advanced
+pritisni **Provjeri novu verziju**. Ako je test.42 trenutno najnoviji,
+trebala bi se pojaviti poruka da nema novijeg izdanja. Kad kasnije
+objavimo noviju verziju, trebali bi se pojaviti opis i instalacijski
+prozor. Provjeru na samom MSI Clawu još treba potvrditi.
+
+---
+
 # Claw Metrics v0.2.4-test.41 — popravak zasivljenih kontrola
 
 U test.40 nova datoteka `updates.py` bila je zapakirana u korijensku mapu
