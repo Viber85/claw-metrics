@@ -13,7 +13,6 @@ import {
   TextField,
   Router,
   ToggleField,
-  DropdownItem,
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
@@ -50,19 +49,29 @@ function GraphStyleIcon({kind}:{kind:GraphStyle}) {
       strokeLinecap="round" strokeLinejoin="round"/>}
   </svg>;
 }
-function graphOption(kind:GraphStyle, label:string): {data:GraphStyle;label:ReactNode} {
-  return {data:kind, label:<span style={{display:"inline-flex",alignItems:"center",gap:7,
-    maxWidth:"100%",minWidth:0,boxSizing:"border-box"}}>
-    <GraphStyleIcon kind={kind}/>
-    <span style={{whiteSpace:"normal",lineHeight:1.2,overflowWrap:"anywhere"}}>{label}</span>
-  </span>};
-}
-const graphStyleOptions: {data:GraphStyle;label:ReactNode}[] = [
-  graphOption("area","A · Ispuna"),
-  graphOption("line","B · Linijski graf"),
-  graphOption("bars","C · Histogram"),
-  graphOption("dual","F · Linija + blaga ispuna"),
+const graphStyleChoices: {id:GraphStyle; letter:string; label:string}[] = [
+  {id:"area",letter:"A",label:"Ispuna"},
+  {id:"line",letter:"B",label:"Linijski graf"},
+  {id:"bars",letter:"C",label:"Histogram"},
+  {id:"dual",letter:"F",label:"Linija + ispuna"},
 ];
+
+/** Match the real SteamOS navigation tree to the visible grid.
+ * The parent handles up/down, each row handles left/right. */
+function GamepadGrid<T>({items, columns, className, renderItem}:{
+  items:readonly T[]; columns:2|3; className:string;
+  renderItem:(item:T,index:number)=>ReactNode;
+}) {
+  const rows:T[][]=[];
+  for(let at=0;at<items.length;at+=columns) rows.push(items.slice(at,at+columns));
+  return <Focusable flow-children="column" className={className}>
+    {rows.map((row,rowIndex)=>
+      <Focusable key={rowIndex} flow-children="row"
+        className={"claw-grid-row claw-grid-cols-"+columns}>
+        {row.map((item,colIndex)=>renderItem(item,rowIndex*columns+colIndex))}
+      </Focusable>)}
+  </Focusable>;
+}
 type WeightSelection = "inherit" | FontWeight;
 type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
 type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
@@ -600,13 +609,19 @@ function Content() {
           outline: 2px solid #ffffff !important; outline-offset: -3px;
           box-shadow: inset 0 0 0 1px #ffffff;
         }
-        /* Narrow QAM panel: fixed 3-column grid with no intrinsic button min-width. */
+        /* Match actual SteamOS D-pad focus flow to visible grid rows. */
         .claw-tiles {
-          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+          display: flex; flex-direction: column;
           gap: 6px; width: 100%; min-width: 0; padding: 4px 0 10px;
           box-sizing: border-box;
         }
-        .claw-tiles > *, .claw-tiles button {
+        .claw-grid-row {
+          display: grid; gap: 6px; width: 100%;
+          max-width: 100%; min-width: 0; box-sizing: border-box;
+        }
+        .claw-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .claw-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .claw-tiles > *, .claw-tiles button, .claw-grid-row > * {
           min-width: 0 !important; max-width: 100%; box-sizing: border-box;
         }
         .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
@@ -620,7 +635,7 @@ function Content() {
         .claw-metric-tiles button[aria-pressed="true"] {
           box-shadow: 0 0 0 1px #29dcff inset;
         }
-        .claw-weight-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .claw-weight-tiles .claw-grid-row { min-height: 39px; }
         [data-section="colors"] .loaded-style-status {
           padding: 8px 9px; margin: 0 0 10px; background: #0b263b;
           border: 1px solid #306689; border-radius: 7px;
@@ -715,10 +730,28 @@ function Content() {
         .claw-hud-anchor:focus span,
         .claw-hud-anchor.gpfocus span,
         .claw-hud-anchor[class*="gpfocus"] span { color: #ffffff !important; }
+        /* Identical focus semantics for Metrics, Colors & Font, graph styles. */
+        .claw-control-button:focus,
+        .claw-control-button:focus-visible,
+        .claw-control-button.gpfocus,
+        .claw-control-button[class*="gpfocus"],
+        .claw-control-button:focus-within,
+        .claw-control-button:has(.gpfocus),
+        .claw-control-button:has([class*="gpfocus"]) {
+          background: #0874a9 !important;
+          border: 2px solid #ffffff !important;
+          outline: 2px solid #31deff !important;
+          outline-offset: -5px !important;
+          color: #ffffff !important;
+          box-shadow: 0 0 0 2px #31deff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
+        }
+        .claw-control-button:focus span,
+        .claw-control-button.gpfocus span,
+        .claw-control-button[class*="gpfocus"] span { color: inherit; }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.35">
+      <PanelSection title="Claw Metrics · v0.2.4-test.36">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
