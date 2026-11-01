@@ -1,3 +1,26 @@
+# Claw Metrics v0.2.4-test.41 — popravak zasivljenih kontrola
+
+U test.40 nova datoteka `updates.py` bila je zapakirana u korijensku mapu
+plugina. Decky Loader izvršava `main.py` preko `spec_from_file_location`
+i za dodatne module koristi isključivo mapu `py_modules/`. Zato uvoz
+`from updates import check_github_update` nije uspijevao, Python backend
+se nije učitao, a cijelo Decky sučelje ostalo je zasivljeno. Overlay je
+ostao prikazan iz posljednje spremljene konfiguracije preko zasebnog
+Vulkan procesa.
+
+**Popravak:** test.41 sadrži `py_modules/updates.py`. Automatski test
+pokreće `main.py` na isti izolirani način kao Decky Loader te potvrđuje
+da se backend može učitati. Test također reproducira neuspješan slučaj
+kad se `updates.py` nalazi samo u korijenu.
+
+**Kako popraviti:** instaliraj ZIP test.41 ručno iz Decky instalacije jer
+test.40 backend ne može izvršavati tipku za ažuriranje. Decky obično sam
+ponovno učita plugin, a ako je potrebno restartaj samo Decky Loader.
+Nemoj brisati `~/.config/ClawMetrics/settings.json`: postojeći stilovi
+i postavke ostaju. Launcher i nativni renderer ne mijenjaju se.
+
+---
+
 # Claw Metrics v0.2.4-test.40 — ažuriranja iz GitHub Releasesa
 
 U **Advanced → Ažuriranja s GitHuba** odaberi **Provjeri novu verziju**. Plugin
