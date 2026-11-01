@@ -322,9 +322,16 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('<Focusable flow-children="column" className="claw-preset-list">', SOURCE)
         self.assertIn('<Focusable flow-children="row" className="claw-preset-actions">', SOURCE)
         self.assertIn('className="claw-control-button" disabled={!ready||!stored}', SOURCE)
-        self.assertIn('<Focusable flow-children="row" style={{display:"flex",gap:5}}>', SOURCE)
-        self.assertIn('className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}', SOURCE)
-        self.assertIn('className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}', SOURCE)
+        self.assertIn('className="claw-token-controls"', SOURCE)
+        self.assertIn('flow-children="row" className="claw-token-controls"', SOURCE)
+        self.assertIn('className="claw-control-button claw-token-font"', SOURCE)
+        self.assertIn('onClick={()=>cycleTokenWeight(token.key)}', SOURCE)
+        self.assertIn('className="claw-control-button claw-token-color"', SOURCE)
+        self.assertIn('onClick={()=>openTokenColorPicker(token)}', SOURCE)
+        self.assertIn('className="claw-control-button claw-token-reset"', SOURCE)
+        self.assertIn('disabled={!ready || !settings.token_colors?.[token.key]}', SOURCE)
+        self.assertIn('onClick={()=>resetTokenColor(token.key)}', SOURCE)
+        self.assertIn('aria-label={"Reset custom color: "+tokenTitle(token)}', SOURCE)
 
     def test_in_game_graph_taller_and_histogram_uses_separated_real_columns(self):
         root = pathlib.Path(__file__).resolve().parents[1]
@@ -563,13 +570,32 @@ class GroupedQamTests(unittest.TestCase):
     def test_layout_nested_sliders_are_bounded_inside_cards(self):
         self.assertIn('className="claw-layout-slider"', SOURCE)
         self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 10)
-        self.assertIn('width: calc(100% - 20px)', SOURCE)
+        self.assertIn('width: min(330px, calc(100% - 18px)) !important;', SOURCE)
+        self.assertIn('max-width: calc(100% - 18px) !important;', SOURCE)
+        self.assertIn('padding: 0 20px 0 0 !important;', SOURCE)
+        self.assertIn('class*="SliderTrack"', SOURCE)
+        self.assertIn('width: 100% !important;', SOURCE)
         self.assertIn('[data-section="layout"] .claw-layout-slider', SOURCE)
         self.assertIn('[class*="DialogSlider"]', SOURCE)
         self.assertIn('max-width: 100% !important;', SOURCE)
         # Still use SteamOS native SliderField for D-pad and numeric editing.
         self.assertIn('<SliderField label="Frametime graph width (px)"', SOURCE)
         self.assertIn('<SliderField label="Vertical padding (px)"', SOURCE)
+
+    def test_appearance_editor_token_rows_are_compact_and_accessible(self):
+        self.assertIn('className="claw-token-card"', SOURCE)
+        self.assertIn('className="claw-token-title"', SOURCE)
+        self.assertIn('className="claw-token-controls"', SOURCE)
+        self.assertIn('minHeight:38', SOURCE)
+        self.assertIn('fontSize:11.5', SOURCE)
+        self.assertIn('[data-section="colors"] .claw-token-card', SOURCE)
+        self.assertIn('[data-section="colors"] .claw-token-controls', SOURCE)
+        self.assertIn('Font: {weightLabel[settings.token_weights?', SOURCE)
+        self.assertIn('settings.token_colors?.[token.key]?"Custom":"Global"', SOURCE)
+        # Every token still offers font, color and a conditional color reset.
+        self.assertIn('onClick={()=>cycleTokenWeight(token.key)}', SOURCE)
+        self.assertIn('onClick={()=>openTokenColorPicker(token)}', SOURCE)
+        self.assertIn('onClick={()=>resetTokenColor(token.key)}', SOURCE)
 
     def test_metrics_show_active_sensor_fraction(self):
         self.assertIn('{count}/{total}</span>', SOURCE)
