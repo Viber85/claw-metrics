@@ -21,8 +21,8 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_existing_controls_and_safe_color_picker_survive(self):
         for option in (
-            "Kopiraj launch komandu", "Kopiraj testnu komandu",
-            "Kopiraj kratku testnu komandu", "Prikaži dugu rezervnu komandu",
+            "Kopiraj launch komandu", "Kopiraj dugu Vulkan komandu",
+            "Kopiraj standardnu komandu", "Prikaži rezervne komande",
             "Razmak unutar grupa", "Širina frametime grafa",
             "Vrati zadane boje", "OpaqueColorPicker",
             "SemiBold", "font_weight", "MangoHud",
@@ -459,6 +459,37 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('onOK={()=>onConfirm(cleanName(value))}', SOURCE)
         self.assertNotIn('<input autoFocus aria-label="Naziv stavke"', SOURCE)
         self.assertNotIn('e.key===\'Enter\'', SOURCE)
+
+    def test_advanced_github_updater_uses_decky_installer_and_confirmation(self):
+        self.assertIn('const checkUpdates = callable<[], GithubUpdateInfo>("check_updates")', SOURCE)
+        self.assertIn('Provjeri novu verziju', SOURCE)
+        self.assertIn('label="Status ažuriranja"', SOURCE)
+        self.assertIn('strOKButtonText="Instaliraj"', SOURCE)
+        self.assertIn('release.notes', SOURCE)
+        self.assertIn('method("utilities/install_plugin")', SOURCE)
+        self.assertIn('release.asset_url, "Claw Metrics", release.version', SOURCE)
+        self.assertIn('release.sha256, 2 /* UPDATE */', SOURCE)
+        self.assertIn('Decky Settings → Developer → Install Plugin from URL', SOURCE)
+        self.assertIn('Ako se novo sučelje ne pojavi', SOURCE)
+        self.assertIn('Ponovno pokreni', SOURCE)
+        self.assertIn('checkGithubRelease();', SOURCE)
+        self.assertNotIn('fetch("https://api.github.com', SOURCE)
+        # Manual consent only; no background updates or silent installations.
+        self.assertIn('onOK={()=>{ dialog.Close(); requestGithubInstall(release); }}', SOURCE)
+        self.assertIn('onClick={()=>{ void checkGithubRelease(); }}', SOURCE)
+
+    def test_activation_keeps_primary_short_launcher_and_advanced_fallback(self):
+        start=SOURCE.index('<AccordionCard id="activation"')
+        advanced=SOURCE.index('<AccordionCard id="advanced"',start)
+        activation=SOURCE[start:advanced]
+        fallback=SOURCE[advanced:]
+        self.assertIn('Kopiraj launch komandu',activation)
+        self.assertIn('copyLaunchCommand("short")',activation)
+        self.assertNotIn('Kopiraj standardnu komandu',activation)
+        self.assertNotIn('FPS* potvrđuje',activation)
+        self.assertIn('Prikaži rezervne komande',fallback)
+        self.assertIn('copyLaunchCommand(true)',fallback)
+        self.assertIn('copyLaunchCommand();',fallback)
 
     def test_sections_keep_actions_and_do_not_fake_monitoring(self):
         self.assertIn("verifyRenderer", SOURCE)
