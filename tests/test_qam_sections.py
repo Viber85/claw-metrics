@@ -143,7 +143,7 @@ class GroupedQamTests(unittest.TestCase):
                      'value={settings.fps_scale} min={100} max={200} step={10}',
                      'fontSize:Math.round(18*settings.fps_scale/100)',
                      'label="Položaj HUD-a"',
-                     'hudPositions.map((anchor)',
+                     'hudPositions.filter((anchor)=>anchor.id.startsWith(edge)).map((anchor)',
                      'settings.hud_position===anchor.id',
                      'anchor.id.endsWith("center")',
                      'value={settings.offset_x} min={-1920} max={1920} step={1}',
@@ -154,7 +154,11 @@ class GroupedQamTests(unittest.TestCase):
         for pos in ("top-left", "top-center", "top-right",
                     "bottom-left", "bottom-center", "bottom-right"):
             self.assertIn(f'id:"{pos}"', SOURCE)
-        self.assertIn('gridTemplateRows:"repeat(2,54px)"', SOURCE)
+        self.assertIn('<Focusable flow-children="column" style={{display:"flex"', SOURCE)
+        self.assertIn('(["top","bottom"] as const).map((edge)', SOURCE)
+        self.assertIn('<Focusable key={edge} flow-children="row" style={{display:"grid"', SOURCE)
+        self.assertIn('gridTemplateColumns:"repeat(3,minmax(0,1fr))"', SOURCE)
+        self.assertNotIn('<Focusable flow-children="row" style={{display:"grid",', SOURCE)
         self.assertIn('label:"Gore sredina"', SOURCE)
         self.assertIn('label:"Dolje sredina"', SOURCE)
         self.assertIn('settings.hud_position.endsWith("center")', SOURCE)
@@ -174,6 +178,28 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('outline: 2px solid #31deff !important;', SOURCE)
         self.assertIn('box-shadow: 0 0 0 2px #31deff', SOURCE)
         self.assertIn('offset_x: 8, offset_y: 0, padding_y: 0,', SOURCE)
+
+    def test_fps_scale_ink_bounds_replace_font_linebox_padding(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/trim_native_ink_padding.py").read_text()
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertIn('python3 ../experiments/trim_native_ink_padding.py src', workflow)
+        self.assertLess(workflow.index('enable_fixed_numeric_slots.py'),
+                        workflow.index('trim_native_ink_padding.py'))
+        for marker in (
+            'claw_ink_draw->VtxBuffer[vi].pos.y',
+            'claw_ink_start = claw_ink_draw->VtxBuffer.Size',
+            'ImGui::EndTable();',
+            'std::isfinite(top)',
+            'std::isfinite(bottom)',
+            'claw_ink_trim_top + correction',
+            'params.cellpadding_y * real_font_size.y',
+            'window_size.y = ImClamp(claw_ink_bottom + claw_bottom_padding',
+            'ImGuiStyleVar_WindowMinSize',
+            'if (claw_ink_trim) ImGui::PopStyleVar();',
+        ):
+            self.assertIn(marker, patch, marker)
+        self.assertNotIn('claw_ink_trim_top = claw_ink_trim_top + 10.0f', patch)
 
     def test_native_positioning_has_no_implicit_mangohud_edge_margin(self):
         root = pathlib.Path(__file__).resolve().parents[1]
