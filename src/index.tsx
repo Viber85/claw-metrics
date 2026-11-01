@@ -24,12 +24,12 @@ type FontWeight = "light" | "regular" | "semibold" | "bold";
 type GraphStyle = "area" | "line" | "bars" | "dual";
 type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
-  {id:"top-left",label:"Gore lijevo",icon:"↖",column:1,row:1},
-  {id:"top-center",label:"Gore sredina",icon:"↑",column:2,row:1},
-  {id:"top-right",label:"Gore desno",icon:"↗",column:3,row:1},
-  {id:"bottom-left",label:"Dolje lijevo",icon:"↙",column:1,row:2},
-  {id:"bottom-center",label:"Dolje sredina",icon:"↓",column:2,row:2},
-  {id:"bottom-right",label:"Dolje desno",icon:"↘",column:3,row:2},
+  {id:"top-left",label:"Top left",icon:"↖",column:1,row:1},
+  {id:"top-center",label:"Top center",icon:"↑",column:2,row:1},
+  {id:"top-right",label:"Top right",icon:"↗",column:3,row:1},
+  {id:"bottom-left",label:"Bottom left",icon:"↙",column:1,row:2},
+  {id:"bottom-center",label:"Bottom center",icon:"↓",column:2,row:2},
+  {id:"bottom-right",label:"Bottom right",icon:"↘",column:3,row:2},
 ];
 
 // Actual silhouettes of the four native frametime render modes.
@@ -52,10 +52,10 @@ function GraphStyleIcon({kind}:{kind:GraphStyle}) {
   </svg>;
 }
 const graphStyleChoices: {id:GraphStyle;label:string}[] = [
-  {id:"area",label:"Ispuna"},
-  {id:"line",label:"Linijski graf"},
+  {id:"area",label:"Filled area"},
+  {id:"line",label:"Line"},
   {id:"bars",label:"Histogram"},
-  {id:"dual",label:"Linija + ispuna"},
+  {id:"dual",label:"Line + fill"},
 ];
 
 /** Match the real SteamOS navigation tree to the visible grid.
@@ -79,13 +79,13 @@ type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "batter
 type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
 type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
 const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
-  fps: [{key:"fps.label", label:"FPS naziv", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS broj", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}],
-  cpu: [{key:"cpu.label", label:"CPU naziv", defaultColor:"cpu"}, {key:"cpu.load", label:"Opterećenje (%)", defaultColor:"text"}, {key:"cpu.temp", label:"Temperatura (°C)", defaultColor:"text"}, {key:"cpu.clock", label:"Takt (MHz)", defaultColor:"text"}, {key:"cpu.power", label:"Potrošnja (W)", defaultColor:"text"}],
-  gpu: [{key:"gpu.label", label:"GPU naziv", defaultColor:"gpu"}, {key:"gpu.load", label:"Opterećenje (%)", defaultColor:"text"}, {key:"gpu.temp", label:"Temperatura (°C)", defaultColor:"text"}, {key:"gpu.clock", label:"Takt (MHz)", defaultColor:"text"}, {key:"gpu.power", label:"Potrošnja (W)", defaultColor:"text"}, {key:"gpu.junction", label:"Junction temperatura", defaultColor:"text"}, {key:"gpu.fan", label:"Ventilator", defaultColor:"text"}, {key:"gpu.voltage", label:"Napon", defaultColor:"text"}],
-  ram: [{key:"ram.label", label:"RAM naziv", defaultColor:"ram"}, {key:"ram.value", label:"Zauzeće (GiB)", defaultColor:"text"}],
-  vram: [{key:"vram.label", label:"VRAM naziv", defaultColor:"vram"}, {key:"vram.value", label:"Zauzeće (GiB)", defaultColor:"text"}, {key:"vram.temp", label:"Temperatura memorije", defaultColor:"text"}, {key:"vram.clock", label:"Takt memorije", defaultColor:"text"}],
-  battery: [{key:"battery.label", label:"BATT naziv", defaultColor:"battery"}, {key:"battery.value", label:"Baterija (%) / ikona", defaultColor:"text"}, {key:"battery.time", label:"Preostalo vrijeme", defaultColor:"text"}],
-  time: [{key:"time.value", label:"Sat", defaultColor:"time"}],
+  fps: [{key:"fps.label", label:"FPS label", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS value", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}],
+  cpu: [{key:"cpu.label", label:"CPU label", defaultColor:"cpu"}, {key:"cpu.load", label:"Load (%)", defaultColor:"text"}, {key:"cpu.temp", label:"Temperature (°C)", defaultColor:"text"}, {key:"cpu.clock", label:"Clock (MHz)", defaultColor:"text"}, {key:"cpu.power", label:"Power (W)", defaultColor:"text"}],
+  gpu: [{key:"gpu.label", label:"GPU label", defaultColor:"gpu"}, {key:"gpu.load", label:"Load (%)", defaultColor:"text"}, {key:"gpu.temp", label:"Temperature (°C)", defaultColor:"text"}, {key:"gpu.clock", label:"Clock (MHz)", defaultColor:"text"}, {key:"gpu.power", label:"Power (W)", defaultColor:"text"}, {key:"gpu.junction", label:"Junction temperature", defaultColor:"text"}, {key:"gpu.fan", label:"Fan speed", defaultColor:"text"}, {key:"gpu.voltage", label:"Voltage", defaultColor:"text"}],
+  ram: [{key:"ram.label", label:"RAM label", defaultColor:"ram"}, {key:"ram.value", label:"Usage (GiB)", defaultColor:"text"}],
+  vram: [{key:"vram.label", label:"VRAM label", defaultColor:"vram"}, {key:"vram.value", label:"Usage (GiB)", defaultColor:"text"}, {key:"vram.temp", label:"Memory temperature", defaultColor:"text"}, {key:"vram.clock", label:"Memory clock", defaultColor:"text"}],
+  battery: [{key:"battery.label", label:"Battery label", defaultColor:"battery"}, {key:"battery.value", label:"Battery (%) / icon", defaultColor:"text"}, {key:"battery.time", label:"Remaining time", defaultColor:"text"}],
+  time: [{key:"time.value", label:"Clock", defaultColor:"time"}],
   draw: [{key:"battery.power",label:"DRAW",defaultColor:"draw"}],
   tdp: [{key:"tdp.value",label:"TDP limit (W)",defaultColor:"tdp"}],
   values: [],
@@ -97,7 +97,7 @@ const weightLabel: Record<WeightSelection, string> = {
 };
 const styleTabs: [StyleCategory,string][] = [
   ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
-  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Vrijednosti"],
+  ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
 type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
   sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; version?:number;
@@ -115,10 +115,10 @@ const defaultColors: ColorSettings = {
   battery: "30E5A0", graph: "30E5A0", time:"F0F2F5", draw:"F0F2F5", tdp:"FFBD69",
 };
 const colorRows: [ColorKey, string][] = [
-  ["text", "Vrijednosti"], ["time", "Clock"], ["tdp", "TDP"], ["draw", "DRAW"], ["separator", "Separatori između grupa"],
+  ["text", "Values"], ["time", "Clock"], ["tdp", "TDP"], ["draw", "DRAW"], ["separator", "Group separators"],
   ["fps_label", "FPS"],
-  ["cpu", "CPU naziv"], ["gpu", "GPU naziv"], ["ram", "RAM naziv"],
-  ["vram", "VRAM naziv"], ["battery", "BATT naziv"], ["graph", "Frametime graf"],
+  ["cpu", "CPU label"], ["gpu", "GPU label"], ["ram", "RAM label"],
+  ["vram", "VRAM label"], ["battery", "Battery label"], ["graph", "Frametime graph"],
 ];
 
 // Decky picker uses HSL sliders; MangoHud accepts 6-digit RGB without '#'.
@@ -172,14 +172,14 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
             backgroundColor: "#" + preview, border: "1px solid #8794a4"}} />
           <div>
             <div>#{preview}</div>
-            <div style={{fontSize: 12, opacity: 0.7}}>Neprozirna RGB boja (alpha 100%)</div>
+            <div style={{fontSize: 12, opacity: 0.7}}>Opaque RGB color (100% alpha)</div>
           </div>
         </div>
-        <SliderField showValue editableValue label="Nijansa (Hue)"
+        <SliderField showValue editableValue label="Hue"
           value={h} min={0} max={360} step={1} onChange={setH} />
-        <SliderField showValue editableValue label="Zasićenost (Saturation)"
+        <SliderField showValue editableValue label="Zasićenost (Clockuration)"
           value={s} min={0} max={100} step={1} onChange={setS} />
-        <SliderField showValue editableValue label="Svjetlina (Lightness)"
+        <SliderField showValue editableValue label="Lightness"
           value={l} min={0} max={100} step={1} onChange={setL} />
       </div>
     </ConfirmModal>
@@ -188,17 +188,17 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
 const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,tdp:<FaBolt/>,draw:<FaBolt/>,values:<FaHashtag/>};
 function RenameMetricModal({name,original,onConfirm,onCancel}:any){
  const [value,setValue]=useState(name);
- return <ConfirmModal strTitle="Promijeni naziv metrike" onCancel={onCancel}
+ return <ConfirmModal strTitle="Rename metric" onCancel={onCancel}
    onOK={()=>onConfirm(cleanName(value))}>
   <div className="claw-rename-modal" style={{padding:"8px 2px",minWidth:0}}>
-    <TextField label="Naziv stavke" focusOnMount placeholder={original}
+    <TextField label="Metric label" focusOnMount placeholder={original}
       value={value} onChange={(event)=>setValue(event.currentTarget.value.slice(0,24))}
-      description="Odaberi polje tipkom A za SteamOS tipkovnicu. Maksimalno 24 znaka." />
+      description="Press A to edit with the SteamOS keyboard. Maximum 24 characters." />
     <p className="description" style={{fontSize:12,lineHeight:1.4,margin:"12px 0"}}>
-      Naziv se koristi u Metrics, Colors & Font i HUD prikazu. Prazan naziv vraća zadani naziv.
+      The label is used in Metrics, Colors & Font and the HUD. Leave empty to restore the default.
     </p>
     <DialogButton style={{width:"100%",margin:0,minWidth:0}} onClick={()=>setValue("")}>
-      Vrati zadani naziv
+      Use default label
     </DialogButton>
   </div>
  </ConfirmModal>;
@@ -219,15 +219,15 @@ type Settings = Record<Group, boolean> & {
 };
 const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"];
 const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
-  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "MangoHud koristi istu glavnu veličinu fonta za FPS i ostale vrijednosti."},
-  frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "Broj u ms prati FPS blok; strelice premještaju graf. Za ms uključi i FPS."},
-  gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock/temp prikazuju se u VRAM bloku i traže uključen VRAM. Ostali senzori ovise o dostupnosti na Z2 Extremeu."},
+  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "The base font size is shared by the FPS label and other values."},
+  frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "The ms value follows the FPS block. Enable FPS to display milliseconds."},
+  gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock and temperature appear in the VRAM block. Other sensors depend on Z2 Extreme hardware support."},
   cpu: {label: "CPU", color: "#37c9ef", always: "CPU load", metrics: [["cpu_temp", "CPU temp"], ["cpu_mhz", "CPU clock"], ["cpu_power", "CPU watts"]]},
   ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: []},
-  vram: {label: "VRAM", color: "#d76ab8", always: "VRAM usage", metrics: [], note: "MangoHud za VRAM koristi podatke GPU bloka; uključi i GPU."},
-  battery: {label: "Battery", color: "#30e5a0", always: "Battery level", metrics: [["battery_icon", "Battery icon (replaces %)"], ["battery_time", "Remaining time"]], note: "Ikona i postotak su alternativni načini prikaza u ovom MangoHud rendereru."},
-  tdp: {label: "TDP", color: "#ffbd69", metrics: [], always: "Postavljeni TDP limit", note: "Samo očitanje: RyzenAdj STAPM ili MSI firmware PL1. Ako očitanje nije moguće, prikazuje TDP --. Ne upravlja potrošnjom."},
-  draw: {label: "DRAW", color: "#ee6279", metrics: [], always: "Battery discharge watts", note: "Ukupno pražnjenje baterije. Na punjaču ili bez senzora prikazuje DRAW --, a ne izmišljenu potrošnju."},
+  vram: {label: "VRAM", color: "#d76ab8", always: "VRAM usage", metrics: [], note: "VRAM readings use the GPU data source. Enable GPU as well."},
+  battery: {label: "Battery", color: "#30e5a0", always: "Battery level", metrics: [["battery_icon", "Battery icon (replaces %)"], ["battery_time", "Remaining time"]], note: "Battery icon and percentage are alternative display formats."},
+  tdp: {label: "TDP", color: "#ffbd69", metrics: [], always: "Configured TDP limit", note: "Read-only: RyzenAdj STAPM or MSI firmware PL1. Displays TDP -- when unavailable; does not control power."},
+  draw: {label: "DRAW", color: "#ee6279", metrics: [], always: "Battery discharge watts", note: "Total battery discharge. Displays DRAW -- while charging or when a sensor is unavailable."},
   time: {label: "Clock", color: "#f0f2f5", metrics: [], always: "Clock · 24 h"},
 };
 
@@ -394,36 +394,36 @@ let lastStyleCategory = "global";
 function Content() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
-  const [status, setStatus] = useState("Učitavanje…");
+  const [status, setStatus] = useState("Loading…");
   const [copyStatus, setCopyStatus] = useState("");
   const [showLegacyCommand, setShowLegacyCommand] = useState(false);
-  const [rendererStatus, setRendererStatus] = useState("Nije provjereno. Pokreni igru za test.");
-  const [tdpStatus, setTdpStatus] = useState("TDP još nije provjeren.");
+  const [rendererStatus, setRendererStatus] = useState("Not checked. Start a game to verify.");
+  const [tdpStatus, setTdpStatus] = useState("TDP has not been checked.");
   const [rendererBusy, setRendererBusy] = useState(false);
   const [updateBusy, setUpdateBusy] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState("Provjera se pokreće ručno.");
+  const [updateStatus, setUpdateStatus] = useState("Check manually for updates.");
   const [updateFallback, setUpdateFallback] = useState<string|null>(null);
   const requestGithubInstall = (release:GithubRelease) => {
     const installer=deckyInstaller();
     if (!installer || typeof installer.callable !== "function") {
       setUpdateFallback(release.asset_url);
-      setUpdateStatus("Instalacijski API Decky Loadera nije dostupan. Koristi Decky Settings → Developer → Install Plugin from URL.");
+      setUpdateStatus("Decky install API unavailable. Use Decky Settings → Developer → Install Plugin from URL.");
       return;
     }
     try {
       // Decky opens its OWN confirmation modal; the plugin may unload while
       // the installer runs, so do not wait to declare the install successful.
       const launch=installer.callable("utilities/install_plugin");
-      if (typeof launch !== "function") throw new Error("API instalacije nije podržan.");
-      setUpdateStatus("Zahtjev je poslan Deckyju. Potvrdi instalaciju u njegovom prozoru.");
+      if (typeof launch !== "function") throw new Error("Installation API is not supported.");
+      setUpdateStatus("Update request sent to Decky. Confirm installation in its dialog.");
       void launch(release.asset_url, "Claw Metrics", release.version,
                   release.sha256, 2 /* UPDATE */).catch((error:unknown)=>{
         setUpdateFallback(release.asset_url);
-        setUpdateStatus("Zahtjev za instalaciju nije uspio: "+String(error));
+        setUpdateStatus("Installation request failed: "+String(error));
       });
     } catch(error) {
       setUpdateFallback(release.asset_url);
-      setUpdateStatus("Instalacijski API nije dostupan: "+String(error));
+      setUpdateStatus("Installation API unavailable: "+String(error));
     }
   };
   const confirmGithubInstall = (release:GithubRelease) => {
@@ -432,17 +432,17 @@ function Content() {
       onOK={()=>{ dialog.Close(); requestGithubInstall(release); }}>
       <div style={{padding:"8px 4px",minWidth:0,maxWidth:"100%"}}>
         <p style={{fontSize:13,margin:"0 0 8px"}}>
-          Dostupna je nova verzija. Potvrdi instalaciju nakon pregleda promjena.
+          A new version is available. Review the changes before installing.
         </p>
-        <div style={{fontSize:12,opacity:.8,marginBottom:8}}>Promjene u {release.tag}:</div>
+        <div style={{fontSize:12,opacity:.8,marginBottom:8}}>Changes in {release.tag}:</div>
         <div style={{fontSize:12,lineHeight:1.45,whiteSpace:"pre-wrap",
           overflowWrap:"anywhere",maxHeight:230,overflowY:"auto",
           background:"#10283a",padding:10,borderRadius:8}}>{release.notes}</div>
         <p style={{fontSize:12,opacity:.83,marginBottom:0}}>
-          Decky će preuzeti ZIP i provjeriti SHA-256. Zatim će ponovno učitati
-          plugin. Ako se novo sučelje ne pojavi, u Decky Settings → Plugins
-          ponovno učitaj Claw Metrics ili restartaj Decky Loader.
-          Nije potrebno ponovno pokretati cijeli uređaj. Pokrenutu igru treba ponovno pokrenuti za novi Vulkan renderer.
+          Decky will download the ZIP, verify its SHA-256 checksum, and reload
+          the plugin. If the new interface does not appear, reload Claw Metrics
+          in Decky Settings → Plugins or restart Decky Loader. Restart a running
+          game to load the updated Vulkan renderer; no device reboot is needed.
         </p>
       </div>
     </ConfirmModal>);
@@ -451,7 +451,7 @@ function Content() {
     if (updateBusy) return;
     setUpdateBusy(true);
     setUpdateFallback(null);
-    setUpdateStatus("Provjeravam GitHub Releases…");
+    setUpdateStatus("Checking GitHub releases…");
     try {
       let result:GithubUpdateInfo|null=null;
       let deckyError="";
@@ -466,70 +466,70 @@ function Content() {
               "X-GitHub-Api-Version":"2022-11-28"},
           },8)) as DeckyHttpResponse;
           if (!http || typeof http.status !== "number" || typeof http.body !== "string") {
-            throw new Error("Decky nije vratio valjan HTTPS odgovor.");
+            throw new Error("Decky returned an invalid HTTPS response.");
           }
           if (http.status!==200) {
             throw new Error("GitHub API: HTTP "+http.status+
-              (http.status===403||http.status===429?" (ograničenje broja zahtjeva)":""));
+              (http.status===403||http.status===429?" (rate limit)":""));
           }
           // The Python backend validates each asset URL/digest. The frontend
           // must not install arbitrary URLs returned by a remote service.
           result=await withTimeout(validateGithubReleases(http.body));
-          if (!result.ok) throw new Error(result.error||"GitHub podaci nisu valjani.");
+          if (!result.ok) throw new Error(result.error||"Invalid GitHub release data.");
         } catch(error) {
           deckyError=String(error);
           result=null;
         }
       } else {
-        deckyError="Deckyjev mrežni API nije dostupan.";
+        deckyError="Decky network API unavailable.";
       }
       if (!result) {
         // Compatibility fallback for older Decky builds. All exceptions are
         // returned as data, so the UI never displays 'Python Exception'.
         const fallback=await withTimeout(checkUpdates());
         if (!fallback.ok) {
-          const details=[deckyError,"Python HTTPS: "+(fallback.error||"nepoznata greška")]
+          const details=[deckyError,"Python HTTPS: "+(fallback.error||"unknown error")]
             .filter(Boolean).join(" · ");
           throw new Error(details);
         }
         result=fallback;
       }
       if (!result.available || !result.latest) {
-        setUpdateStatus("Instalirana verzija "+(result.current||"nepoznata")+
-          " je aktualna. Nema novijeg testnog izdanja.");
+        setUpdateStatus("Installed version "+(result.current||"nepoznata")+
+          " is up to date. No newer test release.");
       } else {
-        setUpdateStatus("Dostupna je nova verzija "+result.latest.tag+
-          " (instalirana: "+result.current+").");
+        setUpdateStatus("New version available: "+result.latest.tag+
+          " (installed: "+result.current+").");
         confirmGithubInstall(result.latest);
       }
     } catch(error) {
-      setUpdateStatus("Provjera ažuriranja nije uspjela: "+String(error).slice(0,420));
+      setUpdateStatus("Update check failed: "+String(error).slice(0,420));
     } finally {
       setUpdateBusy(false);
     }
   };
   const verifyTdp = async () => {
     try { const result=await withTimeout(getTdpStatus());setTdpStatus(result.description); }
-    catch(error) {setTdpStatus("Provjera TDP-a nije uspjela: "+String(error));}
+    catch(error) {setTdpStatus("TDP check failed: "+String(error));}
   };
   const verifyRenderer = async () => {
     setRendererBusy(true);
-    setRendererStatus("Provjeravam procese igre...");
+    setRendererStatus("Checking running game processes…");
     try {
       const result = await withTimeout(getRendererStatus());
       setRendererStatus(
-        (result.native_loaded ? "AKTIVNO" : "NIJE AKTIVNO") +
+        (result.native_loaded ? "ACTIVE" : "NIJE ACTIVE") +
         " · native: " + result.native_processes +
-        " · obični MangoHud: " + result.stock_processes +
-        " · zahtjev za slojem: " + result.layer_requests +
-        " · testni config: " + result.config_requests +
+        " · stock MangoHud: " + result.stock_processes +
+        " · layer requests: " + result.layer_requests +
+        " · test config: " + result.config_requests +
         " · Vulkan path: " + result.path_requests +
-        " · pristup procesima: " + result.environments_read + "/" + result.processes_seen +
+        " · process access: " + result.environments_read + "/" + result.processes_seen +
         " · manifest: " + (result.manifest_in_user_location ? "DA" : "NE") +
         ". " + result.reason
       );
     } catch (error) {
-      setRendererStatus("Provjera nije uspjela: " + String(error));
+      setRendererStatus("Check failed: " + String(error));
     } finally {
       setRendererBusy(false);
     }
@@ -553,7 +553,7 @@ function Content() {
   const revision = useRef(0);
 
   const refresh = async () => {
-    setStatus("Provjera veze s backendom…");
+    setStatus("Connecting to backend…");
     const started = revision.current;
     try {
       const [saved, details] = await withTimeout(Promise.all([load(), getInfo()]));
@@ -564,10 +564,10 @@ function Content() {
       setInfo(details);
       setReady(true);
       setStatus(details.config_readable
-        ? "Backend povezan · profil dostupan igri."
-        : "Backend povezan, ali profil nije čitljiv. Ponovno pokreni Decky Loader.");
+        ? "Backend connected · game profile ready."
+        : "Backend connected, but the profile is unreadable. Restart Decky Loader.");
     } catch (error) {
-      setStatus("Greška veze: " + String(error));
+      setStatus("Connection error: " + String(error));
     }
   };
   useEffect(() => { void refresh(); }, []);
@@ -577,14 +577,14 @@ function Content() {
     current.current = next;
     const id = ++revision.current;
     setSettings(next);
-    setStatus("Spremanje…");
+    setStatus("Saving…");
     queue.current = queue.current.then(async () => {
       try {
         const result = await withTimeout(save(next));
         if (!result.ok) throw new Error("Backend nije potvrdio spremanje.");
-        if (id === revision.current) setStatus("Spremljeno. Ponovno pokreni igru za sigurnu primjenu.");
+        if (id === revision.current) setStatus("Saved. Restart the game to apply changes.");
       } catch (error) {
-        if (id === revision.current) setStatus("Greška pri spremanju: " + String(error));
+        if (id === revision.current) setStatus("Save failed: " + String(error));
       }
     });
   };
@@ -595,7 +595,7 @@ function Content() {
     const command = experimental === "short" ? info?.short_launch_option
       : experimental ? info?.experimental_launch_option : info?.launch_option;
     if (!command) {
-      setCopyStatus("Naredba još nije dostupna.");
+      setCopyStatus("Launch command unavailable.");
       return;
     }
 
@@ -627,8 +627,8 @@ function Content() {
     }
     setCopyStatus(
       copied
-        ? "Kopirano! Zalijepi naredbu u Steam Launch Options."
-        : "Kopiranje nije uspjelo. Provjeri dopušta li SteamOS kopiranje u Game Modeu."
+        ? "Copied! Paste into Steam Launch Options."
+        : "Copy failed. Check clipboard permissions in SteamOS Game Mode."
     );
   };
 
@@ -641,7 +641,7 @@ function Content() {
         update({custom_labels:labels}); dialog.Close();restoreFocus();
       }}/>);
   };
-  const named=(key:string)=>key==="values"?"Vrijednosti":metricName(settings,key);
+  const named=(key:string)=>key==="values"?"Values":metricName(settings,key);
   const tokenTitle=(token:MetricToken)=>{
     const group=token.key==="battery.power"?"draw":token.key.split(".")[0];
     const key=group==="time"?"time":group;
@@ -904,29 +904,29 @@ function Content() {
         </PanelSectionRow>
       </PanelSection>
       <div style={{padding: "0 7px 14px"}}>
-        <AccordionCard id="overlay" title="Overlay" subtitle="Uključi i provjeri prikaz na ekranu"
+        <AccordionCard id="overlay" title="Overlay" subtitle="Display and connection status"
           icon={<FaDesktop />} open={openSection === "overlay"} onToggle={() => toggleSection("overlay")}>
-          {toggle("enabled", "Uključi prikaz")}
+          {toggle("enabled", "Enable overlay")}
           <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
           <PanelSectionRow><Field label="Profil" description={info?.config_readable
-            ? "Konfiguracija je dostupna igri." : "Konfiguracija nije čitljiva ili se učitava."} /></PanelSectionRow>
+            ? "Configuration is ready for games." : "Configuration is unavailable or still loading."} /></PanelSectionRow>
         </AccordionCard>
-        <AccordionCard id="layout" title="Layout" subtitle="Pozicija, veličina, širina i razmaci"
+        <AccordionCard id="layout" title="Layout" subtitle="Position, scale and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
-        {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Padding gore/dolje (px)", 0, 24, 1],
-          ["padding_x", "Padding lijevo i desno (px)", 0, 24, 1],
-          ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
+        {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
+          ["rounding", "Corner radius", 0, 20, 1], ["padding_y", "Vertical padding (px)", 0, 24, 1],
+          ["padding_x", "Horizontal padding (px)", 0, 24, 1],
+          ["offset_y", "Y offset (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready || (key==="padding_x" && !info?.layout_spacing_supported)}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
 
-        <PanelSectionRow><Field label="FPS – veličina broja"
-          description="Povećava samo FPS broj; ostale metrike zadržavaju svoju veličinu." /></PanelSectionRow>
-        <PanelSectionRow><SliderField label={"Veličina FPS broja · "+settings.fps_scale+"%"}
+        <PanelSectionRow><Field label="FPS value scale"
+          description="Povećava samo FPS value; ostale metrike zadržavaju svoju veličinu." /></PanelSectionRow>
+        <PanelSectionRow><SliderField label={"Veličina FPS valuea · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value:number)=>update({fps_scale:value})}/></PanelSectionRow>
-        <div className="claw-fps-scale-preview" aria-label="Pregled veličine FPS broja"
+        <div className="claw-fps-scale-preview" aria-label="Pregled veličine FPS valuea"
           style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",
             background:"#101c2e",border:"1px solid #385a77",borderRadius:8,
             overflow:"hidden",padding:"9px 7px",marginBottom:10}}>
@@ -938,8 +938,8 @@ function Content() {
             <span style={{fontSize:12,color:"#a9bbcf",flexShrink:0}}>GPU 72%</span>
           </span>
         </div>
-        <PanelSectionRow><Field label="Položaj HUD-a"
-          description="Šest položaja uz rub ekrana: tri gore i tri dolje. Nema prikaza u sredini ekrana."/></PanelSectionRow>
+        <PanelSectionRow><Field label="HUD position"
+          description="Choose one of six screen-edge anchors."/></PanelSectionRow>
         {/* Steam's navigation tree must match the visual 3×2 grid: column
             movement between two horizontal rows, row movement within each.
             A single flow-children="row" prevents D-pad up/down navigation. */}
@@ -970,31 +970,31 @@ function Content() {
             </Focusable>
           )}
         </Focusable>
-        <PanelSectionRow><SliderField label="X — lijevo/desno (px)"
+        <PanelSectionRow><SliderField label="X offset (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
           disabled={!ready || settings.hud_position.endsWith("center")}
           onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
-        <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
+        <PanelSectionRow><Field label="Element spacing" description={info?.layout_spacing_supported
           ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
           : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Razmak između elemenata (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
+        <PanelSectionRow><SliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Padding stupaca (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
+        <PanelSectionRow><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><ToggleField label="Jednaki razmaci: FPS, CPU, GPU, RAM, VRAM, BATT"
+        <PanelSectionRow><ToggleField label="Even spacing across inline metrics"
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Razmak unutar grupa (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+        <PanelSectionRow><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
 
-        <PanelSectionRow><Field label="Tip frametime grafa"
-          description="Odaberi tip prema izgledu grafa. D-pad radi u oba smjera kao kod sidrenja." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Frametime graph style"
+          description="Select a visual style using the D-pad." /></PanelSectionRow>
         <GamepadGrid items={graphStyleChoices} columns={2}
           className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
             const selected=settings.graph_style===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"
-              aria-label={"Tip grafa: "+choice.label}
+              aria-label={"Graph style: "+choice.label}
               aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
               onClick={()=>update({graph_style:choice.id})}
               style={{width:"100%",minWidth:0,margin:0,minHeight:84,padding:"8px 3px",
@@ -1009,7 +1009,7 @@ function Content() {
               </span>
             </DialogButton>;
           }}/>
-        <PanelSectionRow><SliderField label="Širina frametime grafa (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+        <PanelSectionRow><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={()=>update({
           fontsize:defaults.fontsize,fps_scale:defaults.fps_scale,
@@ -1018,15 +1018,15 @@ function Content() {
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
-        })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
+        })}>Reset zadane postavke Layouta</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Slider Padding gore/dolje postavlja jednak razmak uz oba ruba. Na 0 px nema dodatnog vertikalnog paddinga. Pozitivni X/Y pomaci idu prema unutrašnjosti; centrirani položaji čuvaju X." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
         </AccordionCard>
-        <AccordionCard id="metrics" title="Metrics" subtitle="Prikazane metrike i njihov redoslijed"
+        <AccordionCard id="metrics" title="Metrics" subtitle="Displayed metrics and their order"
           icon={<FaChartBar />} open={openSection === "metrics"} onToggle={() => toggleSection("metrics")}>
         <PanelSectionRow><div style={{fontSize: 12, color: "#b8c7d5", marginBottom: 8}}>
-          Odaberi karticu za detalje, preimenovanje, pomicanje i skrivanje. Tri metrike u redu.
+          Select a metric to edit its readings, order or label.
         </div></PanelSectionRow>
         <GamepadGrid items={visible} columns={3} className="claw-tiles claw-metric-tiles"
           renderItem={(key) => {
@@ -1036,7 +1036,7 @@ function Content() {
             const count = group.metrics.filter(([id]) => settings.metrics[id]).length + (group.always ? 1 : 0);
             return <DialogButton key={key} data-metric={key} className="metric-card claw-control-button"
               disabled={!ready} aria-pressed={open}
-                aria-label={"Postavke metrike: " + named(key)}
+                aria-label={"Metric settings: " + named(key)}
                 onClick={() => expandMetric(open ? null : key)}
                 style={{width:"100%",minWidth:0,minHeight:62,margin:0,padding:"7px 3px",
                   background:open?"#075783":"#172d44",
@@ -1058,20 +1058,20 @@ function Content() {
           return <div className="metric-detail" style={{border:"1px solid #365d7c",
             borderLeft:"3px solid "+group.color,borderRadius:8,background:"#102236",
             padding:"9px 7px",marginTop:9,minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Postavke</div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Settings</div>
             <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
-              <DialogButton className="claw-control-button" aria-label={"Promijeni naziv: "+named(key)} disabled={!ready}
+              <DialogButton className="claw-control-button" aria-label={"Change naziv: "+named(key)} disabled={!ready}
                 onClick={()=>renameMetric(key)} style={smallButton}><FaPen aria-hidden="true"/></DialogButton>
-              <DialogButton className="claw-control-button" aria-label={"Pomakni gore: "+named(key)} disabled={!ready || index<=0}
+              <DialogButton className="claw-control-button" aria-label={"Move up: "+named(key)} disabled={!ready || index<=0}
                 onClick={()=>move(key,-1)} style={smallButton}>⌃</DialogButton>
-              <DialogButton className="claw-control-button" aria-label={"Pomakni dolje: "+named(key)} disabled={!ready || index===visible.length-1}
+              <DialogButton className="claw-control-button" aria-label={"Move down: "+named(key)} disabled={!ready || index===visible.length-1}
                 onClick={()=>move(key,1)} style={smallButton}>⌄</DialogButton>
-              <DialogButton className="claw-control-button" aria-label={"Sakrij: "+named(key)} disabled={!ready}
+              <DialogButton className="claw-control-button" aria-label={"Hide: "+named(key)} disabled={!ready}
                 onClick={()=>{expandMetric(null);update({[key]:false});}}
-                style={{...smallButton,minWidth:66,width:66,fontSize:12}}>Sakrij</DialogButton>
+                style={{...smallButton,minWidth:66,width:66,fontSize:12}}>Hide</DialogButton>
             </Focusable>
             {group.always && <Field label={related(group.always)} padding="compact">
-              <span style={{fontSize:11,color:"#4acbff"}}>Always</span>
+              <span style={{fontSize:11,color:"#4acbff"}}>Always on</span>
             </Field>}
             {group.metrics.map(([id,label])=><ToggleField key={id} label={related(label)}
               checked={settings.metrics[id]} disabled={!ready}
@@ -1082,10 +1082,10 @@ function Content() {
           </div>;
         })()}
         {hidden.length > 0 && <>
-          <PanelSectionRow><Field label="ADD ELEMENT" description="Vrati skrivenu grupu u red." /></PanelSectionRow>
+          <PanelSectionRow><Field label="ADD METRIC" description="Reset skrivenu grupu u red." /></PanelSectionRow>
           <GamepadGrid items={hidden} columns={3} className="claw-tiles claw-hidden-metric-tiles"
             renderItem={(key)=><DialogButton key={key} className="claw-control-button" disabled={!ready}
-              aria-label={"Prikaži metriku: "+named(key)}
+              aria-label={"Show metric: "+named(key)}
               onClick={()=>update({[key]:true})}
               style={{minWidth:0,width:"100%",minHeight:52,margin:0,padding:"6px 3px",
                 background:"#162b3f",border:"1px dashed #50708e",borderRadius:8}}>
@@ -1098,13 +1098,13 @@ function Content() {
         </>}
 
         </AccordionCard>
-        <AccordionCard id="colors" title="Colors & Font" subtitle="Paleta, separatori, Light / Regular / SemiBold / Bold"
+        <AccordionCard id="colors" title="Colors & Font" subtitle="Palette, typography and saved styles"
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
-          <PanelSectionRow><Field label="BOJE & FONT"
-            description="Globalne postavke ili zasebne postavke naziva i vrijednosti svake metrike." /></PanelSectionRow>
+          <PanelSectionRow><Field label="COLORS & FONT"
+            description="Edit global appearance or individual metric elements." /></PanelSectionRow>
           <GamepadGrid items={styleTabs} columns={3} className="claw-tiles claw-style-tiles"
             renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
-              aria-pressed={styleCategory===key} aria-label={"Stil: "+(key==="global"?name:named(key))}
+              aria-pressed={styleCategory===key} aria-label={"Style: "+(key==="global"?name:named(key))}
               onClick={()=>chooseStyleCategory(key)}
               style={{minWidth:0,width:"100%",minHeight:49,margin:0,padding:"6px 3px",
                 background:styleCategory===key?"#087daf":"#263d5b",
@@ -1118,12 +1118,12 @@ function Content() {
               </span>
             </DialogButton>}/>
           {styleCategory==="global" ? <>
-          <PanelSectionRow><Field label="GLOBALNO" description="Globalna debljina vrijedi za sve elemente. Promjena boje uklanja ručne boje povezanih elemenata; pojedinačne postavke možeš ponovno zadati nakon toga." /></PanelSectionRow>
-          {toggle("sans", "Sans-serif font")}
+          <PanelSectionRow><Field label="GLOBAL" description="Global settings apply by default. Custom element overrides remain until explicitly reset." /></PanelSectionRow>
+          {toggle("sans", "Use bundled font")}
           <PanelSectionRow><Field label="Barlow Semi Condensed" description={
-            info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold učitani."
-              : "Fontovi nisu dostupni; koristi se Claw Sans."} /></PanelSectionRow>
-          <PanelSectionRow><Field label="Osnovna debljina" description="Primjenjuje se na sve elemente i uklanja njihove ručne debljine fonta. Poslije ih možeš ponovno podesiti pojedinačno." /></PanelSectionRow>
+            info?.condensed_fonts_ready ? "Light / Regular / SemiBold / Bold loaded."
+              : "Bundled weights unavailable; using Claw Sans."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Base font weight" description="Default for all elements without a custom font weight." /></PanelSectionRow>
           <GamepadGrid items={(["light","regular","semibold","bold"] as FontWeight[])}
             columns={2} className="claw-tiles claw-weight-tiles" renderItem={(weight)=>
               <DialogButton key={weight} className="claw-control-button" disabled={!ready || !settings.sans}
@@ -1138,7 +1138,7 @@ function Content() {
           <GamepadGrid items={colorRows} columns={3} className="claw-tiles claw-color-tiles"
             renderItem={([key,label])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               onClick={()=>openColorPicker(key,label)}
-              aria-label={"Promijeni boju: "+paletteLabel(key,label)}
+              aria-label={"Change boju: "+paletteLabel(key,label)}
               style={{minWidth:0,width:"100%",minHeight:51,margin:0,padding:"6px 3px",
                 background:"#21354c",border:"1px solid #496783",borderRadius:8,color:"#e8f4ff"}}>
               <span style={{display:"flex",flexDirection:"column",alignItems:"center",
@@ -1151,11 +1151,11 @@ function Content() {
               </span>
             </DialogButton>}/>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
-            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
-          <PanelSectionRow><Field label="MOJI STILOVI"
-            description="Stil pamti boje, font, layout te uključene/isključene grupe i pojedinačne metrike. Postojeći stariji stilovi dobit će metrike nakon ponovnog spremanja." /></PanelSectionRow>
+            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Reset zadane boje</ButtonItem></PanelSectionRow>
+          <PanelSectionRow><Field label="SAVED STYLES"
+            description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
           <div className="loaded-style-status" role="status">
-            {loadedPreset?`Trenutno učitan: Stil ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Trenutno učitan: nijedan"}
+            {loadedPreset?`Active preset: Style ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Active preset: none"}
           </div>
           <Focusable flow-children="column" className="claw-preset-list">
             {(["1","2"] as const).map(slot=>{
@@ -1164,9 +1164,9 @@ function Content() {
               return <div className="claw-preset-card" data-loaded={active} key={slot}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   gap:6,minWidth:0,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>Stil {slot}</span>
+                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>Style {slot}</span>
                   <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
-                    {active?(presetDirty?"Učitan · izmijenjen":"Učitan"):stored?"Spremljen":"Prazan"}
+                    {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
                   </span>
                 </div>
                 <Focusable flow-children="row" className="claw-preset-actions">
@@ -1175,12 +1175,12 @@ function Content() {
                     style={{background:active?"#e0f7ff":"#0874a5",
                       color:active?"#083957":"#ffffff",
                       border:"1px solid #3c91c0",borderRadius:7}}>
-                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Učitaj</span>
+                    <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
                   </DialogButton>
                   <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>savePreset(slot)}
                     style={{background:"#294968",border:"1px solid #507394",
                       borderRadius:7,color:"#ffffff"}}>
-                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Spremi</span>
+                    <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
                   </DialogButton>
                 </Focusable>
               </div>;
@@ -1188,7 +1188,7 @@ function Content() {
           </Focusable>
           </> : <>
           <PanelSectionRow><Field label={named(styleCategory)}
-            description="Svaka stavka ima svoju boju i težinu fonta. Global znači naslijedi osnovnu postavku." /></PanelSectionRow>
+            description="Each element can override color and font weight. Global inherits the default." /></PanelSectionRow>
           {tokenGroups[styleCategory as Exclude<StyleCategory,"global">].map(token=>(
             <div key={token.key} style={{padding:"8px 4px",marginBottom:8,
               background:"#1a2c43",border:"1px solid #375878",borderRadius:8}}>
@@ -1197,7 +1197,7 @@ function Content() {
                 <ButtonItem disabled={!ready} layout="below" onClick={()=>cycleTokenWeight(token.key)}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <span>Font: {weightLabel[settings.token_weights?.[token.key]??"inherit"]}</span>
-                    <span style={{opacity:.7}}>Promijeni <FaChevronRight /></span>
+                    <span style={{opacity:.7}}>Change <FaChevronRight /></span>
                   </span>
                 </ButtonItem>
               </PanelSectionRow>
@@ -1209,12 +1209,12 @@ function Content() {
                       background:"#"+(settings.token_colors?.[token.key]??
                         settings.colors[token.defaultColor]??defaultColors[token.defaultColor]),
                       border:"1px solid #adc7e7"}}/>
-                    {settings.token_colors?.[token.key]?"Vlastita boja":"Boja: globalna"}
+                    {settings.token_colors?.[token.key]?"Custom color":"Global color"}
                   </span>
                 </DialogButton>
                 <DialogButton className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}
                   onClick={()=>resetTokenColor(token.key)}
-                  style={{minWidth:70,padding:7,margin:0}}>Vrati</DialogButton>
+                  style={{minWidth:70,padding:7,margin:0}}>Reset</DialogButton>
               </Focusable></PanelSectionRow>
             </div>
           ))}
@@ -1225,70 +1225,70 @@ function Content() {
                 delete nw[t.key]; delete nc[t.key];
               }
               update({token_weights:nw,token_colors:nc});
-            }}>Vrati kategoriju na globalni izgled</ButtonItem></PanelSectionRow>
+            }}>Reset kategoriju na globalni izgled</ButtonItem></PanelSectionRow>
           </>}
         </AccordionCard>
-        <AccordionCard id="activation" title="Activation" subtitle="Uključi Claw Metrics u igri"
+        <AccordionCard id="activation" title="Activation" subtitle="Launch Claw Metrics in games"
           icon={<FaPlayCircle />} open={openSection === "activation"} onToggle={() => toggleSection("activation")}>
           <PanelSectionRow><Field label="Steam Launch Options"
             description={info?.short_launcher_ready
               ? info.short_launch_option
-              : "Kratki launcher nije spreman. Ponovno učitaj Decky i provjeri instalaciju."} /></PanelSectionRow>
+              : "Launcher unavailable. Reload Decky and check the installation."} /></PanelSectionRow>
           <PanelSectionRow><ButtonItem layout="below" disabled={!info?.short_launcher_ready}
             onClick={()=>{ void copyLaunchCommand("short"); }}>
-            <FaCopy style={{marginRight:8}} /> Kopiraj launch komandu
+            <FaCopy style={{marginRight:8}} /> Copy launch command
           </ButtonItem></PanelSectionRow>
-          {copyStatus && <PanelSectionRow><Field label="Kopiranje" description={copyStatus}/></PanelSectionRow>}
-          <PanelSectionRow><Field label="Pokretanje"
-            description="Zalijepi komandu u Steam Launch Options pojedine igre. Nakon promjene postavki ponovno pokreni igru. Stari i dugi rezervni launch načini dostupni su u Advanced." /></PanelSectionRow>
+          {copyStatus && <PanelSectionRow><Field label="Clipboard" description={copyStatus}/></PanelSectionRow>}
+          <PanelSectionRow><Field label="How to use"
+            description="Paste into a game's Steam Launch Options. Restart the game after changes. Backup commands are in Advanced." /></PanelSectionRow>
         </AccordionCard>
-        <AccordionCard id="advanced" title="Advanced" subtitle="Dijagnostika, senzori i tehničke informacije"
+        <AccordionCard id="advanced" title="Advanced" subtitle="Updates and troubleshooting"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
-        <PanelSectionRow><Field label="Ažuriranja s GitHuba"
-          description="Provjerava najnovije testno izdanje Claw Metricsa. Instalacija je dobrovoljna i koristi službenu Decky potvrdu." /></PanelSectionRow>
+        <PanelSectionRow><Field label="GitHub updates"
+          description="Check for releases and confirm installation through Decky Loader." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready || updateBusy}
           layout="below" onClick={()=>{ void checkGithubRelease(); }}>
           <FaDownload style={{marginRight:8}} />
-          {updateBusy ? "Provjeravam GitHub…" : "Provjeri novu verziju"}
+          {updateBusy ? "Checking GitHub…" : "Check for updates"}
         </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Status ažuriranja" description={updateStatus} /></PanelSectionRow>
-        {updateFallback && <PanelSectionRow><Field label="Ručna instalacija preko Decky Settings → Developer"
+        <PanelSectionRow><Field label="Update status" description={updateStatus} /></PanelSectionRow>
+        {updateFallback && <PanelSectionRow><Field label="Manual install via Decky Settings → Developer"
           description={updateFallback} /></PanelSectionRow>}
         <PanelSectionRow><ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
-          {showLegacyCommand ? "Sakrij rezervne komande" : "Prikaži rezervne komande"}
+          {showLegacyCommand ? "Hide rezervne komande" : "Show backup commands"}
         </ButtonItem></PanelSectionRow>
         {showLegacyCommand && <>
-          <PanelSectionRow><Field label="Duga Vulkan komanda (rezervna)"
-            description={info?.experimental_launch_option ?? "Nije dostupna"} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Extended Vulkan command (backup)"
+            description={info?.experimental_launch_option ?? "Unavailable"} /></PanelSectionRow>
           <PanelSectionRow><ButtonItem disabled={!info?.experimental_launch_option} layout="below"
             onClick={()=>{ void copyLaunchCommand(true); }}>
-            <FaCopy style={{marginRight:8}}/> Kopiraj dugu Vulkan komandu
+            <FaCopy style={{marginRight:8}}/> Copy extended Vulkan command
           </ButtonItem></PanelSectionRow>
-          <PanelSectionRow><Field label="Obični MangoHud (bez Claw renderera)"
-            description={info?.launch_option ?? "Nije dostupna"} /></PanelSectionRow>
+          <PanelSectionRow><Field label="Stock MangoHud (without Claw renderer)"
+            description={info?.launch_option ?? "Unavailable"} /></PanelSectionRow>
           <PanelSectionRow><ButtonItem disabled={!info?.launch_option} layout="below"
             onClick={()=>{ void copyLaunchCommand(); }}>
-            <FaCopy style={{marginRight:8}}/> Kopiraj standardnu komandu
+            <FaCopy style={{marginRight:8}}/> Copy stock launch command
           </ButtonItem></PanelSectionRow>
         </>}
-        <PanelSectionRow><Field label="TDP limit (read-only)" description="Ne mijenja TDP. Senzor očitava postavljeni limit; Panel de Control i dalje upravlja TDP-om." /></PanelSectionRow>
+        <PanelSectionRow><Field label="TDP limit (read-only)" description="Read-only TDP limit from the active profile. Panel de Control still manages TDP." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
-          Provjeri TDP očitanje
+          Check TDP sensor
         </ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Izvor TDP-a · dijagnostika" description={tdpStatus} /></PanelSectionRow>
+        <PanelSectionRow><Field label="TDP diagnostic source" description={tdpStatus} /></PanelSectionRow>
         {info?.layout_spacing_supported && <PanelSectionRow>
           <ButtonItem layout="below" disabled={rendererBusy} onClick={() => { void verifyRenderer(); }}>
-            Provjeri koristi li igra eksperimentalni renderer
+            Check game renderer
           </ButtonItem>
         </PanelSectionRow>}
         {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="Stvarno učitana biblioteka" description={rendererStatus} />
+          <Field label="Loaded renderer library" description={rendererStatus} />
         </PanelSectionRow>}
 
-          <PanelSectionRow><Field label="Stanje konfiguracije" description={info?.config_path ?? "Nije učitano"} /></PanelSectionRow>
-          <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "TDP -- · nema potvrđenog očitanja."} /></PanelSectionRow>
-          <PanelSectionRow><Field label="DRAW" description={info?.power_note ?? "Očitavanje ovisi o baterijskom senzoru."} /></PanelSectionRow>
-          <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => { void refresh(); }}>Ponovno učitaj status</ButtonItem></PanelSectionRow>
+          <PanelSectionRow><Field label="Configuration path" description={info?.config_path ?? "Not loaded"} /></PanelSectionRow>
+          <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "TDP -- · no verified reading."} /></PanelSectionRow>
+          <PanelSectionRow><Field label="DRAW" description={info?.power_note ?? "Reading depends on the battery sensor."} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => { void refresh(); }}>Refresh status</ButtonItem></PanelSectionRow>
         </AccordionCard>
       </div>
     </>
