@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/compact-sliders-colors-47]
+    branches: [test/appearance-toggle-installed-version-48]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.47
+  group: claw-metrics-v0.2.4-test.48
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.47.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.48.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -176,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.47', package['version']
+              assert package['version'] == '0.2.4-test.48', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.47
-          path: ClawMetrics-v0.2.4-test.47.zip
+          name: ClawMetrics-v0.2.4-test.48
+          path: ClawMetrics-v0.2.4-test.48.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.47 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.47 ClawMetrics-v0.2.4-test.47.zip \
+          gh release delete v0.2.4-test.48 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.48 ClawMetrics-v0.2.4-test.48.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.47 – Compact Layout sliders and Colors editor" \
-            --notes "UI-only fixes. Layout: shrink all 10 native Decky sliders and their internal Steam track/flex containers to fit the narrow QAM panel (max 330 px). Colors & Font: make per-metric font, color and reset controls compact in one D-pad-friendly row, reducing scrolling while preserving all options. No changes to MangoHud renderer, metrics, saved styles, Python backend or launch commands. Physical MSI Claw validation still required."
+            --title "Claw Metrics v0.2.4-test.48 – Collapsible Appearance Editor and live installed version" \
+            --notes "Two targeted UI fixes: pressing an already-selected Appearance Editor category collapses the row, matching Metrics. Advanced -> Updates now reads the actual installed package.json version from the local Decky Python backend, never a hardcoded test.43 string, with readable error handling. Keeps the modularized six-card UI, compact sliders, saved styles and original MangoHud renderer unchanged. MSI Claw on-device verification still recommended."
