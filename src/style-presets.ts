@@ -8,7 +8,7 @@ export function styleLayoutFrom(value:any){
   if(key==='sans'||key==='inline_metrics'||key==='center_horizontal'){if(typeof v==='boolean')result[key]=v}
   else if(key==='hud_position'){if(['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'].includes(v))result[key]=v}
   else if(key==='hud_orientation'){if(v==='horizontal'||v==='vertical')result[key]=v}
-  else if(key==='graph_style'){if(['area','line','bars','dual'].includes(v))result[key]=v}
+  else if(key==='graph_style'){if(['area','line','bars','dual','smooth','dual_layer'].includes(v))result[key]=v}
   else if(key==='vertical_graph_style'){if(['area','line','bars','dual','smooth','dual_layer'].includes(v))result[key]=v}
   else if(typeof v==='number'&&Number.isFinite(v))result[key]=v;
  }
