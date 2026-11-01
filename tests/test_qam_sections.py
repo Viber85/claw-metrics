@@ -63,6 +63,19 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_compact_three_column_grids_preserve_actions_and_focus(self):
         self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", SOURCE)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", SOURCE)
+        self.assertIn('<Focusable flow-children="column" className={className}>', SOURCE)
+        self.assertIn('<Focusable key={rowIndex} flow-children="row"', SOURCE)
+        self.assertIn('rows.push(items.slice(at,at+columns))', SOURCE)
+        self.assertNotIn('<div className="claw-tiles claw-metric-tiles">', SOURCE)
+        self.assertIn('data-metric={key} className="metric-card claw-control-button"', SOURCE)
+        for kind in ('claw-metric-tiles', 'claw-hidden-metric-tiles',
+                     'claw-style-tiles', 'claw-weight-tiles', 'claw-color-tiles'):
+            self.assertIn('className="claw-tiles ' + kind + '"', SOURCE)
+        self.assertIn('.claw-control-button.gpfocus', SOURCE)
+        self.assertIn('.claw-control-button:focus-visible', SOURCE)
+        self.assertIn('border: 2px solid #ffffff !important;', SOURCE)
+        self.assertIn('box-shadow: 0 0 0 2px #31deff', SOURCE)
         for name in ("claw-style-tiles", "claw-color-tiles",
                      "claw-metric-tiles", "claw-hidden-metric-tiles",
                      "claw-weight-tiles"):
@@ -224,19 +237,33 @@ class GroupedQamTests(unittest.TestCase):
                        "ImGui::GetIO().DisplaySize"):
             self.assertIn(marker, native)
 
-    def test_frametime_dropdown_has_four_styles(self):
-        self.assertIn('label="Tip frametime grafa"',SOURCE)
-        self.assertIn('rgOptions={graphStyleOptions} selectedOption={settings.graph_style}',SOURCE)
-        self.assertIn('function GraphStyleIcon({kind}',SOURCE)
-        self.assertIn('function graphOption(kind:GraphStyle, label:string)',SOURCE)
-        for kind, label in (("area","A · Ispuna"),("line","B · Linijski graf"),
-                            ("bars","C · Histogram"),("dual","F · Linija + blaga ispuna")):
-            self.assertIn(f'graphOption("{kind}","{label}")',SOURCE)
-        self.assertIn('kind === "bars"',SOURCE)
-        self.assertIn('kind === "dual" ? 2.4 : 1.7',SOURCE)
-        self.assertIn('fillOpacity={kind === "area" ? 0.8 : 0.2}',SOURCE)
-        self.assertIn('maxWidth:"100%",minWidth:0',SOURCE)
-        self.assertIn("graph_style:defaults.graph_style",SOURCE)
+    def test_frametime_styles_are_2x2_gamepad_buttons(self):
+        self.assertIn('label="Tip frametime grafa"', SOURCE)
+        self.assertNotIn('rgOptions={graphStyleOptions}', SOURCE)
+        self.assertNotIn('DropdownItem', SOURCE)
+        self.assertIn('function GraphStyleIcon({kind}', SOURCE)
+        self.assertIn('const graphStyleChoices:', SOURCE)
+        for kind, letter, label in (("area", "A", "Ispuna"),
+                                    ("line", "B", "Linijski graf"),
+                                    ("bars", "C", "Histogram"),
+                                    ("dual", "F", "Linija + ispuna")):
+            self.assertIn(f'id:"{kind}",letter:"{letter}",label:"{label}"', SOURCE)
+        self.assertIn('items={graphStyleChoices} columns={2}', SOURCE)
+        self.assertIn('aria-pressed={selected}', SOURCE)
+        self.assertIn('onClick={()=>update({graph_style:choice.id})}', SOURCE)
+        self.assertIn('disabled={!ready || !info?.layout_spacing_supported}', SOURCE)
+        self.assertIn('kind === "bars"', SOURCE)
+        self.assertIn('kind === "dual" ? 2.4 : 1.7', SOURCE)
+        self.assertIn('fillOpacity={kind === "area" ? 0.8 : 0.2}', SOURCE)
+        self.assertIn('graph_style:defaults.graph_style', SOURCE)
+        
+    def test_colors_subactions_support_controller_focus(self):
+        self.assertIn('<Focusable flow-children="column" className="claw-preset-list">', SOURCE)
+        self.assertIn('<Focusable flow-children="row" className="claw-preset-actions">', SOURCE)
+        self.assertIn('className="claw-control-button" disabled={!ready||!stored}', SOURCE)
+        self.assertIn('<Focusable flow-children="row" style={{display:"flex",gap:5}}>', SOURCE)
+        self.assertIn('className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}', SOURCE)
+        self.assertIn('className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}', SOURCE)
 
     def test_graph_styles_native_patch_present(self):
         root=pathlib.Path(__file__).resolve().parents[1]
