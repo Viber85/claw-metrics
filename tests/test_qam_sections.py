@@ -478,6 +478,22 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('onOK={()=>{ dialog.Close(); requestGithubInstall(release); }}', SOURCE)
         self.assertIn('onClick={()=>{ void checkGithubRelease(); }}', SOURCE)
 
+    def test_github_check_uses_decky_https_and_safe_python_validation(self):
+        self.assertIn('GITHUB_RELEASES_API = "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30"', SOURCE)
+        self.assertIn('loader.callable("utilities/http_request")', SOURCE)
+        self.assertIn('request("GET",GITHUB_RELEASES_API', SOURCE)
+        self.assertIn('const validateGithubReleases = callable<[string],GithubUpdateInfo>("validate_github_releases")', SOURCE)
+        self.assertIn('validateGithubReleases(http.body)', SOURCE)
+        self.assertIn('if (!result.ok) throw new Error(result.error', SOURCE)
+        self.assertIn('const fallback=await withTimeout(checkUpdates());', SOURCE)
+        self.assertIn('if (!fallback.ok)', SOURCE)
+        self.assertIn('Python HTTPS:', SOURCE)
+        self.assertIn('Nema novijeg testnog izdanja.', SOURCE)
+        self.assertIn('GitHub API: HTTP ', SOURCE)
+        # No unverified GitHub data is forwarded to the Decky installer.
+        self.assertNotIn('JSON.parse(http.body)', SOURCE)
+        self.assertNotIn('fetch(GITHUB_RELEASES_API)', SOURCE)
+
     def test_activation_keeps_primary_short_launcher_and_advanced_fallback(self):
         start=SOURCE.index('<AccordionCard id="activation"')
         advanced=SOURCE.index('<AccordionCard id="advanced"',start)
