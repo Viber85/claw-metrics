@@ -43,12 +43,17 @@ change("font.cpp",
    claw_fps_semibold = nullptr;
    claw_fps_bold = nullptr;""")
 change("font.cpp","   font_atlas->Build();\n}",
-    """   // Separate FPS fonts use the same atlas so ImGui reserves proper width.
-   if (params.claw_fps_scale > 100 && params.claw_fps_scale <= 200) {
-      const float fps_size = font_size * params.claw_fps_scale / 100.0f;
+    """   // Bake FPS glyphs at 200% once, even if FPS was 100% at game startup.
+   // The display percentage is selected at runtime via ImFont::Scale.
+   {
+      const float fps_size = font_size * 2.0f;
+      static const ImWchar claw_fps_digits[] = {
+         0x0020, 0x0020, 0x002D, 0x002E, 0x0030, 0x0039, 0
+      };
       auto add_fps = [&](const std::string& path) -> ImFont* {
          if (path.empty() || !file_exists(path)) return nullptr;
-         return font_atlas->AddFontFromFileTTF(path.c_str(), fps_size, nullptr, default_range);
+         return font_atlas->AddFontFromFileTTF(path.c_str(), fps_size,
+                                               nullptr, claw_fps_digits);
       };
       claw_fps_default = add_fps(params.font_file);
       claw_fps_light = add_fps(params.claw_light_font_file);
@@ -70,18 +75,26 @@ extern ImFont* claw_fps_bold;
 static ImFont* ClawFpsFontForToken() {
     if (!HUDElements.params || HUDElements.params->claw_fps_scale <= 100)
         return nullptr;
+    ImFont* chosen = nullptr;
     const auto& map = HUDElements.params->claw_weight_map;
     if (map.size() > 1) {
         switch (map[1]) {
-            case '1': return claw_fps_light;
-            case '2': return claw_fps_regular;
-            case '3': return claw_fps_semibold;
-            case '4': return claw_fps_bold;
+            case '1': chosen = claw_fps_light; break;
+            case '2': chosen = claw_fps_regular; break;
+            case '3': chosen = claw_fps_semibold; break;
+            case '4': chosen = claw_fps_bold; break;
             default: break;
         }
     }
-    return HUDElements.params->claw_fps_bold && claw_fps_bold ?
-        claw_fps_bold : claw_fps_default;
+    if (!chosen)
+        chosen = HUDElements.params->claw_fps_bold && claw_fps_bold ?
+            claw_fps_bold : claw_fps_default;
+    // Dedicated digit font only. Do not scale CPU/GPU labels or any other
+    // glyphs. ImGui::PushFont respects Scale for layout and rasterization.
+    if (chosen)
+        chosen->Scale = ImClamp(float(HUDElements.params->claw_fps_scale) / 200.0f,
+                               0.5f, 1.0f);
+    return chosen;
 }
 
 static ImFont* ClawFontForToken""")
