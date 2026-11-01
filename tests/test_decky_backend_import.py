@@ -74,7 +74,7 @@ class DeckySandboxImportTests(unittest.TestCase):
         self.assertIn("'py_modules/updates.py'", workflow)
         self.assertNotIn("cp plugin.json package.json main.py sensors.py updates.py", workflow)
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        self.assertEqual(version, "0.2.4-test.42")
+        self.assertEqual(version, "0.2.4-test.43")
 
 
 if __name__ == "__main__":
