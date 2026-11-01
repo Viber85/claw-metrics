@@ -114,14 +114,19 @@ change("overlay.cpp",
     """   ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
    if (params.claw_center_horizontal &&
        params.enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
-       params.position == LAYER_POSITION_TOP_LEFT) {
+       (params.position == LAYER_POSITION_TOP_LEFT ||
+        params.position == LAYER_POSITION_BOTTOM_LEFT)) {
+       // Keep centered anchors on the screen edges, never its vertical middle.
        // Make the compact window equal to the previous frame's visible HUD.
        // The ImGui host/table width is not a valid measurement.
        const float display_width = ImGui::GetIO().DisplaySize.x;
        const float strip_width = ImClamp(window_size.x, 1.0f, display_width);
        ImGui::SetNextWindowSize(ImVec2(strip_width, window_size.y), ImGuiCond_Always);
        const float center_x = ImMax(0.0f, (display_width - strip_width) * 0.5f);
-       data.main_window_pos = ImVec2(center_x, margin + params.offset_y);
+       const float y = params.position == LAYER_POSITION_BOTTOM_LEFT
+           ? ImGui::GetIO().DisplaySize.y - window_size.y - margin + params.offset_y
+           : margin + params.offset_y;
+       data.main_window_pos = ImVec2(center_x, y);
        ImGui::SetNextWindowPos(data.main_window_pos, ImGuiCond_Always);
        return;
    }
