@@ -31,9 +31,9 @@ def installed_version(package_file):
         data = json.loads(pathlib.Path(package_file).read_text(encoding="utf-8"))
         value = data.get("version")
     except (OSError, ValueError, TypeError) as error:
-        raise RuntimeError("Nije moguće pročitati instaliranu verziju plugina.") from error
+        raise RuntimeError("Unable to read installed plugin version.") from error
     if version_number(value) is None:
-        raise RuntimeError("Instalirana verzija nije u podržanom formatu.")
+        raise RuntimeError("Installed version has an unsupported format.")
     return value
 
 
@@ -41,7 +41,7 @@ def latest_compatible_release(releases):
     best = None
     best_number = -1
     if not isinstance(releases, list):
-        raise RuntimeError("GitHub nije vratio popis izdanja.")
+        raise RuntimeError("GitHub did not return a list of releases.")
     for release in releases:
         if not isinstance(release, dict) or release.get("draft"):
             continue
@@ -85,11 +85,11 @@ def validate_github_feed(package_file, raw):
     """
     current = installed_version(package_file)
     if not isinstance(raw, str) or len(raw.encode("utf-8")) > MAX_RESPONSE:
-        raise RuntimeError("Nevaljani ili preveliki GitHub odgovor.")
+        raise RuntimeError("Invalid or oversized GitHub response.")
     try:
         releases = json.loads(raw)
     except ValueError as error:
-        raise RuntimeError("GitHub nije vratio valjane podatke o izdanjima.") from error
+        raise RuntimeError("GitHub returned invalid release data.") from error
     candidate = latest_compatible_release(releases)
     return {
         "current": current,
@@ -103,9 +103,9 @@ def describe_error(error):
     if isinstance(error, urllib.error.HTTPError):
         code = error.code
         if code in (403, 429):
-            return f"GitHub ograničava zahtjeve (HTTP {code}). Pokušaj kasnije."
-        return f"GitHub API vratio je HTTP {code}."
-    message = str(error).strip() or "Nepoznata greška"
+            return f"GitHub rate limit reached (HTTP {code}). Try again later."
+        return f"GitHub API returned HTTP {code}."
+    message = str(error).strip() or "Unknown error"
     if isinstance(error, urllib.error.URLError):
         reason = getattr(error, "reason", None)
         message = str(reason or error)
@@ -128,5 +128,5 @@ def check_github_update(package_file):
             if len(raw) > MAX_RESPONSE:
                 raise RuntimeError("GitHub odgovor je prevelik.")
     except (urllib.error.URLError, OSError, TimeoutError) as error:
-        raise RuntimeError("Nije moguće povezati se s GitHubom. Provjeri internet.") from error
+        raise RuntimeError("Unable to reach GitHub. Check network access or authentication.") from error
     return validate_github_feed(package_file, raw.decode("utf-8"))
