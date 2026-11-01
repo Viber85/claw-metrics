@@ -60,13 +60,33 @@ class DeckySandboxImportTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DECKY_SANDBOX_IMPORT_OK", result.stdout)
 
-    def test_root_only_module_cannot_load_in_actual_decky_sandbox(self):
+    def test_missing_optional_updater_does_not_disable_all_controls(self):
+        # Regress test.40: optional update code must not break Decky backend
+        # startup, even if the ZIP's updater file is missing or misplaced.
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             self.setup_fake_install(folder, include_py_modules=False)
             result = self.decky_import(folder)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("No module named 'updates'", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("DECKY_SANDBOX_IMPORT_OK", result.stdout)
+
+    def test_missing_updater_returns_clean_error_after_backend_import(self):
+        script = IMPORT_SCRIPT + """
+import asyncio
+result = asyncio.run(module.Plugin().check_updates())
+assert result["ok"] is False
+assert "missing" in result["error"].lower() or "module" in result["error"].lower()
+print("OPTIONAL_UPDATER_ERROR_OK")
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            self.setup_fake_install(folder, include_py_modules=False)
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", script, str(folder)],
+                cwd="/", capture_output=True, text=True, timeout=10,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("OPTIONAL_UPDATER_ERROR_OK", result.stdout)
 
     def test_installer_zip_and_version_match_runtime_import_requirements(self):
         workflow = (ROOT / ".github/workflows/layout-experiment.yml").read_text()
@@ -74,7 +94,7 @@ class DeckySandboxImportTests(unittest.TestCase):
         self.assertIn("'py_modules/updates.py'", workflow)
         self.assertNotIn("cp plugin.json package.json main.py sensors.py updates.py", workflow)
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        self.assertEqual(version, "0.2.4-test.44")
+        self.assertEqual(version, "0.2.4-test.45")
 
 
 if __name__ == "__main__":
