@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/github-self-update-40]
+    branches: [test/decky-backend-import-fix-41]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.40
+  group: claw-metrics-v0.2.4-test.41
   cancel-in-progress: true
 
 jobs:
@@ -59,6 +59,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test frontend style persistence
         run: node tests/style_presets.test.mjs
+      - name: Verify isolated Decky backend import
+        run: python3 -m unittest tests.test_decky_backend_import
       - name: Type-check QAM
         run: npm run typecheck
       - name: Build QAM
@@ -151,19 +153,21 @@ jobs:
       - name: Package isolated experimental Decky ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py sensors.py updates.py README.md artifact/ClawMetrics/
+          cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
+          mkdir -p artifact/ClawMetrics/py_modules
+          cp updates.py artifact/ClawMetrics/py_modules/updates.py
           cp -r dist assets native64 artifact/ClawMetrics/
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.40.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.41.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['main.py','updates.py','plugin.json','dist/index.js','native64/libMangoHud.so',
+              for p in ['main.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -172,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.40', package['version']
+              assert package['version'] == '0.2.4-test.41', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.40
-          path: ClawMetrics-v0.2.4-test.40.zip
+          name: ClawMetrics-v0.2.4-test.41
+          path: ClawMetrics-v0.2.4-test.41.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.40 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.40 ClawMetrics-v0.2.4-test.40.zip \
+          gh release delete v0.2.4-test.41 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.41 ClawMetrics-v0.2.4-test.41.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.40 – GitHub update checker with Decky install confirmation" \
-            --notes "Adds a manual GitHub Releases update check in Advanced with changelog dialog and user-approved installation by Decky Loader with SHA-256 check. Simplifies Activation and retains fallback commands in Advanced. The loader reloads Claw Metrics automatically or allows manual reload. Offline errors and missing loader API have a safe fallback. All previous native HUD fixes remain."
+            --title "Claw Metrics v0.2.4-test.41 – fix Decky backend import path for disabled controls" \
+            --notes "Fixes disabled/greyed-out settings caused by the test.40 updater module outside Decky's supported py_modules path. Packages updates.py under py_modules and regression-tests the actual Decky isolated import mechanism. All existing native HUD, launch commands, saved styles, settings and manual GitHub update UI remain unchanged. Install test.41 manually because the test.40 backend cannot load the updater."
