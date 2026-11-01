@@ -507,6 +507,35 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('copyLaunchCommand(true)',fallback)
         self.assertIn('copyLaunchCommand();',fallback)
 
+    def test_layout_nested_sliders_are_bounded_inside_cards(self):
+        self.assertIn('className="claw-layout-slider"', SOURCE)
+        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 10)
+        self.assertIn('width: calc(100% - 20px)', SOURCE)
+        self.assertIn('[data-section="layout"] .claw-layout-slider', SOURCE)
+        self.assertIn('[class*="DialogSlider"]', SOURCE)
+        self.assertIn('max-width: 100% !important;', SOURCE)
+        # Still use SteamOS native SliderField for D-pad and numeric editing.
+        self.assertIn('<SliderField label="Frametime graph width (px)"', SOURCE)
+        self.assertIn('<SliderField label="Vertical padding (px)"', SOURCE)
+
+    def test_metrics_show_active_sensor_fraction(self):
+        self.assertIn('{count}/{total}</span>', SOURCE)
+        self.assertIn('total>1', SOURCE)
+        self.assertNotIn('{count} active</span>', SOURCE)
+
+    def test_appearance_editor_expands_after_its_category_row(self):
+        self.assertIn('className="claw-style-rows"', SOURCE)
+        self.assertIn('styleTabs.slice(rowIndex*3,rowIndex*3+3)', SOURCE)
+        self.assertIn('className="claw-style-row"', SOURCE)
+        self.assertIn('items={row} columns={3} className="claw-tiles claw-style-tiles"', SOURCE)
+        self.assertIn('row.some(([key])=>key===styleCategory)', SOURCE)
+        self.assertIn('className="claw-style-detail"', SOURCE)
+        self.assertLess(SOURCE.index('className="claw-style-detail"'),
+                        SOURCE.index('styleCategory==="global" ? <>'))
+        self.assertIn('onClick={()=>chooseStyleCategory(key)}', SOURCE)
+        self.assertIn('lastStyleCategory = id', SOURCE)
+        self.assertIn('className="claw-preset-list"', SOURCE)
+
     def test_ux_refresh_keeps_all_six_cards_controller_and_settings(self):
         for title in ('Position','Size & appearance','Spacing','Frametime graph'):
             self.assertIn('<ControlGroup title="'+title+'"', SOURCE)
