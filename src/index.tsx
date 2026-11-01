@@ -23,13 +23,14 @@ import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 type FontWeight = "light" | "regular" | "semibold" | "bold";
 type GraphStyle = "area" | "line" | "bars" | "dual";
-type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-right";
+type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
   {id:"top-left",label:"Gore lijevo",icon:"↖",column:1,row:1},
+  {id:"top-center",label:"Gore sredina",icon:"↑",column:2,row:1},
   {id:"top-right",label:"Gore desno",icon:"↗",column:3,row:1},
-  {id:"top-center",label:"Centar",icon:"•",column:2,row:2},
-  {id:"bottom-left",label:"Dolje lijevo",icon:"↙",column:1,row:3},
-  {id:"bottom-right",label:"Dolje desno",icon:"↘",column:3,row:3},
+  {id:"bottom-left",label:"Dolje lijevo",icon:"↙",column:1,row:2},
+  {id:"bottom-center",label:"Dolje sredina",icon:"↓",column:2,row:2},
+  {id:"bottom-right",label:"Dolje desno",icon:"↘",column:3,row:2},
 ];
 
 // Tiny real graph silhouettes make every option recognizable in Decky's narrow menu.
@@ -698,7 +699,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.31">
+      <PanelSection title="Claw Metrics · v0.2.4-test.32">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -747,15 +748,15 @@ function Content() {
           </span>
         </div>
         <PanelSectionRow><Field label="Položaj HUD-a"
-          description="Odaberi jedan od četiri kuta ili centar na vrhu ekrana."/></PanelSectionRow>
+          description="Šest položaja uz rub ekrana: tri gore i tri dolje. Nema prikaza u sredini ekrana."/></PanelSectionRow>
         <Focusable flow-children="row" style={{display:"grid",
-          gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(3,54px)",
+          gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,54px)",
           gap:5,padding:"0 4px 12px",maxWidth:"100%",boxSizing:"border-box"}}>
           {hudPositions.map((anchor)=>{
             const selected=settings.hud_position===anchor.id;
             return <DialogButton key={anchor.id} aria-label={anchor.label} aria-pressed={selected}
-              disabled={!ready || (anchor.id==="top-center" && !info?.layout_spacing_supported)}
-              onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id==="top-center"})}
+              disabled={!ready || (anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
+              onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
               style={{gridColumn:anchor.column,gridRow:anchor.row,margin:0,
                 padding:"4px 2px",minWidth:0,minHeight:50,
                 border:selected?"2px solid #31cefa":"1px solid #43607a",
@@ -772,7 +773,7 @@ function Content() {
         </Focusable>
         <PanelSectionRow><SliderField label="X — lijevo/desno (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
-          disabled={!ready || settings.hud_position==="top-center"}
+          disabled={!ready || settings.hud_position.endsWith("center")}
           onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
         <PanelSectionRow><Field label="Bočni padding i razmak" description={info?.layout_spacing_supported
           ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
@@ -803,7 +804,7 @@ function Content() {
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Pozitivni X/Y pomaci idu prema unutrašnjosti od odabranog ruba. Centar zanemaruje X, ali čuva njegovu vrijednost." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Pozitivni X/Y pomaci idu prema unutrašnjosti od odabranog ruba. Gornja i donja sredina zanemaruju X, ali čuvaju njegovu vrijednost." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
         </AccordionCard>
