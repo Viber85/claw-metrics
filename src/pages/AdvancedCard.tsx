@@ -25,12 +25,12 @@ const { AccordionCard, ControlGroup } = Core;
 
 /** Standalone advanced presentation; all mutable state is owned by the Decky controller. */
 export function AdvancedCard({vm}:{vm:Core.ClawController}) {
-  const { info, status, installedVersion, installedVersionError, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
+  const { info, status, installedVersion, installedVersionError, advancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
   return (
 <AccordionCard id="advanced" title="Advanced" subtitle="Updates and troubleshooting"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
           <ControlGroup title="Updates" summary="Installed version · GitHub releases"
-            open={advancedPanel==="updates"} onToggle={()=>setAdvancedPanel("updates")}>
+            open={advancedPanel==="updates"} onToggle={()=>toggleAdvancedPanel("updates")}>
             <PanelSectionRow><Field label="Installed version"
               description={installedVersion
                 ? "Claw Metrics "+installedVersion
@@ -48,7 +48,7 @@ export function AdvancedCard({vm}:{vm:Core.ClawController}) {
 
           </ControlGroup>
           <ControlGroup title="Diagnostics" summary="TDP sensor · renderer · configuration"
-            open={advancedPanel==="diagnostics"} onToggle={()=>setAdvancedPanel("diagnostics")}>
+            open={advancedPanel==="diagnostics"} onToggle={()=>toggleAdvancedPanel("diagnostics")}>
         <PanelSectionRow><Field label="TDP limit (read-only)" description="Read-only TDP limit from the active profile. Panel de Control still manages TDP." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Check TDP sensor
@@ -76,7 +76,7 @@ export function AdvancedCard({vm}:{vm:Core.ClawController}) {
           </ButtonItem></PanelSectionRow>
           </ControlGroup>
           <ControlGroup title="Backup launch commands" summary="Only for troubleshooting"
-            open={advancedPanel==="backup"} onToggle={()=>setAdvancedPanel("backup")}>
+            open={advancedPanel==="backup"} onToggle={()=>toggleAdvancedPanel("backup")}>
 
           <PanelSectionRow><Field label="Extended Vulkan command (backup)"
             description={info?.experimental_launch_option ?? "Unavailable"} /></PanelSectionRow>
