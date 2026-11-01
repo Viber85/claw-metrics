@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/graph-style-icons-37]
+    branches: [test/style-metric-snapshot-38]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.37
+  group: claw-metrics-v0.2.4-test.38
   cancel-in-progress: true
 
 jobs:
@@ -57,6 +57,8 @@ jobs:
         run: python3 -m unittest discover -s tests
       - name: Install Decky dependencies
         run: npm install --no-audit --no-fund
+      - name: Test frontend style persistence
+        run: node tests/style_presets.test.mjs
       - name: Type-check QAM
         run: npm run typecheck
       - name: Build QAM
@@ -149,7 +151,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.37.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.38.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -168,14 +170,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.37
-          path: ClawMetrics-v0.2.4-test.37.zip
+          name: ClawMetrics-v0.2.4-test.38
+          path: ClawMetrics-v0.2.4-test.38.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.37 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.37 ClawMetrics-v0.2.4-test.37.zip \
+          gh release delete v0.2.4-test.38 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.38 ClawMetrics-v0.2.4-test.38.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.37 – visual graph icons instead of letter shortcuts" \
-            --notes "Replaces A/B/C/F letters in the 2x2 frametime graph selector with large SVG mini-previews for filled area, line, histogram, and line plus fill. Keeps readable style names and SteamOS D-pad navigation, selected/focused states, and all test.36 settings and native renderer. Device UI check recommended."
+            --title "Claw Metrics v0.2.4-test.38 – save and restore metric selections in style slots" \
+            --notes "Fixes style slots 1 and 2 so they save and restore both enabled/disabled main Metrics groups and individual metric sensor switches, not only colors/fonts/layout. Active style dirty indicator now detects changes in metric selection. Existing version 2 appearance-only styles remain valid and do not alter metrics until re-saved; renamed metric labels and manual order remain global. Adds frontend logic and backend normalization regression tests. Native renderer unchanged."
