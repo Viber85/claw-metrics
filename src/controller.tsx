@@ -23,6 +23,7 @@ import type {SectionKey} from "./components/AccordionCard";
 export type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 export type FontWeight = "light" | "regular" | "semibold" | "bold";
 export type GraphStyle = "area" | "line" | "bars" | "dual";
+export type HudOrientation = "horizontal" | "vertical";
 export type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 export const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
   {id:"top-left",label:"Top left",icon:"↖",column:1,row:1},
@@ -87,7 +88,7 @@ export const styleTabs: [StyleCategory,string][] = [
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
 export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
-  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; version?:number;
+  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
   groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
@@ -217,7 +218,7 @@ export function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 export type Settings = Record<Group, boolean> & {
   active_style: string|null; style_names: Record<string,string>;
   custom_labels: Record<string,string>;
-  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; opacity: number; power: boolean; tdp: boolean;
+  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number; graph_style: GraphStyle;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
@@ -260,7 +261,7 @@ export type Info = {
 
 export const defaults: Settings = {
   active_style:null, style_names:{}, custom_labels: {},
-  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", opacity: 80, fps: true, frametime: true,
+  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
