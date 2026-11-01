@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/numeric-slots-no-height-regression-30]
+    branches: [test/hud-position-presets-31]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.30
+  group: claw-metrics-v0.2.4-test.31
   cancel-in-progress: true
 
 jobs:
@@ -104,6 +104,7 @@ jobs:
           grep -q 'ClawMetricGap' src/hud_elements.cpp
           grep -q 'ClawFpsFontForToken' src/hud_elements.cpp
           grep -q 'claw_center_horizontal' src/overlay.cpp
+          grep -q 'claw_align_right' src/overlay.cpp
           grep -q 'claw_vertex_start' src/overlay.cpp
           grep -q 'claw_draw->VtxBuffer' src/overlay.cpp
           grep -q 'ClawStableText' src/hud_elements.cpp
@@ -136,7 +137,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.30.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.31.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -155,14 +156,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.30
-          path: ClawMetrics-v0.2.4-test.30.zip
+          name: ClawMetrics-v0.2.4-test.31
+          path: ClawMetrics-v0.2.4-test.31.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.30 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.30 ClawMetrics-v0.2.4-test.30.zip \
+          gh release delete v0.2.4-test.31 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.31 ClawMetrics-v0.2.4-test.31.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.30 – numeric slots without vertical padding" \
-            --notes "Regression fix: native fixed-width numbers now expand only the original ImGui text ItemSize horizontal width, never adding BeginGroup/EndGroup/Dummy items. Restores original font appearance, text baseline and top/bottom padding at zero while preserving jitter-free CPU/GPU/FPS numeric slots and accurate HUD centering. All sensors, UI and styles remain unchanged."
+            --title "Claw Metrics v0.2.4-test.31 – five HUD anchors with measured right-edge width" \
+            --notes "Adds five gamepad-selectable HUD positions: four corners and top-center. Right-anchored strips use measured native width; offset signs reverse for right/bottom corners. Preserves test.30 numeric slots, vertical padding, telemetry and style migration. Device validation required."
