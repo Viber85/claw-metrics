@@ -1,5 +1,59 @@
+# Dependencies and generated build output
 node_modules/
 dist/
+build/
+artifact/
+native-dist/
+native-packages/
 *.zip
+
+# Python caches, test output and virtual environments
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+.envrc
+
+# Secrets, credentials and local environment configuration
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.p12
+*.pfx
+*.key
+*.kdbx
+id_rsa*
+id_ed25519*
+.secrets/
+secrets/
+.credentials/
+credentials/
+
+# Locally generated settings, diagnostics and databases
+settings.json
+settings.local.json
+config.local.json
+*.local.json
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.log
+logs/
+*.bak
+*.backup
+
+# Local editor and operating-system metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
