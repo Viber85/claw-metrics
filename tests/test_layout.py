@@ -26,5 +26,55 @@ class HorizontalLayout(unittest.TestCase):
                     self.assertEqual(config['frame_timing'], '1')
 
 
+class VerticalHudPreview(unittest.TestCase):
+    def test_legacy_settings_remain_horizontal_by_default(self):
+        self.assertEqual(main.normalize({})["hud_orientation"], "horizontal")
+        self.assertEqual(main.normalize({"hud_orientation": "bad"})["hud_orientation"], "horizontal")
+        self.assertEqual(main.normalize({"hud_orientation": False})["hud_orientation"], "horizontal")
+        self.assertEqual(main.normalize({"hud_orientation": "vertical"})["hud_orientation"], "vertical")
+        for native in (False, True):
+            cfg = options_for({"fps": True, "cpu": True}, native)
+            self.assertEqual(cfg["horizontal"], "1")
+            self.assertEqual(cfg["table_columns"], "64")
+
+    def test_vertical_is_real_mangohud_multi_row_layout(self):
+        for native in (False, True):
+            for anchor in main.HUD_POSITIONS:
+                with self.subTest(native=native, anchor=anchor):
+                    cfg = options_for({
+                        "hud_orientation": "vertical", "hud_position": anchor,
+                        "fps": True, "cpu": True, "gpu": True, "battery": True,
+                        "padding_x": 8, "padding_y": 4,
+                    }, native)
+                    self.assertEqual(cfg["horizontal"], "0")
+                    self.assertEqual(cfg["table_columns"], "3")
+                    self.assertEqual(cfg["position"], anchor)
+                    self.assertEqual(cfg["hud_compact"], "0")
+                    self.assertEqual(cfg["fps"], "1")
+                    self.assertEqual(cfg["cpu_stats"], "1")
+                    self.assertEqual(cfg["gpu_stats"], "1")
+                    self.assertEqual(cfg["battery"], "1")
+                    if native:
+                        self.assertEqual(cfg["claw_padding_x"], "8")
+                        self.assertIn("claw_weight_map", cfg)
+                    else:
+                        self.assertNotIn("claw_weight_map", cfg)
+
+    def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
+        slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
+            "1": {"version": 3, "hud_orientation": "vertical", "fontsize": 20},
+            "2": {"version": 2, "fontsize": 17}
+        }})["style_presets"]
+        self.assertEqual(slots["1"]["hud_orientation"], "vertical")
+        self.assertNotIn("hud_orientation", slots["2"])
+        self.assertNotIn("hud_orientation", main.normalize({"style_presets":{
+            "1": {"hud_orientation":"sideways"}
+        }})["style_presets"]["1"])
+
+def options_for(settings, native):
+    return dict(line.split("=", 1) if "=" in line else (line, "1")
+                for line in main.mango_config(settings, native_spacing=native).splitlines()
+                if line and not line.startswith("#"))
+
 if __name__ == '__main__':
     unittest.main()
