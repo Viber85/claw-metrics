@@ -293,6 +293,26 @@ type RendererStatus = {
 };
 const getRendererStatus = callable<[], RendererStatus>("get_renderer_status");
 
+type GithubRelease = {
+  version:string;tag:string;notes:string;
+  asset_url:string;sha256:string;release_url:string;
+};
+type GithubUpdateInfo = {
+  current:string; available:boolean; latest:GithubRelease|null;
+};
+const checkUpdates = callable<[], GithubUpdateInfo>("check_updates");
+
+// Decky Loader handles ZIP download, SHA-256 verification, unloading and
+// reinstalling its plugins. This is a guarded loader-internal API, not part
+// of @decky/api. Do not copy/unzip a plugin from its own privileged backend.
+type LoaderInstaller = {
+  callable?: (route:string) =>
+    (artifact:string,name:string,version:string,hash:string,installType:number) => Promise<unknown>;
+};
+function deckyInstaller(): LoaderInstaller|null {
+  return (window as Window & {DeckyBackend?:LoaderInstaller}).DeckyBackend ?? null;
+}
+
 function withTimeout<T>(request: Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("Backend ne odgovara (10 s). Ponovno pokreni Decky Loader.")), 10000);
@@ -377,6 +397,74 @@ function Content() {
   const [rendererStatus, setRendererStatus] = useState("Nije provjereno. Pokreni igru za test.");
   const [tdpStatus, setTdpStatus] = useState("TDP još nije provjeren.");
   const [rendererBusy, setRendererBusy] = useState(false);
+  const [updateBusy, setUpdateBusy] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState("Provjera se pokreće ručno.");
+  const [updateFallback, setUpdateFallback] = useState<string|null>(null);
+  const requestGithubInstall = (release:GithubRelease) => {
+    const installer=deckyInstaller();
+    const method=installer?.callable;
+    if (typeof method !== "function") {
+      setUpdateFallback(release.asset_url);
+      setUpdateStatus("Instalacijski API Decky Loadera nije dostupan. Koristi Decky Settings → Developer → Install Plugin from URL.");
+      return;
+    }
+    try {
+      // Decky opens its OWN confirmation modal; the plugin may unload while
+      // the installer runs, so do not wait to declare the install successful.
+      const launch=method("utilities/install_plugin");
+      if (typeof launch !== "function") throw new Error("API instalacije nije podržan.");
+      setUpdateStatus("Zahtjev je poslan Deckyju. Potvrdi instalaciju u njegovom prozoru.");
+      void launch(release.asset_url, "Claw Metrics", release.version,
+                  release.sha256, 2 /* UPDATE */).catch((error:unknown)=>{
+        setUpdateFallback(release.asset_url);
+        setUpdateStatus("Zahtjev za instalaciju nije uspio: "+String(error));
+      });
+    } catch(error) {
+      setUpdateFallback(release.asset_url);
+      setUpdateStatus("Instalacijski API nije dostupan: "+String(error));
+    }
+  };
+  const confirmGithubInstall = (release:GithubRelease) => {
+    const dialog=showModal(<ConfirmModal strTitle={"Claw Metrics "+release.tag}
+      strOKButtonText="Instaliraj" onCancel={()=>dialog.Close()}
+      onOK={()=>{ dialog.Close(); requestGithubInstall(release); }}>
+      <div style={{padding:"8px 4px",minWidth:0,maxWidth:"100%"}}>
+        <p style={{fontSize:13,margin:"0 0 8px"}}>
+          Dostupna je nova verzija. Potvrdi instalaciju nakon pregleda promjena.
+        </p>
+        <div style={{fontSize:12,opacity:.8,marginBottom:8}}>Promjene u {release.tag}:</div>
+        <div style={{fontSize:12,lineHeight:1.45,whiteSpace:"pre-wrap",
+          overflowWrap:"anywhere",maxHeight:230,overflowY:"auto",
+          background:"#10283a",padding:10,borderRadius:8}}>{release.notes}</div>
+        <p style={{fontSize:12,opacity:.83,marginBottom:0}}>
+          Decky će preuzeti ZIP i provjeriti SHA-256. Zatim će ponovno učitati
+          plugin. Ako se novo sučelje ne pojavi, u Decky Settings → Plugins
+          ponovno učitaj Claw Metrics ili restartaj Decky Loader.
+          Nije potrebno ponovno pokretati cijeli uređaj.
+        </p>
+      </div>
+    </ConfirmModal>);
+  };
+  const checkGithubRelease = async () => {
+    if (updateBusy) return;
+    setUpdateBusy(true);
+    setUpdateFallback(null);
+    setUpdateStatus("Provjeravam GitHub Releases…");
+    try {
+      const result=await withTimeout(checkUpdates());
+      if (!result.available || !result.latest) {
+        setUpdateStatus("Instalirana verzija "+result.current+" je aktualna.");
+      } else {
+        setUpdateStatus("Dostupna je nova verzija "+result.latest.tag+
+          " (instalirana: "+result.current+").");
+        confirmGithubInstall(result.latest);
+      }
+    } catch(error) {
+      setUpdateStatus("Provjera ažuriranja nije uspjela: "+String(error));
+    } finally {
+      setUpdateBusy(false);
+    }
+  };
   const verifyTdp = async () => {
     try { const result=await withTimeout(getTdpStatus());setTdpStatus(result.description); }
     catch(error) {setTdpStatus("Provjera TDP-a nije uspjela: "+String(error));}
@@ -759,7 +847,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.38">
+      <PanelSection title="Claw Metrics · v0.2.4-test.40">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -1148,6 +1236,16 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="advanced" title="Advanced" subtitle="Dijagnostika, senzori i tehničke informacije"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
+        <PanelSectionRow><Field label="Ažuriranja s GitHuba"
+          description="Provjerava najnovije testno izdanje Claw Metricsa. Instalacija je dobrovoljna i koristi službenu Decky potvrdu." /></PanelSectionRow>
+        <PanelSectionRow><ButtonItem disabled={!ready || updateBusy}
+          layout="below" onClick={()=>{ void checkGithubRelease(); }}>
+          <FaDownload style={{marginRight:8}} />
+          {updateBusy ? "Provjeravam GitHub…" : "Provjeri novu verziju"}
+        </ButtonItem></PanelSectionRow>
+        <PanelSectionRow><Field label="Status ažuriranja" description={updateStatus} /></PanelSectionRow>
+        {updateFallback && <PanelSectionRow><Field label="Ručna instalacija preko Decky Settings → Developer"
+          description={updateFallback} /></PanelSectionRow>}
         <PanelSectionRow><Field label="TDP limit (read-only)" description="Ne mijenja TDP. Senzor očitava postavljeni limit; Panel de Control i dalje upravlja TDP-om." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Provjeri TDP očitanje
