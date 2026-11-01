@@ -33,7 +33,7 @@ class UpdateChecks(unittest.TestCase):
             path.write_text(json.dumps({"version":"0.2.4-test.40"}))
             self.assertEqual(updates.installed_version(path),"0.2.4-test.40")
             path.write_text(json.dumps({"version":"not a release"}))
-            with self.assertRaisesRegex(RuntimeError, "podržanom formatu"):
+            with self.assertRaisesRegex(RuntimeError, "unsupported format"):
                 updates.installed_version(path)
 
     def test_versions_compare_numerically_not_lexically(self):
@@ -90,7 +90,7 @@ class UpdateChecks(unittest.TestCase):
                 return_value=io.BytesIO(json.dumps([release(39),release(40)]).encode())):
                 self.assertFalse(updates.check_github_update(path)["available"])
             with patch.object(updates.urllib.request,"urlopen",side_effect=OSError("offline")):
-                with self.assertRaisesRegex(RuntimeError,"povezati"):
+                with self.assertRaisesRegex(RuntimeError,"Unable to reach GitHub"):
                     updates.check_github_update(path)
 
     def test_decky_feed_matches_python_network_feed(self):
