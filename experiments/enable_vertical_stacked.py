@@ -120,20 +120,23 @@ swap("void HudElements::frame_timing(){",graph+"""void HudElements::frame_timing
 hud.write_text(s)
 
 change("overlay.cpp",
-"""   if(params.enabled[OVERLAY_PARAM_ENABLED_horizontal])
-       table_flags = ImGuiTableFlags_NoClip | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX;""",
-"""   if(params.enabled[OVERLAY_PARAM_ENABLED_horizontal])
-       table_flags = ImGuiTableFlags_NoClip | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX;
-   const bool claw_vertical_stack = params.claw_vertical_stack &&
+    "   ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;",
+    """   const bool claw_vertical_stack = params.claw_vertical_stack &&
        !params.enabled[OVERLAY_PARAM_ENABLED_horizontal];
+   ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;
    if (claw_vertical_stack)
        table_flags |= ImGuiTableFlags_BordersInnerH;""")
-change("overlay.cpp",
-"""       if (ImGui::BeginTable("hud", params.table_columns, table_flags )) {""",
-"""       if (ImGui::BeginTable("hud", params.table_columns, table_flags )) {
+
+overlay=root/"overlay.cpp"
+code=overlay.read_text()
+pattern=r'if\s*\(\s*ImGui::BeginTable\("hud",\s*params\.table_columns,\s*table_flags\s*\)\s*\)\s*\{'
+replacement='''\g<0>
           if (claw_vertical_stack && params.table_columns == 2) {
               const float label_width = ImClamp(params.font_size * 3.7f,58.0f,105.0f);
               ImGui::TableSetupColumn("Metric",ImGuiTableColumnFlags_WidthFixed,label_width);
               ImGui::TableSetupColumn("Values",ImGuiTableColumnFlags_WidthStretch);
-          }""")
+          }'''
+code,n=re.subn(pattern,replacement,code,count=1)
+if n!=1: raise RuntimeError(f"table layout marker count {n}")
+overlay.write_text(code)
 print("Claw native vertical stacked renderer installed")
