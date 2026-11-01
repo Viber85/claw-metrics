@@ -30,6 +30,22 @@ export function styleMetricSelectionsFrom(value:any){
  }
  return {groups,metrics};
 }
+export function styleMetricSnapshotFrom(current:any){
+ const groups:Record<string,boolean>={};
+ const metrics:Record<string,boolean>={};
+ for(const key of styleGroupKeys){
+  if(typeof current?.[key]==='boolean')groups[key]=current[key];
+ }
+ for(const key of styleMetricKeys){
+  if(typeof current?.metrics?.[key]==='boolean')metrics[key]=current.metrics[key];
+ }
+ return {groups,metrics};
+}
+export function styleMetricUpdatesFrom(preset:any,current:any){
+ const saved=styleMetricSelectionsFrom(preset);
+ return {...saved.groups,...(Object.keys(saved.metrics).length
+  ? {metrics:{...current?.metrics,...saved.metrics}} : {})};
+}
 export function independentColors(colors:any,defaults:any){return {...defaults,...colors,time:colors?.time??colors?.text??defaults.text,draw:colors?.draw??colors?.text??defaults.text}}
 function stable(value:any):any {if(Array.isArray(value))return value.map(stable);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])]));return value}
 export function styleModified(preset:any,current:any){
