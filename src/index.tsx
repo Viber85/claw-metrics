@@ -440,7 +440,7 @@ function Content() {
           Decky će preuzeti ZIP i provjeriti SHA-256. Zatim će ponovno učitati
           plugin. Ako se novo sučelje ne pojavi, u Decky Settings → Plugins
           ponovno učitaj Claw Metrics ili restartaj Decky Loader.
-          Nije potrebno ponovno pokretati cijeli uređaj.
+          Nije potrebno ponovno pokretati cijeli uređaj. Pokrenutu igru treba ponovno pokrenuti za novi Vulkan renderer.
         </p>
       </div>
     </ConfirmModal>);
@@ -1185,54 +1185,19 @@ function Content() {
             }}>Vrati kategoriju na globalni izgled</ButtonItem></PanelSectionRow>
           </>}
         </AccordionCard>
-        <AccordionCard id="activation" title="Activation" subtitle="Steam launch komanda i pokretanje"
+        <AccordionCard id="activation" title="Activation" subtitle="Uključi Claw Metrics u igri"
           icon={<FaPlayCircle />} open={openSection === "activation"} onToggle={() => toggleSection("activation")}>
-        <PanelSectionRow><Field label="Steam Launch Options" description={info?.launch_option ?? "Učitavanje…"} /></PanelSectionRow>
-        <PanelSectionRow><ButtonItem layout="below" disabled={!info?.launch_option} onClick={() => { void copyLaunchCommand(); }}>
-          <FaCopy style={{marginRight: 8}} /> Kopiraj launch komandu
-        </ButtonItem></PanelSectionRow>
-        {copyStatus && <PanelSectionRow><Field label="Međuspremnik" description={copyStatus} /></PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="VAŽNO: Testni prikaz"
-            description="Koristi testnu komandu u Steam Launch Options i ponovno pokreni igru. FPS* potvrđuje testnu KONFIGURACIJU, ali ne i izmijenjeni renderer. Dok igra radi, pritisni 'Provjeri koristi li igra eksperimentalni renderer'. Samo status AKTIVNO potvrđuje učitanu biblioteku. Test.3 koristi vlastiti naziv Vulkan sloja i dodatnu provjeru Steam Runtime okruženja." />
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="Eksperimentalna konfiguracija"
-            description={info.experimental_config_readable ? "Datoteka je spremljena. Ovo NE potvrđuje da je igra učitala eksperimentalni renderer." : "Datoteka nije čitljiva; ponovno pokreni Decky Loader."} />
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="Kratka testna komanda (preporučeno)"
-            description={info.short_launcher_ready
+          <PanelSectionRow><Field label="Steam Launch Options"
+            description={info?.short_launcher_ready
               ? info.short_launch_option
-              : "Launcher nije spreman. Ponovno pokreni Decky Loader i osvježi status."} />
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <ButtonItem disabled={!info.short_launcher_ready} layout="below"
-            onClick={() => { void copyLaunchCommand("short"); }}>
-            <FaCopy style={{marginRight: 8}} /> Kopiraj kratku testnu komandu
-          </ButtonItem>
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <Field label="Kratki launcher" description="Automatski postavlja iste Vulkan i MangoHud varijable kao stara testna komanda. Potrebno ga je jednom zalijepiti u Steam Launch Options za svaku igru. Ne uključuje globalno sve igre." />
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
-            {showLegacyCommand ? "Sakrij dugu rezervnu komandu" : "Prikaži dugu rezervnu komandu"}
-          </ButtonItem>
-        </PanelSectionRow>}
-        {info?.layout_spacing_supported && showLegacyCommand && <>
-          <PanelSectionRow><Field label="Duga testna komanda (rezervna, Vulkan 64-bit)"
-            description={info.experimental_launch_option} /></PanelSectionRow>
-          <PanelSectionRow><ButtonItem layout="below"
-            onClick={() => { void copyLaunchCommand(true); }}>
-            <FaCopy style={{marginRight: 8}} /> Kopiraj testnu komandu (rezervna, duga)
+              : "Kratki launcher nije spreman. Ponovno učitaj Decky i provjeri instalaciju."} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem layout="below" disabled={!info?.short_launcher_ready}
+            onClick={()=>{ void copyLaunchCommand("short"); }}>
+            <FaCopy style={{marginRight:8}} /> Kopiraj launch komandu
           </ButtonItem></PanelSectionRow>
-        </>}
-        <PanelSectionRow><Field label="Siguran povratak"
-          description="Ako testna komanda blokira pokretanje igre, vrati staru launch komandu iz 0.2.3. Ne mijenja SteamOS ni Panel de Control." /></PanelSectionRow>
-        <PanelSectionRow><ButtonItem layout="below" onClick={() => { void refresh(); }}>Provjeri vezu / ponovno učitaj</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Primjena" description="Nakon spremanja ponovno pokreni igru. Launch komanda ostaje ista. Sistemski Steam overlay drži isključenim." /></PanelSectionRow>
-
+          {copyStatus && <PanelSectionRow><Field label="Kopiranje" description={copyStatus}/></PanelSectionRow>}
+          <PanelSectionRow><Field label="Pokretanje"
+            description="Zalijepi komandu u Steam Launch Options pojedine igre. Nakon promjene postavki ponovno pokreni igru. Stari i dugi rezervni launch načini dostupni su u Advanced." /></PanelSectionRow>
         </AccordionCard>
         <AccordionCard id="advanced" title="Advanced" subtitle="Dijagnostika, senzori i tehničke informacije"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
@@ -1246,6 +1211,23 @@ function Content() {
         <PanelSectionRow><Field label="Status ažuriranja" description={updateStatus} /></PanelSectionRow>
         {updateFallback && <PanelSectionRow><Field label="Ručna instalacija preko Decky Settings → Developer"
           description={updateFallback} /></PanelSectionRow>}
+        <PanelSectionRow><ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
+          {showLegacyCommand ? "Sakrij rezervne komande" : "Prikaži rezervne komande"}
+        </ButtonItem></PanelSectionRow>
+        {showLegacyCommand && <>
+          <PanelSectionRow><Field label="Duga Vulkan komanda (rezervna)"
+            description={info?.experimental_launch_option ?? "Nije dostupna"} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem disabled={!info?.experimental_launch_option} layout="below"
+            onClick={()=>{ void copyLaunchCommand(true); }}>
+            <FaCopy style={{marginRight:8}}/> Kopiraj dugu Vulkan komandu
+          </ButtonItem></PanelSectionRow>
+          <PanelSectionRow><Field label="Obični MangoHud (bez Claw renderera)"
+            description={info?.launch_option ?? "Nije dostupna"} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem disabled={!info?.launch_option} layout="below"
+            onClick={()=>{ void copyLaunchCommand(); }}>
+            <FaCopy style={{marginRight:8}}/> Kopiraj standardnu komandu
+          </ButtonItem></PanelSectionRow>
+        </>}
         <PanelSectionRow><Field label="TDP limit (read-only)" description="Ne mijenja TDP. Senzor očitava postavljeni limit; Panel de Control i dalje upravlja TDP-om." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Provjeri TDP očitanje
