@@ -29,6 +29,7 @@ assert hasattr(module, "Plugin")
 assert hasattr(module.Plugin, "get_settings")
 assert hasattr(module.Plugin, "save_settings")
 assert hasattr(module.Plugin, "check_updates")
+assert hasattr(module.Plugin, "validate_github_releases")
 print("DECKY_SANDBOX_IMPORT_OK")
 """
 
@@ -73,7 +74,7 @@ class DeckySandboxImportTests(unittest.TestCase):
         self.assertIn("'py_modules/updates.py'", workflow)
         self.assertNotIn("cp plugin.json package.json main.py sensors.py updates.py", workflow)
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        self.assertEqual(version, "0.2.4-test.41")
+        self.assertEqual(version, "0.2.4-test.42")
 
 
 if __name__ == "__main__":
