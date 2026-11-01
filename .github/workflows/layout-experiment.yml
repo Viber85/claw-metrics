@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/fps-live-scale-gamepad-focus-26]
+    branches: [test/card-focus-background-27]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.26
+  group: claw-metrics-v0.2.4-test.27
   cancel-in-progress: true
 
 jobs:
@@ -129,7 +129,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.26.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.27.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -148,14 +148,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.26
-          path: ClawMetrics-v0.2.4-test.26.zip
+          name: ClawMetrics-v0.2.4-test.27
+          path: ClawMetrics-v0.2.4-test.27.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.26 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.26 ClawMetrics-v0.2.4-test.26.zip \
+          gh release delete v0.2.4-test.27 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.27 ClawMetrics-v0.2.4-test.27.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.26 – FPS scaling & controller focus" \
-            --notes "FPS number scales correctly from 100 to 200 percent using a dedicated font and runtime scale; other HUD elements stay vertically centered to the displayed FPS height. Adds a visible white controller focus outline to all six top-level cards, even when closed. Keeps A/B/C/F graphs and Z2 Extreme telemetry."
+            --title "Claw Metrics v0.2.4-test.27 – blue card focus state" \
+            --notes "Main menu controller focus now uses the same light blue background and icon as an opened section; removes double white outlines. Retains FPS font scaling, frametime graph styles A/B/C/F, Z2 Extreme sensor telemetry, TDP and DRAW."
