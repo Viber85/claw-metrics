@@ -78,6 +78,7 @@ STYLE_LAYOUT_RANGES = {
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
+HUD_ORIENTATIONS = ("horizontal", "vertical")
 GRAPH_STYLES = ("line", "area", "bars", "dual")
 
 
@@ -152,6 +153,8 @@ def normalize_style_presets(payload):
         for field in STYLE_LAYOUT_FLAGS:
             if type(item.get(field)) is bool:
                 preset[field] = item[field]
+        if item.get("hud_orientation") in HUD_ORIENTATIONS:
+            preset["hud_orientation"] = item["hud_orientation"]
         if item.get("hud_position") in HUD_POSITIONS:
             preset["hud_position"] = item["hud_position"]
         elif preset.get("center_horizontal") is True:
@@ -177,7 +180,7 @@ def normalize_color_overrides(payload):
 
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
-    "hud_position": "top-left", "opacity": 80,
+    "hud_position": "top-left", "hud_orientation": "horizontal", "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -623,6 +626,9 @@ def normalize(payload):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
+    # Existing settings do not contain orientation: keep the old horizontal HUD.
+    if payload.get("hud_orientation") in HUD_ORIENTATIONS:
+        d["hud_orientation"] = payload["hud_orientation"]
     # Migrate old center_horizontal profiles while making a new anchor authoritative.
     if payload.get("hud_position") in HUD_POSITIONS:
         d["hud_position"] = payload["hud_position"]
@@ -771,13 +777,14 @@ def mango_config(settings, native_spacing=False):
     # Native non-stretched top/bottom-center has an incorrect 64-column offset.
     # Both center anchors use our measured strip width in the patched renderer.
     position = d["hud_position"]
+    is_horizontal = d["hud_orientation"] == "horizontal"
     native_position = {"top-center": "top-left", "bottom-center": "bottom-left"}.get(position, position)
     # Offsets are distances IN from the selected corner.
     hud_x = -d["offset_x"] if position.endswith("right") else d["offset_x"]
     hud_y = -d["offset_y"] if position.startswith("bottom") else d["offset_y"]
     lines = [
         "# Claw Metrics v0.2.3 base — generated from QAM settings",
-        "legacy_layout=0", "horizontal", "horizontal_stretch=0",
+        "legacy_layout=0", flag("horizontal", is_horizontal), "horizontal_stretch=0",
         # Critical: compact battery_time resets the cursor to column zero.
         "hud_compact=0", "hud_no_margin", "position=" + native_position,
         "offset_x=" + str(hud_x), "offset_y=" + str(hud_y),
@@ -796,7 +803,9 @@ def mango_config(settings, native_spacing=False):
         "background_alpha=" + str(d["opacity"] / 100),
         "font_size=" + str(d["fontsize"]),
         "font_size_text=" + str(max(10, round(d["fontsize"] * 0.78))),
-        "text_outline=0", "table_columns=64",
+        # Horizontal needs 64 columns for inline tokens; native vertical
+        # MangoHud uses its supported three-column multi-row table.
+        "text_outline=0", "table_columns=" + ("64" if is_horizontal else "3"),
         flag("no_display", not d["enabled"]),
         'time_format=%H:%M',
         # Set submetrics before the ordered display blocks.
