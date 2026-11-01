@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/github-update-network-fallback-42]
+    branches: [test/english-ux-refresh-43]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.42
+  group: claw-metrics-v0.2.4-test.43
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.42.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.43.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -176,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.42', package['version']
+              assert package['version'] == '0.2.4-test.43', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.42
-          path: ClawMetrics-v0.2.4-test.42.zip
+          name: ClawMetrics-v0.2.4-test.43
+          path: ClawMetrics-v0.2.4-test.43.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.42 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.42 ClawMetrics-v0.2.4-test.42.zip \
+          gh release delete v0.2.4-test.43 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.43 ClawMetrics-v0.2.4-test.43.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.42 – fix GitHub updater Python Exception with Decky HTTPS" \
-            --notes "Fixes opaque Python Exception when manually checking for GitHub updates. Requests release metadata through Decky Loader's own HTTPS client, validates exact release URLs and SHA-256 checksums in the backend, and falls back to Python HTTPS with readable error details. No silent installs. All native renderer features, saved settings, styles, and short launch commands remain intact."
+            --title "Claw Metrics v0.2.4-test.43 – English language and six-panel UX refresh" \
+            --notes "English UI across all six cards and backend messages. Layout now has Position, Size, Spacing, and Frametime groups. Metrics details open below their grid row. Styles are at the top of Colors and Font with names and overwrite confirmation; new HEX color entry, retained per-element overrides and more readable controller controls. Advanced splits Updates, Diagnostics, and Backup; technical details are optional. Preserves saved preferences and native MangoHud renderer. Controller testing on MSI Claw required."
