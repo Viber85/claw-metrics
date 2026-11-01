@@ -825,6 +825,30 @@ function Content() {
           min-width: 0 !important; max-width: 100%; box-sizing: border-box;
         }
         .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
+         /* SliderField has an intrinsic SteamOS width. Keep its track and
+            editable value inside each narrower nested Layout card. */
+         [data-section="layout"] .claw-control-group {
+           width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+         }
+         [data-section="layout"] .claw-control-group > div:last-child {
+           width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+         }
+         [data-section="layout"] .claw-layout-slider {
+           width: calc(100% - 20px); max-width: calc(100% - 20px);
+           min-width: 0; margin: 2px 10px 9px; box-sizing: border-box;
+         }
+         [data-section="layout"] .claw-layout-slider > *,
+         [data-section="layout"] .claw-layout-slider [class*="DialogField"],
+         [data-section="layout"] .claw-layout-slider [class*="DialogSlider"],
+         [data-section="layout"] .claw-layout-slider [class*="Slider_"],
+         [data-section="layout"] .claw-layout-slider input[type="range"] {
+           min-width: 0 !important; max-width: 100% !important;
+           box-sizing: border-box !important;
+         }
+         [data-section="layout"] .claw-layout-slider [class*="DialogSlider"] {
+           flex-shrink: 1 !important;
+         }
+
         .claw-style-tiles .style-group-icon {
           display: inline-flex; align-items: center; justify-content: center;
           margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
@@ -1014,13 +1038,13 @@ function Content() {
             </Focusable>
           )}
         </Focusable>
-        <PanelSectionRow><SliderField label="X offset (px)"
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="X offset (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
           disabled={!ready || settings.hud_position.endsWith("center")}
-          onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Y offset (px)" value={settings.offset_y}
+          onChange={(value:number)=>update({offset_x:value})}/></div></PanelSectionRow>
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Y offset (px)" value={settings.offset_y}
            min={-1200} max={1200} step={1} showValue disabled={!ready}
-           onChange={value=>update({offset_y:value})}/></PanelSectionRow>
+           onChange={value=>update({offset_y:value})}/></div></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
            onClick={()=>update({offset_x:0,offset_y:0})}>Reset X / Y offsets</ButtonItem></PanelSectionRow>
 
@@ -1029,15 +1053,15 @@ function Content() {
             open={layoutPanel==="size"} onToggle={()=>setLayoutPanel("size")}>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
           ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
-          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
-            onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
+          <PanelSectionRow key={key}><div className="claw-layout-slider"><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
+            onChange={(value: number) => update({[key]: value})} /></div></PanelSectionRow>)}
 
         <PanelSectionRow><Field label="FPS value scale"
           description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>
-        <PanelSectionRow><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
           disabled={!ready || !info?.layout_spacing_supported}
-          onChange={(value:number)=>update({fps_scale:value})}/></PanelSectionRow>
+          onChange={(value:number)=>update({fps_scale:value})}/></div></PanelSectionRow>
         <div className="claw-fps-scale-preview" aria-label="FPS scale preview"
           style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",
             background:"#101c2e",border:"1px solid #385a77",borderRadius:8,
@@ -1055,26 +1079,26 @@ function Content() {
           </ControlGroup>
           <ControlGroup title="Spacing" summary="Padding · element and column gaps"
             open={layoutPanel==="spacing"} onToggle={()=>setLayoutPanel("spacing")}>
-        <PanelSectionRow><SliderField label="Vertical padding (px)"
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical padding (px)"
           value={settings.padding_y} min={0} max={24} step={1} showValue disabled={!ready}
-          onChange={v=>update({padding_y:v})}/></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Horizontal padding (px)"
+          onChange={v=>update({padding_y:v})}/></div></PanelSectionRow>
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Horizontal padding (px)"
           value={settings.padding_x} min={0} max={24} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported}
-          onChange={v=>update({padding_x:v})}/></PanelSectionRow>
+          onChange={v=>update({padding_x:v})}/></div></PanelSectionRow>
         <PanelSectionRow><Field label="Element spacing" description={info?.layout_spacing_supported
           ? "Custom Claw renderer is available. Restart the game to apply spacing changes."
           : "The custom renderer is unavailable. Spacing controls are disabled."} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></PanelSectionRow>
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></div></PanelSectionRow>
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></div></PanelSectionRow>
         <PanelSectionRow><ToggleField label="Even spacing across inline metrics"
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        <PanelSectionRow><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
-          onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
+          onChange={(value: number) => update({inner_gap: value})} /></div></PanelSectionRow>
 
 
           </ControlGroup>
@@ -1102,8 +1126,8 @@ function Content() {
               </span>
             </DialogButton>;
           }}/>
-        <PanelSectionRow><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
-          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></PanelSectionRow>
+        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
             </> : <Field label="Graph disabled" description="Enable Frametime → Graph in Metrics to edit graph settings."/>}
           </ControlGroup>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
@@ -1148,7 +1172,7 @@ function Content() {
                   <span aria-hidden="true" style={{fontSize:15,color:group.color,lineHeight:1}}>{groupIcons[key]}</span>
                   <span style={{fontSize:12,fontWeight:600,lineHeight:1.15,overflowWrap:"anywhere",
                     textAlign:"center",width:"100%",minWidth:0}}>{named(key)}</span>
-                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count} active</span>}
+                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count}/{total}</span>}
                 </span>
               </DialogButton>;
           }}/>
