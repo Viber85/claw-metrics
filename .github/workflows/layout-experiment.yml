@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/padding-zero-stability-33]
+    branches: [test/edge-focus-zero-offset-34]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.33
+  group: claw-metrics-v0.2.4-test.34
   cancel-in-progress: true
 
 jobs:
@@ -94,6 +94,7 @@ jobs:
           python3 ../experiments/enable_apu_v3_metrics.py src
           python3 ../experiments/apply_token_styles.py src
           python3 ../experiments/enable_fps_size_center.py src
+          python3 ../experiments/enable_exact_edge_anchors.py src
           python3 ../experiments/enable_frametime_graph_styles.py src
           python3 ../experiments/enable_zero_vertical_padding.py src
           python3 ../experiments/center_hud_vertically.py src
@@ -106,6 +107,8 @@ jobs:
           grep -q 'ClawFpsFontForToken' src/hud_elements.cpp
           grep -q 'claw_center_horizontal' src/overlay.cpp
           grep -q 'params.position == LAYER_POSITION_BOTTOM_LEFT' src/overlay.cpp
+          grep -q 'const float margin = 0.0f;' src/overlay.cpp
+          ! grep -q 'float margin = 10.0f;' src/overlay.cpp
           grep -q 'claw_align_right' src/overlay.cpp
           grep -q 'claw_vertex_start' src/overlay.cpp
           grep -q 'claw_draw->VtxBuffer' src/overlay.cpp
@@ -142,7 +145,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.33.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.34.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -161,14 +164,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.33
-          path: ClawMetrics-v0.2.4-test.33.zip
+          name: ClawMetrics-v0.2.4-test.34
+          path: ClawMetrics-v0.2.4-test.34.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.33 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.33 ClawMetrics-v0.2.4-test.33.zip \
+          gh release delete v0.2.4-test.34 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.34 ClawMetrics-v0.2.4-test.34.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.33 – zero vertical padding and frametime stability guards" \
-            --notes "Sets default vertical padding to 0px and removes fixed native 5px top/bottom and extra 10px bottom insets, controlled by the existing 0-24px slider. Keeps user-saved padding intact. Guards frametime graph against NaN/Inf on startup and resume. Preserves six HUD anchors and all telemetry. Intermittent game crashes still require device logs to confirm root cause."
+            --title "Claw Metrics v0.2.4-test.34 – exact screen-edge anchors and visible gamepad focus" \
+            --notes "Removes upstream implicit 10px anchor margin for all six positions, sets default Y offset to 0px, and gives controller-focused anchor buttons a high-contrast focus ring distinct from the selected anchor. Previously saved offsets are preserved; reset Layout or set Y=0 for flush-edge positioning. Retains test.33 zero-padding slider, frametime stability guards and telemetry. Device verification required."
