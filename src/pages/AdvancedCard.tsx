@@ -25,13 +25,16 @@ const { AccordionCard, ControlGroup } = Core;
 
 /** Standalone advanced presentation; all mutable state is owned by the Decky controller. */
 export function AdvancedCard({vm}:{vm:Core.ClawController}) {
-  const { info, status, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
+  const { info, status, installedVersion, installedVersionError, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
   return (
 <AccordionCard id="advanced" title="Advanced" subtitle="Updates and troubleshooting"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
           <ControlGroup title="Updates" summary="Installed version · GitHub releases"
             open={advancedPanel==="updates"} onToggle={()=>setAdvancedPanel("updates")}>
-            <PanelSectionRow><Field label="Installed version" description="Claw Metrics 0.2.4-test.43" /></PanelSectionRow>
+            <PanelSectionRow><Field label="Installed version"
+              description={installedVersion
+                ? "Claw Metrics "+installedVersion
+                : installedVersionError || (ready?"Reading installed package…":"Waiting for backend connection…")} /></PanelSectionRow>
         <PanelSectionRow><Field label="GitHub updates"
           description="Check for releases and confirm installation through Decky Loader." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready || updateBusy}
