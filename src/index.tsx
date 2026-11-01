@@ -240,7 +240,7 @@ const defaults: Settings = {
   active_style:null, custom_labels: {},
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
-  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 8,
+  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
   inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
@@ -699,7 +699,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.32">
+      <PanelSection title="Claw Metrics · v0.2.4-test.33">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -723,7 +723,7 @@ function Content() {
         <AccordionCard id="layout" title="Layout" subtitle="Pozicija, veličina, širina i razmaci"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
         {([ ["fontsize", "Veličina teksta", 12, 28, 1], ["opacity", "Pozadina (%)", 0, 100, 5],
-          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Dodatni padding gore/dolje (px)", 0, 24, 1],
+          ["rounding", "Zaobljenost rubova", 0, 20, 1], ["padding_y", "Padding gore/dolje (px)", 0, 24, 1],
           ["padding_x", "Padding lijevo i desno (px)", 0, 24, 1],
           ["offset_y", "Y — gore/dolje (px)", -1200, 1200, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready || (key==="padding_x" && !info?.layout_spacing_supported)}
@@ -804,7 +804,7 @@ function Content() {
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         })}>Vrati zadane postavke Layouta</ButtonItem></PanelSectionRow>
-        <PanelSectionRow><Field label="Položaj i padding" description="Pozitivni X/Y pomaci idu prema unutrašnjosti od odabranog ruba. Gornja i donja sredina zanemaruju X, ali čuvaju njegovu vrijednost." /></PanelSectionRow>
+        <PanelSectionRow><Field label="Položaj i padding" description="Slider Padding gore/dolje postavlja jednak razmak uz oba ruba. Na 0 px nema dodatnog vertikalnog paddinga. Pozitivni X/Y pomaci idu prema unutrašnjosti; centrirani položaji čuvaju X." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
         </AccordionCard>
