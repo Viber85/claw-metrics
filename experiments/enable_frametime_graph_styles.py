@@ -22,6 +22,10 @@ change("overlay_params.cpp",
     "#define parse_claw_center_horizontal(s) parse_unsigned(s) != 0",
     "#define parse_claw_center_horizontal(s) parse_unsigned(s) != 0\n"
     "#define parse_claw_graph_style(s) parse_unsigned(s)")
+# Avoid passing non-finite frametime samples to ImGui's vertex generator.
+# During game startup / suspend-resume those counters can be temporarily invalid.
+change("hud_elements.cpp", "#include <functional>",
+       "#include <functional>\n#include <cmath>")
 change("hud_elements.cpp",
     '            if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_histogram]){',
     """            const int claw_style = HUDElements.params->claw_graph_style;
@@ -44,13 +48,17 @@ change("hud_elements.cpp",
                 const ImU32 stroke = ImGui::ColorConvertFloat4ToU32(clr);
                 const int count = ARRAY_SIZE(HUDElements.sw_stats->frames_stats);
                 const int n = ImMin(count, ImMax(2, int(w / 2.0f)));
-                const double range = ImMax(0.001, max_time - min_time);
+                const double safe_min = std::isfinite(min_time) ? min_time : 0.0;
+                const double safe_max = std::isfinite(max_time) && max_time > safe_min
+                    ? max_time : safe_min + 50.0;
+                const double range = ImMax(0.001, safe_max - safe_min);
                 ImVec2 prev;
                 draw->PushClipRect(origin, ImVec2(origin.x+w, bottom), true);
                 for (int i=0; i<n; ++i) {
                     const int idx = i*(count-1)/(n-1);
-                    const float value = get_time_stat(HUDElements.sw_stats, idx);
-                    const float y = ImClamp(float((value-min_time)/range), 0.0f, 1.0f);
+                    const double raw_value = get_time_stat(HUDElements.sw_stats, idx);
+                    const double value = std::isfinite(raw_value) ? raw_value : safe_min;
+                    const float y = ImClamp(float((value-safe_min)/range), 0.0f, 1.0f);
                     const ImVec2 point(origin.x + w*float(i)/float(n-1),
                                       bottom-y*h);
                     if (i) {
