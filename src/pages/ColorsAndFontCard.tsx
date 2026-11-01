@@ -102,7 +102,7 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                   textAlign:"center",width:"100%",minWidth:0}}>{key==="global"?name:named(key)}</span>
               </span>
             </DialogButton>}/>
-                {row.some(([key])=>key===styleCategory) && <div className="claw-style-detail">
+                {styleCategory!==null && row.some(([key])=>key===styleCategory) && <div className="claw-style-detail">
           {styleCategory==="global" ? <>
           <PanelSectionRow><Field label="GLOBAL" description="Global settings apply by default. Custom element overrides remain until explicitly reset." /></PanelSectionRow>
           {toggle("sans", "Use bundled font")}
