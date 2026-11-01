@@ -967,7 +967,7 @@ class Plugin:
         self._tdp_context_at = time.monotonic()
         if not known or previous != appid:
             self._tdp_last_value = None
-            self._tdp_last_source = "Očitavam active game profile"
+            self._tdp_last_source = "Reading active game profile"
             try:
                 write_atomic(tdp_path(), tdp_text(
                     getattr(self, "_current_settings", DEFAULTS), None) + "\n")
