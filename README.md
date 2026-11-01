@@ -1,3 +1,16 @@
+# Claw Metrics v0.2.4-test.29 — stabilna širina brojčanih podataka
+
+Popravak mikro-pomicanja horizontalno centriranog HUD-a tijekom igre kada se CPU, GPU ili druge metrike mijenjaju između jedne, dvije ili tri znamenke.
+
+Modificirani MangoHud 0.8.1 sada u našem jednorednom prikazu dodjeljuje **fiksne unutarnje slotove brojčanim vrijednostima**: FPS i frametime, CPU/GPU opterećenje i temperaturu, frekvencije i potrošnju, VRAM/RAM, bateriju, sat i TDP/DRAW. Font i boja svakog elementa ostaju nepromijenjeni. Rezervirana širina odgovara uobičajenom najdužem prikazu te uključuje male kompenzacije za širinu glifova.
+
+Slot se rezervira pomoću ImGui group + invisible Dummy nakon ispisane vrijednosti; time sljedeći element počinje na istoj poziciji. Mehanizam automatskog centriranja iz test.28 uz stvarno nacrtane piksele u obzir uzima i **rezervirani desni rub** nevidljivog polja, čime crna traka zadržava stabilnu širinu bez rastezanja prazne tablice.
+
+Nema dodatnog razmaka između kategorija, niti promjena grafova A/B/C/F, zadržanih stilova, promjenjivog FPS fonta, plavog fokusa kartica ili CPU/GPU/TDP/DRAW očitavanja. Jedinstveni fontovi i korisnička podešavanja margina ostaju kao prije.
+
+Uvjet: tipičan raspon vrijednosti (FPS do tri znamenke, opterećenje do 100%, do četiri znamenke za frekvencije). Neočekivano velike vrijednosti i eventualna promjena aktivnih metrika mogu i dalje promijeniti širinu overlaya. Testirati uređaj na 8% → 10%, 9% → 100% CPU/GPU, te 99 → 100 FPS.
+
+---
 # Claw Metrics v0.2.4-test.28 — ispravak horizontalnog centriranja
 
 Na Clawu je prijavljeno da uključivanje opcije Centriraj horizontalno produljuje crnu traku do desnog ruba, umjesto da smjesti cijeli overlay na sredinu.

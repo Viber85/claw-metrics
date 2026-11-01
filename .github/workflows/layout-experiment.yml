@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/center-drawn-content-28]
+    branches: [test/fixed-numeric-slots-29]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.28
+  group: claw-metrics-v0.2.4-test.29
   cancel-in-progress: true
 
 jobs:
@@ -96,6 +96,7 @@ jobs:
           python3 ../experiments/enable_fps_size_center.py src
           python3 ../experiments/enable_frametime_graph_styles.py src
           python3 ../experiments/center_hud_vertically.py src
+          python3 ../experiments/enable_fixed_numeric_slots.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -105,6 +106,8 @@ jobs:
           grep -q 'claw_center_horizontal' src/overlay.cpp
           grep -q 'claw_vertex_start' src/overlay.cpp
           grep -q 'claw_draw->VtxBuffer' src/overlay.cpp
+          grep -q 'ClawStableText' src/hud_elements.cpp
+          grep -q 'claw_fixed_slot_right' src/overlay.cpp
           grep -q 'claw_graph_style' src/hud_elements.cpp
           grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
           grep -q 'chosen->Scale = ImClamp' src/hud_elements.cpp
@@ -131,7 +134,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.28.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.29.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -150,14 +153,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.28
-          path: ClawMetrics-v0.2.4-test.28.zip
+          name: ClawMetrics-v0.2.4-test.29
+          path: ClawMetrics-v0.2.4-test.29.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.28 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.28 ClawMetrics-v0.2.4-test.28.zip \
+          gh release delete v0.2.4-test.29 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.29 ClawMetrics-v0.2.4-test.29.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.28 – true HUD strip centering" \
-            --notes "Horizontal centering measures drawn text and graph vertices rather than full-width ImGui item rectangles and sets the actual compact HUD window width accordingly. Fixes the empty black background stretching to the right edge. Preserves blue card focus, FPS font scaling, graph styles and Z2 Extreme metrics. Hardware visual validation required."
+            --title "Claw Metrics v0.2.4-test.29 – stable numerical HUD slots" \
+            --notes "Fixes subtle centered HUD jitter when CPU/GPU percentages, FPS, temperatures, frequencies, power, clock and DRAW values change digit count. Custom token-aware numerical slots reserve stable widths in the native ImGui layout and feed their reserved bounds to accurate horizontal centering. Preserves margins, fonts, saved styles, graph modes and Z2 Extreme TDP/DRAW telemetry. On-device verification required."

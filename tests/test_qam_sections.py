@@ -221,6 +221,28 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("params.claw_center_horizontal", patch)
         self.assertIn("Last drawn pixel + side padding", patch)
 
+
+    def test_fixed_width_numeric_slots_keep_horizontal_hud_stable(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_fixed_numeric_slots.py").read_text()
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertIn("python3 ../experiments/enable_fixed_numeric_slots.py src", workflow)
+        self.assertLess(workflow.index("center_hud_vertically.py"),
+                        workflow.index("enable_fixed_numeric_slots.py"))
+        for token in ('case 1:', 'case 2:', 'case 4:', 'case 9:',
+                      'case 23:', 'case 24:', 'case 26:', 'case 27:',
+                      'ClawSlotReference(', 'ImGui::BeginGroup()',
+                      'ImGui::SameLine(0.0f, 0.0f)',
+                      'ImGui::Dummy(ImVec2(', 'ImGui::EndGroup()',
+                      'claw_fixed_slot_right = ImMax(',
+                      'claw_fixed_slot_right - window_left',
+                      'ImGui::CalcTextSize(reference.c_str()).x'):
+            self.assertIn(token, patch)
+        self.assertIn('ClawStableText(1, ClawColorForToken(1, color)', patch)
+        self.assertIn('ClawStableText(1, color, "%s", text)', patch)
+        self.assertIn('ClawText(int token', patch)
+        self.assertNotIn('claw_stabilize_all_metrics_by_extra_gap', patch)
+
     def test_fps_enlargement_centers_full_inline_hud_vertically(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
