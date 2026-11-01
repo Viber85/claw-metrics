@@ -10,9 +10,10 @@ controller-friendly tiles under **Layout → Frametime graph**:
   five-sample rolling trend line and a translucent local-variation ribbon.
   Distinct from the existing **Line + fill** which fills to the baseline.
 
-Vertical graph selection is now **independent** of horizontal selection:
-horizontal keeps its four established modes and defaults to Line; vertical
-defaults to Smooth Curve on new installs. Existing saved vertical profiles
+**Both Horizontal and Vertical** offer all six graph modes and icon buttons.
+Their selections are independent: Horizontal defaults to Line, and Vertical
+defaults to Smooth Curve on new installs. The horizontal native renderer also
+uses real samples for Smooth Curve and Dual Layer. Existing saved vertical profiles
 that had an earlier graph style are migrated without changing their choice.
 
 The native Vertical Graph Height default is **44 px** (previously 28 px),
@@ -20,8 +21,9 @@ and the slider extends to **120 px** (previously 72). Custom old heights,
 including 28 px, are preserved; use the slider or Reset Layout to adopt
 the larger default.
 
-Other rendering, vertical wrapping, metric spacing, TDP/DRAW, saved user
-styles and the horizontal Vulkan renderer remain as before.
+The original four graph modes and existing saved styles remain available.
+Other rendering, vertical wrapping, metric spacing, and TDP/DRAW are unchanged.
+Only the horizontal graph renderer gains these two additional draw modes.
 
 **Device testing:** fully exit/relaunch the game, select Smooth Curve then
 Dual Layer, check both icons/graphs, then verify the independent horizontal

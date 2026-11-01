@@ -83,8 +83,8 @@ STYLE_LAYOUT_RANGES = {
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
 HUD_ORIENTATIONS = ("horizontal", "vertical")
-GRAPH_STYLES = ("line", "area", "bars", "dual")
-VERTICAL_GRAPH_STYLES = GRAPH_STYLES + ("smooth", "dual_layer")
+GRAPH_STYLES = ("line", "area", "bars", "dual", "smooth", "dual_layer")
+VERTICAL_GRAPH_STYLES = GRAPH_STYLES
 
 
 def normalize_custom_labels(payload):

@@ -151,6 +151,21 @@ class VerticalHudPreview(unittest.TestCase):
             self.assertEqual(options_for({"hud_orientation":"horizontal"},native),
                              options_for({"hud_orientation":"horizontal","vertical_category_gap":18},native))
 
+    def test_horizontal_smooth_and_dual_layer_native_graphs(self):
+        for selected, code in (("smooth","4"),("dual_layer","5")):
+            horizontal = options_for({"hud_orientation":"horizontal","graph_style":selected,
+                                      "vertical_graph_style":"line"},True)
+            self.assertEqual(horizontal["claw_graph_style"],code)
+            vertical = options_for({"hud_orientation":"vertical","graph_style":selected,
+                                    "vertical_graph_style":"area"},True)
+            self.assertEqual(vertical["claw_graph_style"],"1")
+            self.assertEqual(main.normalize({"graph_style":selected})["graph_style"],selected)
+            self.assertNotIn("claw_graph_style",options_for({"hud_orientation":"horizontal",
+                                                            "graph_style":selected},False))
+        legacy = main.normalize({"style_presets":{"1":{
+            "hud_orientation":"horizontal","graph_style":"dual_layer"}}})
+        self.assertEqual(legacy["style_presets"]["1"]["graph_style"],"dual_layer")
+
     def test_extended_vertical_graph_styles_and_legacy_presets(self):
         self.assertEqual(main.normalize({})["vertical_graph_style"], "smooth")
         self.assertEqual(main.normalize({})["graph_style"], "line")

@@ -270,6 +270,23 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_horizontal_graph_modes_are_native_and_buttons_shared(self):
+        root=pathlib.Path(__file__).resolve().parents[1]
+        patch=(root/"experiments/enable_horizontal_graph_modes.py").read_text()
+        workflow=(root/".github/workflows/layout-experiment.yml").read_text()
+        layout=(root/"src/pages/LayoutCard.tsx").read_text()
+        self.assertLess(workflow.index("enable_vertical_graph_modes.py"),
+                        workflow.index("enable_horizontal_graph_modes.py"))
+        for token in ("claw_style == 4 || claw_style == 5",
+                      'ImGui::InvisibleButton("##claw_frametime_smooth"',
+                      "draw->AddPolyline(smooth,out",
+                      "draw->AddPolyline(trend,samples",
+                      "draw->PushClipRect"):
+            self.assertIn(token,patch)
+        self.assertIn('items={graphStyleChoices} columns={2}',layout)
+        self.assertIn('update({graph_style:choice.id})',layout)
+        self.assertIn('update({vertical_graph_style:choice.id})',layout)
+
     def test_smooth_curve_and_dual_layer_have_independent_native_renderers(self):
         root=pathlib.Path(__file__).resolve().parents[1]
         patch=(root/"experiments/enable_vertical_graph_modes.py").read_text()
@@ -443,7 +460,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('<GraphStyleIcon kind={choice.id}/>', SOURCE)
         self.assertIn('width={46} height={35}', SOURCE)
         self.assertIn('minHeight:84', SOURCE)
-        self.assertIn('items={settings.hud_orientation==="vertical" ? graphStyleChoices', SOURCE)
+        self.assertIn('items={graphStyleChoices} columns={2}', SOURCE)
         self.assertIn('aria-pressed={selected}', SOURCE)
         self.assertIn('update({graph_style:choice.id})', SOURCE)
         self.assertIn('update({vertical_graph_style:choice.id})', SOURCE)

@@ -50,7 +50,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>}/>
           {settings.hud_orientation==="vertical" && <PanelSectionRow>
             <Field label="Vertical preview"
-              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows with automatic value wrapping and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS scaling and graph styles are available in this native preview; Smooth Curve and Dual Layer are now available with independent graph width and height settings."/>
+              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows with automatic value wrapping and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS scaling and graph styles are available in this native preview; Both orientations support all six graph modes; Vertical also has independent graph width and height."/>
           </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
@@ -177,8 +177,8 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
         <PanelSectionRow><Field label="Frametime graph style"
-          description="Choose a graph style using the D-pad. Smooth Curve and Dual Layer are native Vertical modes; Horizontal keeps its own selection." /></PanelSectionRow>
-        <GamepadGrid items={settings.hud_orientation==="vertical" ? graphStyleChoices : graphStyleChoices.filter(choice=>choice.id!=="smooth" && choice.id!=="dual_layer")} columns={2}
+          description="Choose a graph style using the D-pad. Smooth Curve and Dual Layer work in both orientations, each with its own selection." /></PanelSectionRow>
+        <GamepadGrid items={graphStyleChoices} columns={2}
           className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
             const selected=(settings.hud_orientation==="vertical" ? settings.vertical_graph_style : settings.graph_style)===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"

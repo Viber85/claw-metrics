@@ -109,6 +109,7 @@ jobs:
           python3 ../experiments/enable_vertical_value_wrap.py src
           python3 ../experiments/enable_vertical_category_gap.py src
           python3 ../experiments/enable_vertical_graph_modes.py src
+          python3 ../experiments/enable_horizontal_graph_modes.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -146,6 +147,8 @@ jobs:
           grep -q 'ClawVerticalGraph' src/hud_elements.cpp
           grep -q 'constexpr int subdivisions=4' src/hud_elements.cpp
           grep -q 'if(style==4 || style==5)' src/hud_elements.cpp
+          grep -q '##claw_frametime_smooth' src/hud_elements.cpp
+          grep -q 'claw_style == 4 || claw_style == 5' src/hud_elements.cpp
           grep -q 'const ImU32 trendColor' src/hud_elements.cpp
           grep -q 'claw_vertical_values_x' src/hud_elements.cpp
           grep -q 'claw_vertical_category_gap' src/overlay_params.cpp
@@ -214,5 +217,5 @@ jobs:
           gh release delete v0.2.4-test.58 --yes --cleanup-tag || true
           gh release create v0.2.4-test.58 ClawMetrics-v0.2.4-test.58.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.58 – Smooth Curve & Dual Layer Graphs" \
-            --notes "Native Vertical adds Smooth Curve and Dual Layer with distinct per-sample interpolation/trend ribbon, dedicated graph icons/selection and default height 44px (maximum 120). Horizontal graph styles and existing user presets are preserved. On-device validation required."
+            --title "Claw Metrics v0.2.4-test.58 – Smooth Curve & Dual Layer — Both Orientations" \
+            --notes "Smooth Curve and Dual Layer use real native frametime samples on both Horizontal and Vertical. Six graph buttons with icons in both orientations, separate style selections, vertical default height 44px, max 120px. Existing user styles preserved; on-device testing required."
