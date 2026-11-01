@@ -70,4 +70,12 @@ assert.deepEqual(plain(styleMetricSelectionsFrom({
   groups:{fps:0,cpu:"false",gpu:false,unknown:true},
   metrics:{graph:false,cpu_temp:1,alien:true}
 })),{groups:{gpu:false},metrics:{graph:false}});
+const {styleLayoutFrom} = module.exports;
+assert.equal(styleLayoutFrom({hud_orientation:"vertical"}).hud_orientation,"vertical");
+assert.equal(styleLayoutFrom({hud_orientation:"horizontal"}).hud_orientation,"horizontal");
+assert.equal(styleLayoutFrom({hud_orientation:"sideways"}).hud_orientation,undefined);
+assert.equal(styleLayoutFrom({}).hud_orientation,undefined);
+assert.equal(styleModified({...legacy,hud_orientation:"vertical"},{...live,hud_orientation:"horizontal"}),true);
+assert.equal(styleModified({...legacy,hud_orientation:"vertical"},{...live,hud_orientation:"vertical"}),false);
+assert.equal(styleModified(legacy,{...live,hud_orientation:"vertical"}),false);
 console.log("Style metric snapshots: save, restore, old styles, dirty state and invalid toggles passed");
