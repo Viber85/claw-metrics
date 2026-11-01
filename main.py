@@ -15,7 +15,7 @@ import re
 import shutil
 import subprocess
 import time
-from updates import check_github_update
+from updates import check_github_update, validate_github_feed, describe_error
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"]
 COLORS = {
@@ -1002,9 +1002,28 @@ class Plugin:
         }
 
     async def check_updates(self):
-        """User-initiated GitHub check; installation is handled by Decky Loader."""
-        return await asyncio.to_thread(
-            check_github_update, pathlib.Path(__file__).with_name("package.json"))
+        """Fallback for older Decky versions; never leak a Python exception."""
+        try:
+            result = await asyncio.to_thread(
+                check_github_update, pathlib.Path(__file__).with_name("package.json"))
+            return {"ok": True, **result}
+        except Exception as error:
+            return {"ok": False, "available": False, "latest": None,
+                    "error": describe_error(error), "source": "Python HTTPS"}
+
+    async def validate_github_releases(self, release_json: str):
+        """Decode GitHub data fetched by Decky's own HTTPS client.
+
+        Only fixed-repository official ZIP URLs with real release digests can
+        be offered for installation. Invalid JSON returns actionable status.
+        """
+        try:
+            result = validate_github_feed(
+                pathlib.Path(__file__).with_name("package.json"), release_json)
+            return {"ok": True, **result}
+        except Exception as error:
+            return {"ok": False, "available": False, "latest": None,
+                    "error": describe_error(error), "source": "GitHub response"}
 
     async def get_renderer_status(self):
         """Detect both Vulkan request propagation and actual native library maps.
