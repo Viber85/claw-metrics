@@ -36,6 +36,25 @@ class UpdateChecks(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "unsupported format"):
                 updates.installed_version(path)
 
+    def test_backend_installed_version_reads_current_package_not_fixed_ui_label(self):
+        plugin = main.Plugin()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package.json"
+            with patch.object(main, "__file__", str(root / "main.py")):
+                for expected in ("0.2.4-test.43", "0.2.4-test.47", "0.2.4-test.48"):
+                    package.write_text(json.dumps({"version": expected}))
+                    self.assertEqual(
+                        asyncio.run(plugin.get_installed_version())["version"],
+                        expected,
+                    )
+                package.write_text('{"version": null}')
+                with self.assertRaisesRegex(RuntimeError, "installed plugin package"):
+                    asyncio.run(plugin.get_installed_version())
+                package.unlink()
+                with self.assertRaisesRegex(RuntimeError, "installed plugin package"):
+                    asyncio.run(plugin.get_installed_version())
+
     def test_versions_compare_numerically_not_lexically(self):
         self.assertEqual(updates.version_number("v0.2.4-test.100"),100)
         self.assertEqual(updates.version_number("0.2.4-test.9"),9)
