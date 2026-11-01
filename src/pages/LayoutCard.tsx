@@ -162,6 +162,14 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         : <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Metric value gap (px)" value={settings.vertical_value_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value: number) => update({vertical_value_gap: value})} /></div></PanelSectionRow>}
+        {settings.hud_orientation==="vertical" && <>
+          <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical category gap (px)"
+            value={settings.vertical_category_gap} min={0} max={20} step={1} showValue
+            disabled={!ready || !info?.layout_spacing_supported}
+            onChange={(value:number)=>update({vertical_category_gap:value})}/></div></PanelSectionRow>
+          <PanelSectionRow><Field label="Category spacing"
+            description="Adds space between FPS, CPU, GPU and other categories. Wrapped readings within a category stay together." /></PanelSectionRow>
+        </>}
 
 
           </ControlGroup>
@@ -216,7 +224,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
-          vertical_value_gap:defaults.vertical_value_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
+          vertical_value_gap:defaults.vertical_value_gap,vertical_category_gap:defaults.vertical_category_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         }))}>
             Reset layout to defaults

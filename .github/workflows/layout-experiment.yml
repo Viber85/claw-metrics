@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/vertical-metric-wrap-56]
+    branches: [test/vertical-category-gap-57]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.56
+  group: claw-metrics-v0.2.4-test.57
   cancel-in-progress: true
 
 jobs:
@@ -107,6 +107,7 @@ jobs:
           python3 ../experiments/trim_native_ink_padding.py src
           python3 ../experiments/enable_vertical_stacked.py src
           python3 ../experiments/enable_vertical_value_wrap.py src
+          python3 ../experiments/enable_vertical_category_gap.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -143,6 +144,9 @@ jobs:
           grep -q 'claw_vertical_stack' src/overlay_params.cpp
           grep -q 'ClawVerticalGraph' src/hud_elements.cpp
           grep -q 'claw_vertical_values_x' src/hud_elements.cpp
+          grep -q 'claw_vertical_category_gap' src/overlay_params.cpp
+          grep -q 'ImGuiStyleVar_CellPadding' src/overlay.cpp
+          grep -q 'ImClamp(params.claw_vertical_category_gap' src/overlay.cpp
           grep -q 'std::snprintf(displayed, sizeof(displayed), fmt, args...)' src/hud_elements.cpp
           grep -q 'ImGui::NewLine()' src/hud_elements.cpp
           grep -q 'ClawStackedFpsCenterOffset' src/hud_elements.cpp
@@ -176,7 +180,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.56.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.57.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -192,19 +196,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.56', package['version']
+              assert package['version'] == '0.2.4-test.57', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.56
-          path: ClawMetrics-v0.2.4-test.56.zip
+          name: ClawMetrics-v0.2.4-test.57
+          path: ClawMetrics-v0.2.4-test.57.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.56 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.56 ClawMetrics-v0.2.4-test.56.zip \
+          gh release delete v0.2.4-test.57 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.57 ClawMetrics-v0.2.4-test.57.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.56 – Vertical Metric Value Wrapping" \
-            --notes "Vertical metrics now wrap complete values (including GHz/MHz/W/GiB units) onto continuation lines when the next value exceeds the HUD width, preserving the label column and original horizontal behavior. Requires actual on-device in-game validation."
+            --title "Claw Metrics v0.2.4-test.57 – Vertical Category Spacing" \
+            --notes "Adjustable 0-20 px vertical category spacing using native ImGui table row padding; wrapped value lines and horizontal rendering unaffected. Test on MSI Claw required."

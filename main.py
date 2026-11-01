@@ -75,7 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12),
     "inner_gap": (0, 16), "graph_width": (80, 200),
-    "vertical_value_gap": (0, 16),
+    "vertical_value_gap": (0, 16), "vertical_category_gap": (0, 20),
     "vertical_graph_width": (0, 420),
     "vertical_graph_height": (16, 72),
     "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
@@ -189,7 +189,7 @@ def normalize_color_overrides(payload):
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
     "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0,
-    "vertical_value_gap": 8, "vertical_graph_width": 0, "vertical_graph_height": 28, "opacity": 80,
+    "vertical_value_gap": 8, "vertical_category_gap": 6, "vertical_graph_width": 0, "vertical_graph_height": 28, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -632,7 +632,7 @@ def normalize(payload):
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
                            ("table_gap", 0, 12), ("graph_width", 80, 200),
                            ("inner_gap", 0, 16), ("vertical_width", 0, 420),
-                           ("vertical_value_gap", 0, 16),
+                           ("vertical_value_gap", 0, 16), ("vertical_category_gap", 0, 20),
                            ("vertical_graph_width", 0, 420),
                            ("vertical_graph_height", 16, 72)):
         v = payload.get(key)
@@ -889,6 +889,8 @@ def mango_config(settings, native_spacing=False):
                 for slot in TOKEN_SLOTS
             ),
         ])
+        if not is_horizontal:
+            lines.append("claw_vertical_category_gap=" + str(d["vertical_category_gap"]))
     if d["sans"]:
         primary = sans_font(d["font_weight"])
         lines += ["font_file=" + primary, "font_file_text=" + primary]

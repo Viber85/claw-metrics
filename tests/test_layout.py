@@ -140,6 +140,17 @@ class VerticalHudPreview(unittest.TestCase):
         self.assertEqual(config["gpu_core_clock"],"1")
         self.assertEqual(config["gpu_power"],"1")
 
+    def test_vertical_category_gap_and_horizontal_isolation(self):
+        self.assertEqual(main.normalize({})["vertical_category_gap"],6)
+        for raw, expected in ((-2,0),(0,0),(8,8),(99,20)):
+            self.assertEqual(main.normalize({"vertical_category_gap":raw})["vertical_category_gap"],expected)
+        self.assertEqual(main.normalize({"vertical_category_gap":"6"})["vertical_category_gap"],6)
+        self.assertEqual(options_for({"hud_orientation":"vertical","vertical_category_gap":11},True)["claw_vertical_category_gap"],"11")
+        self.assertNotIn("claw_vertical_category_gap",options_for({"hud_orientation":"vertical"},False))
+        for native in (True,False):
+            self.assertEqual(options_for({"hud_orientation":"horizontal"},native),
+                             options_for({"hud_orientation":"horizontal","vertical_category_gap":18},native))
+
     def test_vertical_dimensions_and_spacing_are_persistent_and_isolated(self):
         self.assertEqual(main.normalize({})["vertical_value_gap"], 8)
         self.assertEqual(main.normalize({})["vertical_graph_width"], 0)
@@ -165,12 +176,13 @@ class VerticalHudPreview(unittest.TestCase):
 
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
-            "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "vertical_value_gap": 13, "vertical_graph_width": 190, "vertical_graph_height": 40, "fontsize": 20},
+            "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "vertical_value_gap": 13, "vertical_category_gap": 11, "vertical_graph_width": 190, "vertical_graph_height": 40, "fontsize": 20},
             "2": {"version": 2, "fontsize": 17}
         }})["style_presets"]
         self.assertEqual(slots["1"]["hud_orientation"], "vertical")
         self.assertEqual(slots["1"]["vertical_width"], 290)
         self.assertEqual(slots["1"]["vertical_value_gap"],13)
+        self.assertEqual(slots["1"]["vertical_category_gap"],11)
         self.assertEqual(slots["1"]["vertical_graph_width"],190)
         self.assertEqual(slots["1"]["vertical_graph_height"],40)
         self.assertNotIn("vertical_width", slots["2"])

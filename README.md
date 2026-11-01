@@ -1,3 +1,23 @@
+# Claw Metrics v0.2.4-test.57 — Vertical Category Spacing
+
+Adds **Vertical category gap (px)** under Layout → Spacing, range 0–20 px
+(default 6 px). This adjusts additional ImGui table cell Y padding for
+individual metric rows (FPS, GPU, CPU, RAM, VRAM, Battery, TDP, DRAW, Time
+and the frametime graph).
+
+It controls the spacing BETWEEN categories, not CPU/GPU values or the
+automatic second-line value wrapping within one category. Existing Metric
+value gap, graph width/height, styles, positions and DRAW behavior remain
+unchanged. Settings are saved in both Saved Styles and Reset Layout restores
+the default. Older styles load with their original settings preserved.
+
+The control only appears in the Vertical HUD orientation and uses our native
+Claw MangoHud renderer. Stock fallback and horizontal display are unchanged.
+Fully close/restart the game after saving new settings. Native build success
+does not guarantee visual results on the MSI Claw.
+
+---
+
 # Claw Metrics v0.2.4-test.56 — Automatic Vertical Metric Wrapping
 
 Vertical Stacked now checks the **available HUD width before each metric value**,

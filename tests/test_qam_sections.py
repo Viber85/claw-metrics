@@ -270,6 +270,20 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_vertical_category_gap_is_native_and_saved(self):
+        root=pathlib.Path(__file__).resolve().parents[1]
+        source=(root/"experiments/enable_vertical_category_gap.py").read_text()
+        workflow=(root/".github/workflows/layout-experiment.yml").read_text()
+        layout=(root/"src/pages/LayoutCard.tsx").read_text()
+        self.assertLess(workflow.index("enable_vertical_value_wrap.py"),
+                        workflow.index("enable_vertical_category_gap.py"))
+        for token in ("claw_vertical_category_gap","ImGuiStyleVar_CellPadding",
+                      "ImGui::PushStyleVar","ImGui::PopStyleVar"):
+            self.assertIn(token,source)
+        self.assertIn('Vertical category gap (px)',layout)
+        self.assertIn('value={settings.vertical_category_gap}',layout)
+        self.assertIn('vertical_category_gap:defaults.vertical_category_gap',layout)
+
     def test_vertical_value_wrap_is_real_native_build_step(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         wrapper = (root / "experiments/enable_vertical_value_wrap.py").read_text()
@@ -672,7 +686,7 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_layout_nested_sliders_are_bounded_inside_cards(self):
         self.assertIn('className="claw-layout-slider"', SOURCE)
-        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 14)
+        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 15)
         self.assertIn('width: min(330px, calc(100% - 18px)) !important;', SOURCE)
         self.assertIn('max-width: calc(100% - 18px) !important;', SOURCE)
         self.assertIn('padding: 0 20px 0 0 !important;', SOURCE)

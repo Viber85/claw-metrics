@@ -94,7 +94,7 @@ print("OPTIONAL_UPDATER_ERROR_OK")
         self.assertIn("'py_modules/updates.py'", workflow)
         self.assertNotIn("cp plugin.json package.json main.py sensors.py updates.py", workflow)
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        self.assertEqual(version, "0.2.4-test.56")
+        self.assertEqual(version, "0.2.4-test.57")
 
 
 if __name__ == "__main__":
