@@ -381,7 +381,7 @@ def read_panel_setpoint(roots=None, appid=None, context_known=False):
                 if state_path.is_file() and state_path.stat().st_size <= 262144:
                     state = json.loads(state_path.read_text(encoding="utf-8"))
                     if isinstance(state, dict) and state.get("tdp_control_enabled") is False:
-                        return None, "PDC: upravljanje TDP-om isključeno"
+                        return None, "PDC: TDP control disabled"
                 if not isinstance(profiles, dict):
                     continue
                 global_profile = profiles.get("global")
@@ -393,11 +393,11 @@ def read_panel_setpoint(roots=None, appid=None, context_known=False):
                 if not context_known:
                     if any(isinstance(p, dict) and not p.get("follow_global")
                            for p in games.values()):
-                        return None, "PDC: različiti profili igara, čekam potvrdu aktivne igre"
-                    selected, scope = global_profile, "globalno"
+                        return None, "PDC: separate game profiles; waiting for active game"
+                    selected, scope = global_profile, "global"
                 elif appid is not None:
                     if not isinstance(appid, str) or not (0 < len(appid) <= 160):
-                        return None, "PDC: neispravan identitet igre"
+                        return None, "PDC: invalid game identity"
                     ownership_path = plugin / "power_ownership.json"
                     if ownership_path.is_file() and ownership_path.stat().st_size <= 262144:
                         ownership = json.loads(ownership_path.read_text(encoding="utf-8"))
@@ -405,24 +405,24 @@ def read_panel_setpoint(roots=None, appid=None, context_known=False):
                             owners = ownership.get("games", {})
                             owner = owners.get(appid, {}) if isinstance(owners, dict) else {}
                             if isinstance(owner, dict) and owner.get("owner") == "steam":
-                                return None, "PDC: Steam upravlja TDP-om ove igre"
+                                return None, "PDC: Steam controls TDP for this game"
                     game_profile = games.get(appid)
                     if isinstance(game_profile, dict) and not game_profile.get("follow_global"):
-                        selected, scope = game_profile, "profil aktivne igre"
+                        selected, scope = game_profile, "active game profile"
                     else:
-                        selected, scope = global_profile, "globalni profil za aktivnu igru"
+                        selected, scope = global_profile, "global profile for active game"
                 else:
-                    selected, scope = global_profile, "globalno (nema pokrenute igre)"
+                    selected, scope = global_profile, "global (no running game)"
                 watts = valid_tdp_w(selected.get("pl1", selected.get("watts")))
                 if watts is None:
-                    return None, "PDC: odabrani profil nema valjan PL1"
+                    return None, "PDC: selected profile has no valid PL1"
                 if selected.get("auto_tdp") is True:
-                    return None, "PDC: Auto TDP aktivnog profila (promjenjiv limit)"
-                return watts, (f"Panel de Control · {scope} · postavljeno "
-                               "(nije hardverski potvrđeno)")
+                    return None, "PDC: active Auto TDP profile (variable limit)"
+                return watts, (f"Panel de Control · {scope} · configured "
+                               "(not hardware-verified)")
             except (OSError, ValueError, TypeError, AttributeError):
                 continue
-    return None, "Nije dostupno"
+    return None, "Unavailable"
 
 
 def valid_tdp_w(value):
@@ -483,17 +483,17 @@ def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attri
     nodes = sorted(firmware_root.glob(
         "msi-wmi-platform*/attributes/ppt_pl1_spl/current_value"))
     if not nodes:
-        notes.append("MSI firmware PL1: putanja nije pronađena")
+        notes.append("MSI firmware PL1: sensor path not found")
     for node in nodes[:3]:
         try:
             watts = valid_tdp_w(node.read_text(encoding="utf-8").strip())
             notes.append("MSI firmware PL1: " +
-                         (f"{watts}W" if watts is not None else "nečitljivo"))
+                         (f"{watts}W" if watts is not None else "unreadable"))
         except OSError as error:
             notes.append("MSI firmware PL1: " + type(error).__name__)
     binary = resolve_ryzenadj(plugin_roots)
     if not binary:
-        notes.append("RyzenAdj: izvršna datoteka nije pronađena")
+        notes.append("RyzenAdj: executable not found")
     else:
         try:
             env = dict(os.environ)
@@ -502,8 +502,8 @@ def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attri
                                               text=True, timeout=3, env=env)
             match = STAPM_LIMIT_RE.search(proc.stdout or "")
             watts = valid_tdp_w(match.group(1)) if match else None
-            reading = f"{watts}W" if watts is not None else "STAPM nije pročitan"
-            notes.append(f"RyzenAdj: {reading}, izlazni kod {proc.returncode}")
+            reading = f"{watts}W" if watts is not None else "STAPM not readable"
+            notes.append(f"RyzenAdj: {reading}, exit code {proc.returncode}")
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             notes.append("RyzenAdj: " + type(error).__name__)
     locations = settings_roots if settings_roots is not None else panel_settings_roots()
@@ -516,15 +516,15 @@ def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attri
                 continue
             try:
                 if profile_path.stat().st_size > 262144:
-                    notes.append("PDC: profili preveliki")
+                    notes.append("PDC: profile data too large")
                     continue
                 profiles = json.loads(profile_path.read_text(encoding="utf-8"))
                 if not isinstance(profiles, dict):
-                    notes.append("PDC: neispravan format profila")
+                    notes.append("PDC: invalid profile format")
                     continue
                 global_profile = profiles.get("global")
                 if not isinstance(global_profile, dict):
-                    notes.append("PDC: globalni profil nedostaje")
+                    notes.append("PDC: missing global profile")
                     continue
                 glob = valid_tdp_w(global_profile.get(
                     "pl1", global_profile.get("watts")))
@@ -536,27 +536,27 @@ def tdp_source_diagnostics(firmware_root=pathlib.Path("/sys/class/firmware-attri
                             if (valid_tdp_w(game.get("pl1", game.get("watts"))) != glob
                                     or game.get("auto_tdp") is True):
                                 overrides += 1
-                enabled = "nepoznato"
+                enabled = "unknown"
                 state_path = plugin / "state.json"
                 if state_path.is_file() and state_path.stat().st_size <= 262144:
                     state = json.loads(state_path.read_text(encoding="utf-8"))
                     if isinstance(state, dict):
                         value = state.get("tdp_control_enabled")
                         if isinstance(value, bool):
-                            enabled = "da" if value else "ne"
+                            enabled = "yes" if value else "no"
                 _, reason = read_panel_setpoint([directory], appid=appid,
                                                  context_known=context_known)
                 notes.append(
-                    f"PDC: globalno {glob if glob is not None else '--'}W, "
-                    f"upravljanje uključeno {enabled}, različitih profila igara "
-                    f"{overrides}, Auto TDP globalno "
-                    f"{'da' if global_profile.get('auto_tdp') else 'ne'}; "
-                    f"rezervno čitanje: {reason}")
+                    f"PDC: global {glob if glob is not None else '--'}W, "
+                    f"control enabled {enabled}, game overrides "
+                    f"{overrides}, Auto TDP global "
+                    f"{'yes' if global_profile.get('auto_tdp') else 'no'}; "
+                    f"fallback: {reason}")
                 return " | ".join(notes)
             except (OSError, ValueError, TypeError) as error:
-                notes.append("PDC: greška " + type(error).__name__)
+                notes.append("PDC: error " + type(error).__name__)
                 return " | ".join(notes)
-    notes.append("PDC: tdp_profiles.json nije pronađen u Decky settings")
+    notes.append("PDC: no tdp_profiles.json in Decky settings")
     return " | ".join(notes)
 
 
@@ -876,7 +876,7 @@ class Plugin:
             install_short_launcher()
         self._current_settings = settings
         self._tdp_last_value = None
-        self._tdp_last_source = "Nije provjereno"
+        self._tdp_last_source = "Not checked"
         self._tdp_context_game = None
         self._tdp_context_known = False
         self._tdp_context_at = 0.0
@@ -916,7 +916,7 @@ class Plugin:
                     write_atomic(tdp_path(), value)
             except OSError:
                 self._tdp_last_value = None
-                self._tdp_last_source = "Greška čitanja"
+                self._tdp_last_source = "Read error"
                 try:
                     write_atomic(tdp_path(), tdp_text(
                         getattr(self, "_current_settings", DEFAULTS), None) + "\n")
@@ -967,7 +967,7 @@ class Plugin:
         self._tdp_context_at = time.monotonic()
         if not known or previous != appid:
             self._tdp_last_value = None
-            self._tdp_last_source = "Očitavam profil aktivne igre"
+            self._tdp_last_source = "Očitavam active game profile"
             try:
                 write_atomic(tdp_path(), tdp_text(
                     getattr(self, "_current_settings", DEFAULTS), None) + "\n")
@@ -981,11 +981,11 @@ class Plugin:
         game = getattr(self, "_tdp_context_game", None) if known else None
         details = await asyncio.to_thread(
             tdp_source_diagnostics, appid=game, context_known=known)
-        details = ("Kontekst: " +
-                   ("aktivna igra" if game else "nema igre" if known else "nije potvrđen") +
+        details = ("Context: " +
+                   ("running game" if game else "no running game" if known else "unconfirmed") +
                    " | " + details)
         watts = getattr(self, "_tdp_last_value", None)
-        source = getattr(self, "_tdp_last_source", "Nije provjereno")
+        source = getattr(self, "_tdp_last_source", "Not checked")
         is_configured = watts is not None and source.startswith("Panel de Control")
         return {
             "readable": watts is not None,
@@ -993,12 +993,12 @@ class Plugin:
             "watts": watts,
             "source": source,
             "description": (
-                ("Postavljeni TDP: " if is_configured else "Očitani TDP limit: ") +
+                ("Configured TDP: " if is_configured else "Measured TDP limit: ") +
                 str(watts) + "W · " + source
                 if watts is not None else
-                "TDP -- · " + source + ". RyzenAdj i MSI firmware nisu dali očitanje; "
-                "provjeri Panel de Control profile."
-            ) + "\nIzvori: " + details
+                "TDP -- · " + source + ". No RyzenAdj or MSI firmware reading; "
+                "check Panel de Control profiles."
+            ) + "\nSources: " + details
         }
 
     async def check_updates(self):
@@ -1070,16 +1070,16 @@ class Plugin:
             except (OSError, PermissionError):
                 pass
         if found_native:
-            reason = "Aktivno: modificirana biblioteka učitana je u igri."
+            reason = "Active: modified native library loaded in the game."
         elif layer_request:
-            reason = ("Komanda je stigla do procesa, ali Vulkan sloj NIJE učitan. "
-                      "Mogući uzrok: Steam Runtime, duplikat sloja ili nedostajuća biblioteka.")
+            reason = ("Launch command reached the game, but the Vulkan layer did NOT load. "
+                      "Possible causes: Steam Runtime, duplicate layers, or missing library.")
         elif config_request:
-            reason = ("Proces vidi naš konfiguracijski profil, ali ne i zahtjev "
-                      "za prilagođenim Vulkan slojem.")
+            reason = ("Game process sees the Claw configuration but no request "
+                      "for the custom Vulkan layer.")
         else:
-            reason = ("Nema dokaza da je eksperimentalna komanda stigla do igre. "
-                      "To može biti zbog Steam Runtime okruženja ili nedostupnih /proc podataka.")
+            reason = ("No evidence that the launch command reached the game. "
+                      "Steam Runtime or inaccessible /proc data may be responsible.")
         return {
             "native_loaded": found_native > 0,
             "native_processes": found_native,
@@ -1120,6 +1120,6 @@ class Plugin:
             "tdp_note": ("TDP: " + str(getattr(self, "_tdp_last_value", None)) + "W · " +
                          getattr(self, "_tdp_last_source", "") if
                          getattr(self, "_tdp_last_value", None) is not None else
-                         "TDP -- · očitavanje limita nije dostupno."),
+                         "TDP -- · limit reading unavailable."),
             "power_note": "CPU/GPU sensor power is not the same as total system battery draw."
         }
