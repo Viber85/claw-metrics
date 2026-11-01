@@ -1,3 +1,13 @@
+# Claw Metrics v0.2.4-test.26 — FPS skala i fokus kontrolera
+
+- FPS broj koristi font rasteriziran na 200% prilikom pokretanja igre. Native ImGui Scale potom prilagođava veličinu za 100, 110, 120 ... 190 i 200%, umjesto da veličina ovisi o početnoj vrijednosti pri gradnji font atlasa. Samo FPS broj je povećan; drugi fontovi ostaju isti. Skup FPS znamenki smanjuje trošak atlasa.
+- Vertikalno poravnanje koristi stvarnu visinu nakon primjene ImFont::Scale, pa ostali elementi ostaju centrirani prema prikazanom FPS broju.
+- Svih šest glavnih kartica u Decky izborniku sada pokazuje tanak bijeli outline dok ih kontroler fokusira, čak i kad su zatvorene. Fokus je odvojen od stila trenutno otvorene sekcije. Podržani su standardni DOM fokus i Steamova klasa gpfocus.
+- Spremljeni stilovi, grafovi A/B/C/F, CPU/GPU, TDP i DRAW su sačuvani. Za pouzdano učitavanje nove konfiguracije ili fontova ponovno pokreni igru.
+- Dodani su regresijski testovi za svih 11 vrijednosti FPS skale i fokus zatvorenih kartica.
+
+---
+
 # Claw Metrics v0.2.4-test.25 — vertikalno centriranje uz povećani FPS
 
 - Pri FPS veličini iznad 100%, sve ostale metrike, FPS oznaka, frametime (ms) i frametime graf centriraju se vertikalno uz povećani FPS broj. Računa se stvarna visina fonta iz MangoHud/ImGui font atlasa, a ne pretpostavljena visina; primjenjuje se nakon raspoređivanja elemenata u stupce tako da podržava promjenu redoslijeda.
