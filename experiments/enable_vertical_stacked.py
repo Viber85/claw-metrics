@@ -187,8 +187,8 @@ if code.count(begin)!=1: raise RuntimeError("begin table anchor drift")
 code=code.replace(begin,
     'if (claw_vertical_stack) ImGui::PushStyleColor(ImGuiCol_TableBorderLight,'
     ' ImVec4(0.44f,0.58f,0.70f,0.20f));\n       '+begin,1)
-end='          HUDElements.table_columns_count = 0;\n       }'
-if code.count(end)!=1: raise RuntimeError("end table anchor drift")
-code=code.replace(end,end+'\n       if (claw_vertical_stack) ImGui::PopStyleColor();',1)
+end_pattern=r'HUDElements\\.table_columns_count\\s*=\\s*0;\\s*\\n\\s*\\}'
+code,n=re.subn(end_pattern,lambda m: m.group(0)+"\\n       if (claw_vertical_stack) ImGui::PopStyleColor();",code,count=1)
+if n!=1: raise RuntimeError(f"end table style guard found {n} blocks")
 overlay.write_text(code)
 print("Claw native vertical stacked renderer installed")
