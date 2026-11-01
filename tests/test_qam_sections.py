@@ -207,6 +207,20 @@ class GroupedQamTests(unittest.TestCase):
         self.assertNotIn('claw-accordion-selection-ring', SOURCE)
         self.assertNotIn('0 0 12px rgba(255,255,255,0.8)', SOURCE)
 
+    def test_horizontal_center_uses_drawn_vertices_not_full_table_width(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_fps_size_center.py").read_text()
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertIn("python3 ../experiments/enable_fps_size_center.py src", workflow)
+        for marker in ("claw_vertex_start = claw_draw->VtxBuffer.Size",
+                       "claw_draw->VtxBuffer[vi].pos.x - window_left",
+                       "ImGui::SetNextWindowSize(ImVec2(strip_width, window_size.y)",
+                       "ImGui::GetIO().DisplaySize.x",
+                       "content_width = ImClamp(strip_width"):
+            self.assertIn(marker, patch)
+        self.assertIn("params.claw_center_horizontal", patch)
+        self.assertIn("Last drawn pixel + side padding", patch)
+
     def test_fps_enlargement_centers_full_inline_hud_vertically(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/layout-experiment.yml").read_text()

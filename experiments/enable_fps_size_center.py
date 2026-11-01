@@ -112,9 +112,12 @@ change("overlay.cpp",
    if (params.claw_center_horizontal &&
        params.enabled[OVERLAY_PARAM_ENABLED_horizontal] &&
        params.position == LAYER_POSITION_TOP_LEFT) {
-       // Previous frame's measured strip width, not full screen width.
-       const float center_x = std::max(0.0f,
-           (ImGui::GetIO().DisplaySize.x - window_size.x) * 0.5f);
+       // Make the compact window equal to the previous frame's visible HUD.
+       // The ImGui host/table width is not a valid measurement.
+       const float display_width = ImGui::GetIO().DisplaySize.x;
+       const float strip_width = ImClamp(window_size.x, 1.0f, display_width);
+       ImGui::SetNextWindowSize(ImVec2(strip_width, window_size.y), ImGuiCond_Always);
+       const float center_x = ImMax(0.0f, (display_width - strip_width) * 0.5f);
        data.main_window_pos = ImVec2(center_x, margin + params.offset_y);
        ImGui::SetNextWindowPos(data.main_window_pos, ImGuiCond_Always);
        return;
@@ -128,17 +131,29 @@ change("overlay.cpp",
     "   ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;")
 change("overlay.cpp",
     "            func.run();\n            HUDElements.place += 1;",
-    """            func.run();
+    """            ImDrawList* claw_draw = ImGui::GetWindowDrawList();
+            const int claw_vertex_start = claw_draw->VtxBuffer.Size;
+            func.run();
             if (params.claw_center_horizontal && params.enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
-               const float item_right = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x;
-               if (item_right > claw_strip_right) claw_strip_right = item_right;
+               // ImGui::GetItemRectMax may cover the full host table width.
+               // Measure actual submitted glyphs, graphs and icon pixels.
+               const float window_left = ImGui::GetWindowPos().x;
+               for (int vi = claw_vertex_start; vi < claw_draw->VtxBuffer.Size; ++vi) {
+                  const float right = claw_draw->VtxBuffer[vi].pos.x - window_left;
+                  if (right > claw_strip_right) claw_strip_right = right;
+               }
             }
             HUDElements.place += 1;""")
 change("overlay.cpp",
     """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
                window_size = ImVec2(content_width, params.height);""",
     """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
-               if (params.claw_center_horizontal && claw_strip_right > 0.0f)
-                   content_width = claw_strip_right + params.claw_padding_x;
+               if (params.claw_center_horizontal && claw_strip_right > 0.0f) {
+                   // Last drawn pixel + side padding (not an ImGui table item).
+                   const float strip_width = claw_strip_right +
+                       ImMax(0.0f, float(params.claw_padding_x));
+                   content_width = ImClamp(strip_width, 1.0f,
+                       ImGui::GetIO().DisplaySize.x);
+               }
                window_size = ImVec2(content_width, params.height);""")
 print("Native FPS scaling and centered HUD installed")

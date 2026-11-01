@@ -1,3 +1,14 @@
+# Claw Metrics v0.2.4-test.28 — ispravak horizontalnog centriranja
+
+Na Clawu je prijavljeno da uključivanje opcije Centriraj horizontalno produljuje crnu traku do desnog ruba, umjesto da smjesti cijeli overlay na sredinu.
+
+Uzrok u native rendereru: mjerenje širine na temelju ImGui::GetItemRectMax može obuhvatiti praznu širinu tablice. Sada se tijekom crtanja pojedine metrike mjeri desni rub stvarno iscrtane geometrije teksta i grafa (ImDrawList::VtxBuffer). Izračunat desni rub uz korisnikov bočni padding postaje širina samog prozora. Ta širina se ograničava širinom zaslona, a kompaktni HUD pozicionira se na sredinu.
+
+Kad je automatsko centriranje isključeno, ručni X pomak ostaje kako je bio postavljen. Ostaju isti FPS skaliranje i vertikalno poravnanje, grafovi A/B/C/F, fokus kartica i CPU/GPU/TDP/DRAW očitavanja.
+
+Provjera: uključiti centriranje, mijenjati uključene metrike, veličinu FPS-a i širinu grafa. Cijeli sadržaj s crnom pozadinom treba ostati jednako udaljen od lijevog i desnog ruba, bez praznog repa.
+
+---
 # Claw Metrics v0.2.4-test.27 — plavo isticanje fokusa kartica
 
 - Sve glavne kartice (Overlay, Layout, Metrics, Colors & Font, Activation i Advanced) osvijetljene su istom plavom pozadinom kad su otvorene ili u fokusu kontrolera.
