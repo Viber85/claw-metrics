@@ -145,10 +145,20 @@ class GroupedQamTests(unittest.TestCase):
                      'label="Položaj HUD-a"',
                      'hudPositions.map((anchor)',
                      'settings.hud_position===anchor.id',
-                     'anchor.id==="top-center"',
+                     'anchor.id.endsWith("center")',
                      'value={settings.offset_x} min={-1920} max={1920} step={1}',
                      'center_horizontal:defaults.center_horizontal'):
             self.assertIn(item, SOURCE, item)
+
+    def test_six_hud_position_buttons_are_edge_aligned(self):
+        for pos in ("top-left", "top-center", "top-right",
+                    "bottom-left", "bottom-center", "bottom-right"):
+            self.assertIn(f'id:"{pos}"', SOURCE)
+        self.assertIn('gridTemplateRows:"repeat(2,54px)"', SOURCE)
+        self.assertIn('label:"Gore sredina"', SOURCE)
+        self.assertIn('label:"Dolje sredina"', SOURCE)
+        self.assertIn('settings.hud_position.endsWith("center")', SOURCE)
+        self.assertNotIn('label:"Centar"', SOURCE)
 
     def test_new_native_controls_are_patched_after_token_styling(self):
         root = pathlib.Path(__file__).resolve().parents[1]
@@ -220,6 +230,9 @@ class GroupedQamTests(unittest.TestCase):
                        "content_width = ImClamp(strip_width"):
             self.assertIn(marker, patch)
         self.assertIn("params.claw_center_horizontal", patch)
+        self.assertIn("LAYER_POSITION_BOTTOM_LEFT", patch)
+        self.assertIn("ImGui::GetIO().DisplaySize.y - window_size.y", patch)
+        self.assertIn("params.offset_y", patch)
         self.assertIn("Last drawn pixel + side padding", patch)
 
 
