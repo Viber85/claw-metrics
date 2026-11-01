@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/edge-focus-zero-offset-34]
+    branches: [test/ink-bounds-gamepad-grid-35]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.34
+  group: claw-metrics-v0.2.4-test.35
   cancel-in-progress: true
 
 jobs:
@@ -99,6 +99,7 @@ jobs:
           python3 ../experiments/enable_zero_vertical_padding.py src
           python3 ../experiments/center_hud_vertically.py src
           python3 ../experiments/enable_fixed_numeric_slots.py src
+          python3 ../experiments/trim_native_ink_padding.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -120,6 +121,9 @@ jobs:
           grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
           grep -q 'style.CellPadding.y = 0.0f;' src/hud_elements.cpp
           grep -q 'claw_bottom_padding' src/overlay.cpp
+          grep -q 'claw_ink_trim_top' src/overlay.cpp
+          grep -q 'claw_ink_start = claw_ink_draw->VtxBuffer.Size' src/overlay.cpp
+          grep -q 'window_size.y = ImClamp(claw_ink_bottom' src/overlay.cpp
           grep -q 'std::isfinite(raw_value)' src/hud_elements.cpp
           grep -q 'chosen->Scale = ImClamp' src/hud_elements.cpp
           grep -q 'fps_font->FontSize \* fps_font->Scale' src/hud_elements.cpp
@@ -145,7 +149,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.34.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.35.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -164,14 +168,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.34
-          path: ClawMetrics-v0.2.4-test.34.zip
+          name: ClawMetrics-v0.2.4-test.35
+          path: ClawMetrics-v0.2.4-test.35.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.34 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.34 ClawMetrics-v0.2.4-test.34.zip \
+          gh release delete v0.2.4-test.35 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.35 ClawMetrics-v0.2.4-test.35.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.34 – exact screen-edge anchors and visible gamepad focus" \
-            --notes "Removes upstream implicit 10px anchor margin for all six positions, sets default Y offset to 0px, and gives controller-focused anchor buttons a high-contrast focus ring distinct from the selected anchor. Previously saved offsets are preserved; reset Layout or set Y=0 for flush-edge positioning. Retains test.33 zero-padding slider, frametime stability guards and telemetry. Device verification required."
+            --title "Claw Metrics v0.2.4-test.35 – visible FPS ink height and two-axis controller grid" \
+            --notes "Corrects top/bottom black background whitespace at large 100%-200% FPS digits by measuring real ImGui ink bounds after merging the metric table and compensating for font linebox whitespace. Controller navigation is now two horizontal rows inside a vertical parent for D-pad up/down/left/right. Retains six edge anchors, 0px default padding, old profiles and stability guards. Native compile passes required; on-device visual/controller test remains necessary."
