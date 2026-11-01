@@ -32,28 +32,30 @@ const hudPositions: {id:HudPosition; label:string; icon:string; column:number; r
   {id:"bottom-right",label:"Dolje desno",icon:"↘",column:3,row:2},
 ];
 
-// Tiny real graph silhouettes make every option recognizable in Decky's narrow menu.
+// Actual silhouettes of the four native frametime render modes.
+// They are the primary symbols in the gamepad grid; no letter shortcuts.
 function GraphStyleIcon({kind}:{kind:GraphStyle}) {
   const isArea = kind === "area" || kind === "dual";
-  return <svg width={19} height={19} viewBox="0 0 24 22" aria-hidden="true"
+  return <svg width={46} height={35} viewBox="0 0 48 34" aria-hidden="true"
     style={{display:"block",flexShrink:0,overflow:"visible"}}>
-    {isArea && <path d="M2 17 L6 12 L10 14 L14 5 L18 9 L22 3 L22 20 L2 20 Z"
-      fill="#39dabe" fillOpacity={kind === "area" ? 0.8 : 0.2} />}
+    <path d="M3 30 H45" fill="none" stroke="#7090a7" strokeWidth={1} strokeOpacity={0.55}/>
+    {isArea && <path d="M3 25 L11 19 L19 23 L28 9 L36 16 L45 5 L45 30 L3 30 Z"
+      fill="#39dabe" fillOpacity={kind === "area" ? 0.88 : 0.19} />}
     {kind === "bars" ? <>
-      <rect x={2} y={12} width={3} height={8} rx={0.5} fill="#39dabe"/>
-      <rect x={7} y={7} width={3} height={13} rx={0.5} fill="#39dabe"/>
-      <rect x={12} y={11} width={3} height={9} rx={0.5} fill="#39dabe"/>
-      <rect x={17} y={3} width={3} height={17} rx={0.5} fill="#39dabe"/>
-    </> : <polyline points="2,17 6,12 10,14 14,5 18,9 22,3"
-      fill="none" stroke="#65f1db" strokeWidth={kind === "dual" ? 2.4 : 1.7}
+      <rect x={4} y={18} width={6} height={12} rx={0.7} fill="#39dabe"/>
+      <rect x={14} y={11} width={6} height={19} rx={0.7} fill="#39dabe"/>
+      <rect x={24} y={16} width={6} height={14} rx={0.7} fill="#39dabe"/>
+      <rect x={34} y={4} width={6} height={26} rx={0.7} fill="#39dabe"/>
+    </> : kind !== "area" && <polyline points="3,25 11,19 19,23 28,9 36,16 45,5"
+      fill="none" stroke={kind === "dual" ? "#77eaff" : "#39dabe"} strokeWidth={kind === "dual" ? 2.8 : 2.3}
       strokeLinecap="round" strokeLinejoin="round"/>}
   </svg>;
 }
-const graphStyleChoices: {id:GraphStyle; letter:string; label:string}[] = [
-  {id:"area",letter:"A",label:"Ispuna"},
-  {id:"line",letter:"B",label:"Linijski graf"},
-  {id:"bars",letter:"C",label:"Histogram"},
-  {id:"dual",letter:"F",label:"Linija + ispuna"},
+const graphStyleChoices: {id:GraphStyle;label:string}[] = [
+  {id:"area",label:"Ispuna"},
+  {id:"line",label:"Linijski graf"},
+  {id:"bars",label:"Histogram"},
+  {id:"dual",label:"Linija + ispuna"},
 ];
 
 /** Match the real SteamOS navigation tree to the visible grid.
@@ -751,7 +753,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.36">
+      <PanelSection title="Claw Metrics · v0.2.4-test.37">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -850,26 +852,23 @@ function Content() {
           onChange={(value: number) => update({inner_gap: value})} /></PanelSectionRow>
 
         <PanelSectionRow><Field label="Tip frametime grafa"
-          description="Odaberi A, B, C ili F. D-padom se krećeš u oba smjera kao kod sidrenja." /></PanelSectionRow>
+          description="Odaberi tip prema izgledu grafa. D-pad radi u oba smjera kao kod sidrenja." /></PanelSectionRow>
         <GamepadGrid items={graphStyleChoices} columns={2}
           className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
             const selected=settings.graph_style===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"
-              aria-label={"Tip grafa "+choice.letter+": "+choice.label}
+              aria-label={"Tip grafa: "+choice.label}
               aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
               onClick={()=>update({graph_style:choice.id})}
-              style={{width:"100%",minWidth:0,margin:0,minHeight:70,padding:"7px 3px",
+              style={{width:"100%",minWidth:0,margin:0,minHeight:84,padding:"8px 3px",
                 background:selected?"#0b4c70":"#162b40",
                 border:selected?"2px solid #31cefa":"1px solid #43607a",
                 borderRadius:8,color:selected?"#f6fcff":"#bfd5e7"}}>
-              <span style={{display:"flex",alignItems:"center",justifyContent:"center",
-                gap:7,width:"100%",minWidth:0}}>
+              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",gap:6,width:"100%",minWidth:0}}>
                 <GraphStyleIcon kind={choice.id}/>
-                <span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",
-                  minWidth:0,gap:3,textAlign:"left",lineHeight:1.1}}>
-                  <strong style={{fontSize:13}}>{choice.letter}</strong>
-                  <span style={{fontSize:11,overflowWrap:"anywhere"}}>{choice.label}</span>
-                </span>
+                <span style={{fontSize:11.5,lineHeight:1.2,overflowWrap:"anywhere",
+                  textAlign:"center",width:"100%",minWidth:0}}>{choice.label}</span>
               </span>
             </DialogButton>;
           }}/>
