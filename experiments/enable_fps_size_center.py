@@ -15,17 +15,20 @@ change("overlay_params.h",
     "   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\",
     "   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\\n"
     "   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\\n"
-    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)       \\")
+    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)       \\n" +
+    "   OVERLAY_PARAM_CUSTOM(claw_align_right)             \\")
 change("overlay_params.h",
     "   std::string claw_weight_map, claw_color_map;",
     "   std::string claw_weight_map, claw_color_map;\n"
     "   int claw_fps_scale = 100;\n"
-    "   bool claw_center_horizontal = false;")
+    "   bool claw_center_horizontal = false;\n" +
+    "   bool claw_align_right = false;")
 change("overlay_params.cpp",
     "#define parse_claw_color_map(s) parse_str(s)",
     "#define parse_claw_color_map(s) parse_str(s)\n"
     "#define parse_claw_fps_scale(s) parse_unsigned(s)\n"
-    "#define parse_claw_center_horizontal(s) parse_unsigned(s) != 0")
+    "#define parse_claw_center_horizontal(s) parse_unsigned(s) != 0\n" +
+    "#define parse_claw_align_right(s) parse_unsigned(s) != 0")
 change("font.cpp",
     "ImFont* claw_metric_semibold = nullptr;",
     """ImFont* claw_metric_semibold = nullptr;
@@ -134,7 +137,8 @@ change("overlay.cpp",
     """            ImDrawList* claw_draw = ImGui::GetWindowDrawList();
             const int claw_vertex_start = claw_draw->VtxBuffer.Size;
             func.run();
-            if (params.claw_center_horizontal && params.enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
+            if ((params.claw_center_horizontal || params.claw_align_right) &&
+                params.enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
                // ImGui::GetItemRectMax may cover the full host table width.
                // Measure actual submitted glyphs, graphs and icon pixels.
                const float window_left = ImGui::GetWindowPos().x;
@@ -148,7 +152,8 @@ change("overlay.cpp",
     """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
                window_size = ImVec2(content_width, params.height);""",
     """               float content_width = ImGui::GetContentRegionAvail().x - (params.table_columns * 64);
-               if (params.claw_center_horizontal && claw_strip_right > 0.0f) {
+               if ((params.claw_center_horizontal || params.claw_align_right) &&
+                   claw_strip_right > 0.0f) {
                    // Last drawn pixel + side padding (not an ImGui table item).
                    const float strip_width = claw_strip_right +
                        ImMax(0.0f, float(params.claw_padding_x));
