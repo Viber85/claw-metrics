@@ -86,7 +86,6 @@ replace_once(
                   claw_ink_bottom = bottom;
                   claw_has_ink = true;
               }
-          }
           }""",
     "measure final draw vertices after table channel merge"
 )
