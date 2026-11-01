@@ -91,20 +91,20 @@ replace_once(
 )
 
 replace_once(
-    """       window_size = ImVec2(window_size.x,
-           ImMax(1.0f, ImGui::GetCursorPosY() + claw_bottom_padding));
-       ImGui::End();""",
-    """       window_size = ImVec2(window_size.x,
-           ImMax(1.0f, ImGui::GetCursorPosY() + claw_bottom_padding));
+    "ImMax(1.0f, ImGui::GetCursorPosY() + claw_bottom_padding));",
+    """ImMax(1.0f, ImGui::GetCursorPosY() + claw_bottom_padding));
        if (claw_ink_trim && claw_has_ink) {
            // Height follows actual visible ink rather than FPS font line box.
            // Keep symmetric user padding (including exactly zero).
            window_size.y = ImClamp(claw_ink_bottom + claw_bottom_padding,
                1.0f, ImMax(1.0f, ImGui::GetIO().DisplaySize.y));
-       }
-       ImGui::End();
-       if (claw_ink_trim) ImGui::PopStyleVar();""",
+       }""",
     "finish measured HUD height without trailing blank space"
+)
+replace_once(
+    "ImGui::End();\\n       if((now - logger->last_log_end())",
+    "ImGui::End();\\n       if (claw_ink_trim) ImGui::PopStyleVar();\\n       if((now - logger->last_log_end())",
+    "restore ImGui window-min style after main HUD"
 )
 
 path.write_text(source)
