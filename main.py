@@ -15,7 +15,8 @@ import re
 import shutil
 import subprocess
 import time
-from updates import check_github_update, validate_github_feed, describe_error
+# The optional GitHub updater is loaded only when requested. A missing updater
+# must NEVER prevent Decky from loading Metrics, Layout or Colors & Font.
 
 ORDER = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"]
 COLORS = {
@@ -872,6 +873,17 @@ def mango_config(settings, native_spacing=False):
             lines.append(flag(display[group], on))
     return "\n".join(lines) + "\n"
 
+def update_error_message(error):
+    """Keep a broken optional updater from taking down the entire plugin."""
+    try:
+        from updates import describe_error
+        return describe_error(error)
+    except Exception:
+        if isinstance(error, ModuleNotFoundError):
+            return "Update helper is missing. Reinstall Claw Metrics from its release ZIP."
+        return type(error).__name__ + ": " + str(error)[:220]
+
+
 class Plugin:
     async def _main(self):
         install_font()
@@ -1016,14 +1028,15 @@ class Plugin:
         }
 
     async def check_updates(self):
-        """Fallback for older Decky versions; never leak a Python exception."""
+        """Optional updater: errors must not affect the plugin's core settings."""
         try:
+            from updates import check_github_update
             result = await asyncio.to_thread(
                 check_github_update, pathlib.Path(__file__).with_name("package.json"))
             return {"ok": True, **result}
         except Exception as error:
             return {"ok": False, "available": False, "latest": None,
-                    "error": describe_error(error), "source": "Python HTTPS"}
+                    "error": update_error_message(error), "source": "Python HTTPS"}
 
     async def validate_github_releases(self, release_json: str):
         """Decode GitHub data fetched by Decky's own HTTPS client.
@@ -1032,12 +1045,13 @@ class Plugin:
         be offered for installation. Invalid JSON returns actionable status.
         """
         try:
+            from updates import validate_github_feed
             result = validate_github_feed(
                 pathlib.Path(__file__).with_name("package.json"), release_json)
             return {"ok": True, **result}
         except Exception as error:
             return {"ok": False, "available": False, "latest": None,
-                    "error": describe_error(error), "source": "GitHub response"}
+                    "error": update_error_message(error), "source": "GitHub response"}
 
     async def get_renderer_status(self):
         """Detect both Vulkan request propagation and actual native library maps.
