@@ -1,3 +1,33 @@
+# Claw Metrics v0.2.4-test.40 — ažuriranja iz GitHub Releasesa
+
+U **Advanced → Ažuriranja s GitHuba** odaberi **Provjeri novu verziju**. Plugin
+provjerava numeričke testne verzije u repozitoriju
+[ikorljan-droid/claw-metrics](https://github.com/ikorljan-droid/claw-metrics/releases).
+Ako je dostupna nova verzija, otvara se SteamOS prozor s brojem verzije,
+opisom promjena i tipkom **Instaliraj**. Instalaciju moraš izričito potvrditi.
+
+Instalacija koristi vlastiti instalacijski mehanizam Decky Loadera
+(`utilities/install_plugin` s tipom UPDATE). ZIP adresa mora točno
+odgovarati izdanju s GitHuba; SHA-256 se preuzima iz službenog release
+metapodatka i Decky ga provjerava. Plugin sam ne zamjenjuje svoje datoteke.
+Decky obično sam ponovno učita plugin nakon ažuriranja; ako to izostane,
+učitaj ga ponovno u Decky Settings → Plugins, odnosno ponovno pokreni
+Decky Loader. Ponovno pokreni **igru** ako je u njoj još učitan stari Vulkan
+renderer. Cijeli SteamOS ili MSI Claw nije potrebno restartati samo radi
+ažuriranja.
+
+Ako Decky instalacijski API nije dostupan, prikazuje se ručna ZIP poveznica
+za Decky Settings → Developer → Install Plugin from URL. Offline provjera
+jasno prijavljuje pogrešku. Nijedno ažuriranje ne pokreće se automatski.
+Instalirana verzija čita se iz ugrađenog `package.json` (od ovog izdanja
+ispravno postavljen na 0.2.4-test.40).
+
+**Activation** je skraćen na provjereni kratki Steam launcher. Standardna
+i duga rezervna komanda premještene su u Advanced. Prethodni stilovi,
+metrike i native layout/fps/frametime popravci ostaju.
+
+---
+
 # Claw Metrics v0.2.4-test.30 — vratiti visinu i veličinu fonta iz test.28
 
 Ispravak regresije nastale u test.29: prilikom stabilizacije širine brojeva dodatni ImGui BeginGroup/EndGroup/Dummy elementi promijenili su izračun visine i optički smanjili tekst u odnosu na povećanu traku, čak kada je dodatni gornji/donji padding 0.
