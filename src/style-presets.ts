@@ -5,11 +5,11 @@ export function styleLayoutFrom(value:any){
  for(const key of styleLayoutKeys){
   const v=value?.[key];
   if(key==='sans'||key==='inline_metrics'||key==='center_horizontal'){if(typeof v==='boolean')result[key]=v}
-  else if(key==='hud_position'){if(['top-left','top-center','top-right','bottom-left','bottom-right'].includes(v))result[key]=v}
+  else if(key==='hud_position'){if(['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'].includes(v))result[key]=v}
   else if(key==='graph_style'){if(['area','line','bars','dual'].includes(v))result[key]=v}
   else if(typeof v==='number'&&Number.isFinite(v))result[key]=v;
  }
- if(result.hud_position)result.center_horizontal=result.hud_position==='top-center';
+ if(result.hud_position)result.center_horizontal=result.hud_position.endsWith('center');
  else if(result.center_horizontal===true)result.hud_position='top-center';
  return result;
 }
