@@ -117,10 +117,10 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             description="With the Claw renderer, Auto chooses a compact font-dependent width. Fixed width changes the stacked rows and graph together. Long values may need extra room." /></PanelSectionRow>
         </>}
         <PanelSectionRow><Field label="FPS value scale"
-          description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>
+          description="Scales the FPS number only. In Vertical, the FPS header expands without changing CPU/GPU text size." /></PanelSectionRow>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
-          disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
+          disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value:number)=>update({fps_scale:value})}/></div></PanelSectionRow>
         <div className="claw-fps-scale-preview" aria-label="FPS scale preview"
           style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",

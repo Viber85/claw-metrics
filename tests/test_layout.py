@@ -116,6 +116,17 @@ class VerticalHudPreview(unittest.TestCase):
             self.assertEqual(native["claw_inner_gap"], "12")
         self.assertNotIn("claw_graph_style", options_for({"hud_orientation": "vertical"}, False))
 
+    def test_vertical_fps_scale_native_and_horizontal_isolation(self):
+        native = options_for({"hud_orientation":"vertical","fps_scale":160},True)
+        self.assertEqual(native["claw_fps_scale"],"160")
+        self.assertEqual(native["claw_vertical_stack"],"1")
+        self.assertNotIn("claw_fps_scale",
+                         options_for({"hud_orientation":"vertical","fps_scale":160},False))
+        # Test 54 does not change the generated horizontal renderer profile.
+        a = options_for({"hud_orientation":"horizontal","fps_scale":160},True)
+        self.assertEqual(a["claw_fps_scale"],"160")
+        self.assertEqual(a["claw_vertical_stack"],"0")
+
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
             "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "fontsize": 20},

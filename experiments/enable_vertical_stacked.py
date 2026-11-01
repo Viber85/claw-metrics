@@ -83,6 +83,36 @@ for name in ("cpu_stats","gpu_stats","ram","vram"):
         "if (!HUDElements.params->claw_vertical_stack) ImGui::PopFont();")
     s=s[:start]+chunk+s[stop:]
 
+# _exec() is still MangoHud's right-aligned full text item; in two-column
+# Claw Vertical it flows outside the label column and overlaps the next
+# group. Give each exec item (TDP, DRAW) a complete label/value row.
+exec_name="void HudElements::_exec(){"
+if s.count(exec_name)!=1: raise RuntimeError("exec function anchor drift")
+s=s.replace(exec_name, """void HudElements::_exec(){
+    if (HUDElements.params->claw_vertical_stack &&
+        !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
+        ImguiNextColumnFirstItem();
+        for (auto& item : HUDElements.exec_list) {
+            if (item.pos != HUDElements.place) continue;
+            const std::string text = item.ret;
+            const auto split = text.find_last_of(' ');
+            const bool has_value = split != std::string::npos &&
+                                   split + 1 < text.size();
+            const std::string label = has_value
+                ? text.substr(0,split) : text;
+            const std::string value = has_value
+                ? text.substr(split+1) : std::string("--");
+            const int token = item.value.find("tdp.txt") != std::string::npos
+                ? 27 : 25;
+            ClawText(token, HUDElements.colors.engine, "%s", label.c_str());
+            ImGui::TableSetColumnIndex(1);
+            HUDElements.TextColored(HUDElements.colors.text,
+                                    "%s", value.c_str());
+        }
+        return;
+    }
+""",1)
+
 # Show TDP and DRAW at normal font size in Claw Stacked, without
 # changing their read-only values or horizontal rendering.
 old="const bool claw_exec_small_font = !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];"
@@ -186,7 +216,7 @@ begin='if (ImGui::BeginTable("hud", params.table_columns, table_flags )) {'
 if code.count(begin)!=1: raise RuntimeError("begin table anchor drift")
 code=code.replace(begin,
     'if (claw_vertical_stack) ImGui::PushStyleColor(ImGuiCol_TableBorderLight,'
-    ' ImVec4(0.44f,0.58f,0.70f,0.20f));\n       '+begin,1)
+    ' ImVec4(0.44f,0.58f,0.70f,0.10f));\n       '+begin,1)
 end_pattern=r'HUDElements\.table_columns_count\s*=\s*0;\s*\n\s*\}'
 code,n=re.subn(end_pattern,lambda m: m.group(0)+"\n       if (claw_vertical_stack) ImGui::PopStyleColor();",code,count=1)
 if n!=1: raise RuntimeError(f"end table style guard found {n} blocks")

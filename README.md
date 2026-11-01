@@ -1,3 +1,22 @@
+# Claw Metrics v0.2.4-test.54 — Vertical Exec Rows and FPS Scaling
+
+Fixes the visibly overlapping TDP and DRAW strings in the native two-column
+Vertical Stacked layout. Each host-supplied exec metric now uses its own row,
+with the original label in the left column and its current value in the right
+column. Custom token colors remain available. Native row divider opacity is
+reduced while the four adaptive frametime graph styles are preserved.
+
+Layout > Size & appearance > FPS value scale (100–200%) is now enabled in
+vertical mode. It uses the existing dedicated FPS font from the Claw native
+renderer; other metric font sizes stay unchanged. Close/restart a game after
+switching HUD settings; visually confirm fit for large FPS sizes.
+
+This release is experimental. It cannot force CPU/GPU temperatures or clocks
+to display if their individual Metrics switches are disabled, and in-game
+visual verification is still required.
+
+---
+
 # Claw Metrics v0.2.4-test.53 — Vertical Layout Polish
 
 The native Vertical Stacked renderer now uses normal-sized sensor units

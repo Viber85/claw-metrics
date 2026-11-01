@@ -33,6 +33,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('settings.hud_orientation==="vertical"', SOURCE)
         self.assertIn('hud_orientation:defaults.hud_orientation', SOURCE)
         self.assertIn('Vertical preview', SOURCE)
+        self.assertIn('FPS header expands',SOURCE)
         self.assertIn('Automatic vertical width', SOURCE)
         self.assertIn('Vertical HUD width (px)', SOURCE)
         self.assertIn('vertical_width:defaults.vertical_width', SOURCE)
@@ -268,6 +269,17 @@ class GroupedQamTests(unittest.TestCase):
                          "average_cpu_power_w", "sizeof(gpu_metrics_v3_0) == 264",
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
+
+    def test_vertical_exec_rows_and_fps_scaling_have_native_patch(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_vertical_stacked.py").read_text()
+        layout = (root / "src/pages/LayoutCard.tsx").read_text()
+        self.assertIn('const std::string label = has_value', patch)
+        self.assertIn('ImGui::TableSetColumnIndex(1);', patch)
+        self.assertIn('item.value.find("tdp.txt")', patch)
+        self.assertIn('if (HUDElements.params->claw_vertical_stack &&', patch)
+        self.assertNotIn('!info?.layout_spacing_supported || settings.hud_orientation==="vertical"',layout)
+        self.assertIn('value={settings.fps_scale} min={100} max={200}', layout)
 
     def test_fps_size_preview_and_center_pill(self):
         for item in ('label="FPS value scale"',
