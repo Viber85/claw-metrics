@@ -15,7 +15,7 @@ change("overlay_params.h",
     "   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\",
     "   OVERLAY_PARAM_CUSTOM(claw_color_map)               \\\n"
     "   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\\n"
-    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)       \\\\n" +
+    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)               \\\n" +
     "   OVERLAY_PARAM_CUSTOM(claw_align_right)             \\")
 change("overlay_params.h",
     "   std::string claw_weight_map, claw_color_map;",
