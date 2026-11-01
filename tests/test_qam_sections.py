@@ -58,8 +58,8 @@ class GroupedQamTests(unittest.TestCase):
                      "active_style", "Values", "DRAW", "Clock",
                      "Reset layout to defaults", "groupIcons"):
             self.assertIn(name, SOURCE, name)
-        self.assertIn("token_weights:{}", SOURCE)
-        self.assertIn("token_colors:{}", SOURCE)
+        self.assertIn("token_weights: {}", SOURCE)
+        self.assertIn("token_colors: {}", SOURCE)
 
     def test_compact_three_column_grids_preserve_actions_and_focus(self):
         self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", SOURCE)
@@ -171,7 +171,7 @@ class GroupedQamTests(unittest.TestCase):
             self.assertIn(required, script)
 
     def test_fps_size_preview_and_center_pill(self):
-        for item in ('label="FPS – veličina broja"',
+        for item in ('label="FPS value scale"',
                      'value={settings.fps_scale} min={100} max={200} step={10}',
                      'fontSize:Math.round(18*settings.fps_scale/100)',
                      'label="HUD position"',
@@ -336,7 +336,7 @@ class GroupedQamTests(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         patch = (root / "experiments/enable_zero_vertical_padding.py").read_text()
         native_build = (root / ".github/workflows/layout-experiment.yml").read_text()
-        self.assertIn('["padding_y", "Padding gore/dolje (px)", 0, 24, 1]', SOURCE)
+        self.assertIn('label="Vertical padding (px)"', SOURCE)
         self.assertIn('padding_y: 0,', SOURCE)
         self.assertNotIn('"Dodatni padding gore/dolje (px)"', SOURCE)
         self.assertIn('python3 ../experiments/enable_zero_vertical_padding.py src', native_build)
@@ -471,7 +471,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('release.sha256, 2 /* UPDATE */', SOURCE)
         self.assertIn('Decky Settings → Developer → Install Plugin from URL', SOURCE)
         self.assertIn('If the new interface does not appear', SOURCE)
-        self.assertIn('Restart', SOURCE)
+        self.assertIn('restart Decky Loader', SOURCE)
         self.assertIn('checkGithubRelease();', SOURCE)
         self.assertNotIn('fetch("https://api.github.com', SOURCE)
         # Manual consent only; no background updates or silent installations.
