@@ -75,7 +75,7 @@ STYLE_LAYOUT_RANGES = {
     "inner_gap": (0, 16), "graph_width": (80, 200),
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
-HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-right")
+HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
 GRAPH_STYLES = ("line", "area", "bars", "dual")
 
 
@@ -129,7 +129,7 @@ def normalize_style_presets(payload):
         elif preset.get("center_horizontal") is True:
             preset["hud_position"] = "top-center"
         if "hud_position" in preset:
-            preset["center_horizontal"] = preset["hud_position"] == "top-center"
+            preset["center_horizontal"] = preset["hud_position"] in ("top-center", "bottom-center")
         if item.get("graph_style") in GRAPH_STYLES:
             preset["graph_style"] = item["graph_style"]
         out[key] = preset
@@ -600,7 +600,7 @@ def normalize(payload):
         d["hud_position"] = payload["hud_position"]
     elif d["center_horizontal"]:
         d["hud_position"] = "top-center"
-    d["center_horizontal"] = d["hud_position"] == "top-center"
+    d["center_horizontal"] = d["hud_position"] in ("top-center", "bottom-center")
     if payload.get("graph_style") in GRAPH_STYLES:
         d["graph_style"] = payload["graph_style"]
     # Preserve the old top-margin preference when upgrading to explicit X/Y.
@@ -739,9 +739,10 @@ def mango_config(settings, native_spacing=False):
     c = d["colors"]
     active = lambda key: d["enabled"] and d[key]
     flag = lambda key, value: key + "=" + str(int(bool(value)))
-    # Avoid the broken native top-center branch for non-stretched horizontal HUDs.
+    # Native non-stretched top/bottom-center has an incorrect 64-column offset.
+    # Both center anchors use our measured strip width in the patched renderer.
     position = d["hud_position"]
-    native_position = "top-left" if position == "top-center" else position
+    native_position = {"top-center": "top-left", "bottom-center": "bottom-left"}.get(position, position)
     # Offsets are distances IN from the selected corner.
     hud_x = -d["offset_x"] if position.endswith("right") else d["offset_x"]
     hud_y = -d["offset_y"] if position.startswith("bottom") else d["offset_y"]
@@ -807,7 +808,7 @@ def mango_config(settings, native_spacing=False):
             "claw_inline_metrics=" + str(int(d["inline_metrics"])),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
             "claw_fps_scale=" + str(d["fps_scale"]),
-            "claw_center_horizontal=" + str(int(position == "top-center")),
+            "claw_center_horizontal=" + str(int(position in ("top-center", "bottom-center"))),
             "claw_align_right=" + str(int(position.endswith("right"))),
             "claw_weight_map=" + "".join(FONT_DIGITS[d["token_weights"].get(slot, "inherit")] for slot in TOKEN_SLOTS),
             "claw_color_map=" + ":".join(
