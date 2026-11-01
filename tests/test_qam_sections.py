@@ -92,22 +92,28 @@ class GroupedQamTests(unittest.TestCase):
         self.assertNotIn('Preimenuj stil', SOURCE)
         self.assertNotIn('Obriši stil', SOURCE)
 
-    def test_selected_main_group_has_white_persistent_outline(self):
-        self.assertIn('border: open ? "2px solid #ffffff"', SOURCE)
-        self.assertIn('boxShadow: open ? "inset 0 0 0 1px #ffffff', SOURCE)
-        self.assertIn('width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box"', SOURCE)
+    def test_expanded_card_uses_blue_surface_without_white_outline(self):
+        self.assertIn("const active = open || focused;", SOURCE)
+        self.assertIn('border: active ? "1px solid #2c709d"', SOURCE)
+        self.assertIn('borderLeft: active ? "4px solid #08d3fa"', SOURCE)
+        self.assertIn('background: active ? "#073858" : "#14243b"', SOURCE)
+        self.assertIn('background: active ? "#075b83" : "#203551"', SOURCE)
         self.assertIn('open={openSection === "layout"}', SOURCE)
         self.assertIn('open={openSection === "colors"}', SOURCE)
+        self.assertNotIn('claw-accordion-selection-ring', SOURCE)
 
-    def test_selected_group_border_is_drawn_above_decky_button(self):
-        # The wrapper's old border was insufficient with Steam's focus styling.
-        self.assertIn('data-selected={open ? "true" : "false"}', SOURCE)
-        self.assertIn('className="claw-accordion-header"', SOURCE)
-        self.assertIn('className="claw-accordion-selection-ring"', SOURCE)
-        self.assertIn('position:"absolute",inset:3,zIndex:2,pointerEvents:"none"', SOURCE)
-        self.assertIn('border:(open||focused)?"2px solid #ffffff":"2px solid transparent"', SOURCE)
-        self.assertIn('[data-section][data-selected="true"] .claw-accordion-header > button', SOURCE)
-        self.assertIn('outline: 2px solid #ffffff !important', SOURCE)
+    def test_closed_controller_focus_matches_expanded_card_background(self):
+        self.assertIn('data-focused={focused ? "true" : "false"}', SOURCE)
+        self.assertIn('onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}', SOURCE)
+        self.assertIn('.claw-accordion-header:focus-within > button', SOURCE)
+        self.assertIn('.claw-accordion-header:has(.gpfocus) > button', SOURCE)
+        self.assertIn('[data-section][data-focused="true"] .claw-accordion-header > button', SOURCE)
+        self.assertIn('background: #073858 !important;', SOURCE)
+        self.assertIn('background: #075b83 !important;', SOURCE)
+        self.assertIn('outline: none !important;', SOURCE)
+        component = SOURCE[SOURCE.index("function AccordionCard"):SOURCE.index("// Decky can remount")]
+        self.assertNotIn('outline: 2px solid #ffffff', component)
+        self.assertNotIn('border: open ? "2px solid #ffffff"', component)
 
     def test_preset_buttons_use_visual_load_and_save_icons(self):
         self.assertIn('FaPlay, FaDownload', SOURCE)
@@ -193,13 +199,13 @@ class GroupedQamTests(unittest.TestCase):
             with self.subTest(scale=scale):
                 self.assertAlmostEqual(2.0 * (scale / 200.0), scale / 100.0)
 
-    def test_closed_main_cards_highlight_controller_focus(self):
-        self.assertIn('data-focused={focused ? "true" : "false"}', SOURCE)
+    def test_main_card_focus_does_not_add_white_glow_or_ring(self):
+        self.assertIn('const active = open || focused;', SOURCE)
         self.assertIn('onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}', SOURCE)
-        self.assertIn('border:(open||focused)?"2px solid #ffffff"', SOURCE)
-        self.assertIn('.claw-accordion-header:focus-within .claw-accordion-selection-ring', SOURCE)
-        self.assertIn('.claw-accordion-header:has(.gpfocus) .claw-accordion-selection-ring', SOURCE)
-        self.assertIn('[data-section][data-focused="true"] .claw-accordion-selection-ring', SOURCE)
+        self.assertIn('.claw-accordion-header:focus-within .claw-accordion-icon', SOURCE)
+        self.assertIn('.claw-accordion-header:has(.gpfocus) .claw-accordion-icon', SOURCE)
+        self.assertNotIn('claw-accordion-selection-ring', SOURCE)
+        self.assertNotIn('0 0 12px rgba(255,255,255,0.8)', SOURCE)
 
     def test_fps_enlargement_centers_full_inline_hud_vertically(self):
         root = pathlib.Path(__file__).resolve().parents[1]
