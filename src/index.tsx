@@ -718,7 +718,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.34">
+      <PanelSection title="Claw Metrics · v0.2.4-test.35">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -768,28 +768,35 @@ function Content() {
         </div>
         <PanelSectionRow><Field label="Položaj HUD-a"
           description="Šest položaja uz rub ekrana: tri gore i tri dolje. Nema prikaza u sredini ekrana."/></PanelSectionRow>
-        <Focusable flow-children="row" style={{display:"grid",
-          gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,54px)",
+        {/* Steam's navigation tree must match the visual 3×2 grid: column
+            movement between two horizontal rows, row movement within each.
+            A single flow-children="row" prevents D-pad up/down navigation. */}
+        <Focusable flow-children="column" style={{display:"flex",flexDirection:"column",
           gap:5,padding:"0 4px 12px",maxWidth:"100%",boxSizing:"border-box"}}>
-          {hudPositions.map((anchor)=>{
-            const selected=settings.hud_position===anchor.id;
-            return <DialogButton key={anchor.id} className="claw-hud-anchor" data-anchor-position={anchor.id}
-              aria-label={anchor.label} aria-pressed={selected}
-              disabled={!ready || (anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
-              onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
-              style={{gridColumn:anchor.column,gridRow:anchor.row,margin:0,
-                padding:"4px 2px",minWidth:0,minHeight:50,
-                border:selected?"2px solid #31cefa":"1px solid #43607a",
-                borderRadius:8,background:selected?"#0b4c70":"#162b40",
-                color:selected?"#f6fcff":"#bfd5e7",outline:"none",boxShadow:"none"}}>
-              <span style={{display:"flex",flexDirection:"column",alignItems:"center",
-                justifyContent:"center",gap:2,lineHeight:1.1,width:"100%"}}>
-                <span aria-hidden="true" style={{fontSize:19,fontWeight:700}}>{anchor.icon}</span>
-                <span style={{fontSize:10,fontWeight:selected?700:500,
-                  textAlign:"center"}}>{anchor.label}</span>
-              </span>
-            </DialogButton>;
-          })}
+          {(["top","bottom"] as const).map((edge)=>
+            <Focusable key={edge} flow-children="row" style={{display:"grid",
+              gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:5,
+              width:"100%",minWidth:0,maxWidth:"100%",boxSizing:"border-box"}}>
+              {hudPositions.filter((anchor)=>anchor.id.startsWith(edge)).map((anchor)=>{
+                const selected=settings.hud_position===anchor.id;
+                return <DialogButton key={anchor.id} className="claw-hud-anchor" data-anchor-position={anchor.id}
+                  aria-label={anchor.label} aria-pressed={selected}
+                  disabled={!ready || (anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
+                  onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
+                  style={{margin:0,padding:"4px 2px",minWidth:0,minHeight:54,
+                    border:selected?"2px solid #31cefa":"1px solid #43607a",
+                    borderRadius:8,background:selected?"#0b4c70":"#162b40",
+                    color:selected?"#f6fcff":"#bfd5e7",outline:"none",boxShadow:"none"}}>
+                  <span style={{display:"flex",flexDirection:"column",alignItems:"center",
+                    justifyContent:"center",gap:2,lineHeight:1.1,width:"100%"}}>
+                    <span aria-hidden="true" style={{fontSize:19,fontWeight:700}}>{anchor.icon}</span>
+                    <span style={{fontSize:10,fontWeight:selected?700:500,
+                      textAlign:"center"}}>{anchor.label}</span>
+                  </span>
+                </DialogButton>;
+              })}
+            </Focusable>
+          )}
         </Focusable>
         <PanelSectionRow><SliderField label="X — lijevo/desno (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
