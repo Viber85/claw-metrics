@@ -177,7 +177,7 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
         </div>
         <SliderField showValue editableValue label="Hue"
           value={h} min={0} max={360} step={1} onChange={setH} />
-        <SliderField showValue editableValue label="Zasićenost (Clockuration)"
+        <SliderField showValue editableValue label="Saturation"
           value={s} min={0} max={100} step={1} onChange={setS} />
         <SliderField showValue editableValue label="Lightness"
           value={l} min={0} max={100} step={1} onChange={setL} />
@@ -908,7 +908,7 @@ function Content() {
           icon={<FaDesktop />} open={openSection === "overlay"} onToggle={() => toggleSection("overlay")}>
           {toggle("enabled", "Enable overlay")}
           <PanelSectionRow><Field label="Status" description={status} /></PanelSectionRow>
-          <PanelSectionRow><Field label="Profil" description={info?.config_readable
+          <PanelSectionRow><Field label="Game configuration" description={info?.config_readable
             ? "Configuration is ready for games." : "Configuration is unavailable or still loading."} /></PanelSectionRow>
         </AccordionCard>
         <AccordionCard id="layout" title="Layout" subtitle="Position, scale and spacing"
@@ -921,12 +921,12 @@ function Content() {
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
 
         <PanelSectionRow><Field label="FPS value scale"
-          description="Povećava samo FPS value; ostale metrike zadržavaju svoju veličinu." /></PanelSectionRow>
-        <PanelSectionRow><SliderField label={"Veličina FPS valuea · "+settings.fps_scale+"%"}
+          description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>
+        <PanelSectionRow><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value:number)=>update({fps_scale:value})}/></PanelSectionRow>
-        <div className="claw-fps-scale-preview" aria-label="Pregled veličine FPS valuea"
+        <div className="claw-fps-scale-preview" aria-label="FPS scale preview"
           style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",
             background:"#101c2e",border:"1px solid #385a77",borderRadius:8,
             overflow:"hidden",padding:"9px 7px",marginBottom:10}}>
@@ -975,8 +975,8 @@ function Content() {
           disabled={!ready || settings.hud_position.endsWith("center")}
           onChange={(value:number)=>update({offset_x:value})}/></PanelSectionRow>
         <PanelSectionRow><Field label="Element spacing" description={info?.layout_spacing_supported
-          ? "Biblioteka je instalirana. Ove kontrole rade SAMO uz testnu Vulkan launch komandu iz ACTIVATION, ne uz običnu komandu. Nakon promjene ponovno pokreni igru. Oznaka FPS* potvrđuje da se testna konfiguracija učitala."
-          : "U stock MangoHud 0.8.1 bočni padding (5 px) i razmak elemenata (8 px) nisu podesivi. Kontrole su zaključane dok ne provjerimo siguran renderer, bez promjene postojeće verzije."} /></PanelSectionRow>
+          ? "Custom Claw renderer is available. Restart the game to apply spacing changes."
+          : "The custom renderer is unavailable. Spacing controls are disabled."} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></PanelSectionRow>
         <PanelSectionRow><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
@@ -1018,7 +1018,7 @@ function Content() {
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
-        })}>Reset zadane postavke Layouta</ButtonItem></PanelSectionRow>
+        })}>Reset layout to defaults</ButtonItem></PanelSectionRow>
         <PanelSectionRow><Field label="Položaj i padding" description="Slider Padding gore/dolje postavlja jednak razmak uz oba ruba. Na 0 px nema dodatnog vertikalnog paddinga. Pozitivni X/Y pomaci idu prema unutrašnjosti; centrirani položaji čuvaju X." /></PanelSectionRow>
         <PanelSectionRow><Field label="Napomena" description="Broj uključenih podataka i font moraju stati u širinu igre. Ako red izlazi iz ekrana, smanji tekst ili isključi dodatne senzore. Povećani FPS zauzima više prostora; smanji veličinu ako red ne stane na ekran." /></PanelSectionRow>
 
@@ -1060,7 +1060,7 @@ function Content() {
             padding:"9px 7px",marginTop:9,minWidth:0}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Settings</div>
             <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
-              <DialogButton className="claw-control-button" aria-label={"Change naziv: "+named(key)} disabled={!ready}
+              <DialogButton className="claw-control-button" aria-label={"Rename: "+named(key)} disabled={!ready}
                 onClick={()=>renameMetric(key)} style={smallButton}><FaPen aria-hidden="true"/></DialogButton>
               <DialogButton className="claw-control-button" aria-label={"Move up: "+named(key)} disabled={!ready || index<=0}
                 onClick={()=>move(key,-1)} style={smallButton}>⌃</DialogButton>
@@ -1082,7 +1082,7 @@ function Content() {
           </div>;
         })()}
         {hidden.length > 0 && <>
-          <PanelSectionRow><Field label="ADD METRIC" description="Reset skrivenu grupu u red." /></PanelSectionRow>
+          <PanelSectionRow><Field label="ADD METRIC" description="Restore a hidden metric group." /></PanelSectionRow>
           <GamepadGrid items={hidden} columns={3} className="claw-tiles claw-hidden-metric-tiles"
             renderItem={(key)=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               aria-label={"Show metric: "+named(key)}
@@ -1138,7 +1138,7 @@ function Content() {
           <GamepadGrid items={colorRows} columns={3} className="claw-tiles claw-color-tiles"
             renderItem={([key,label])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               onClick={()=>openColorPicker(key,label)}
-              aria-label={"Change boju: "+paletteLabel(key,label)}
+              aria-label={"Change color: "+paletteLabel(key,label)}
               style={{minWidth:0,width:"100%",minHeight:51,margin:0,padding:"6px 3px",
                 background:"#21354c",border:"1px solid #496783",borderRadius:8,color:"#e8f4ff"}}>
               <span style={{display:"flex",flexDirection:"column",alignItems:"center",
@@ -1151,11 +1151,11 @@ function Content() {
               </span>
             </DialogButton>}/>
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
-            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Reset zadane boje</ButtonItem></PanelSectionRow>
+            onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Restore default colors</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="SAVED STYLES"
             description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
           <div className="loaded-style-status" role="status">
-            {loadedPreset?`Active preset: Style ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Active preset: none"}
+            {loadedPreset?`Active preset: Style ${settings.active_style}${presetDirty?" · modified":""}`:"Active preset: none"}
           </div>
           <Focusable flow-children="column" className="claw-preset-list">
             {(["1","2"] as const).map(slot=>{
@@ -1225,7 +1225,7 @@ function Content() {
                 delete nw[t.key]; delete nc[t.key];
               }
               update({token_weights:nw,token_colors:nc});
-            }}>Reset kategoriju na globalni izgled</ButtonItem></PanelSectionRow>
+            }}>Reset category overrides</ButtonItem></PanelSectionRow>
           </>}
         </AccordionCard>
         <AccordionCard id="activation" title="Activation" subtitle="Launch Claw Metrics in games"
@@ -1255,7 +1255,7 @@ function Content() {
         {updateFallback && <PanelSectionRow><Field label="Manual install via Decky Settings → Developer"
           description={updateFallback} /></PanelSectionRow>}
         <PanelSectionRow><ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
-          {showLegacyCommand ? "Hide rezervne komande" : "Show backup commands"}
+          {showLegacyCommand ? "Hide backup commands" : "Show backup commands"}
         </ButtonItem></PanelSectionRow>
         {showLegacyCommand && <>
           <PanelSectionRow><Field label="Extended Vulkan command (backup)"
