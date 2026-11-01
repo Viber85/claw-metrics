@@ -341,7 +341,7 @@ function deckyInstaller(): LoaderInstaller|null {
 
 function withTimeout<T>(request: Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Backend ne odgovara (10 s). Ponovno pokreni Decky Loader.")), 10000);
+    const timer = setTimeout(() => reject(new Error("Backend did not respond (10 s). Restart Decky Loader.")), 10000);
     request.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 }
@@ -629,7 +629,7 @@ function Content() {
     queue.current = queue.current.then(async () => {
       try {
         const result = await withTimeout(save(next));
-        if (!result.ok) throw new Error("Backend nije potvrdio spremanje.");
+        if (!result.ok) throw new Error("Backend did not confirm the save.");
         if (id === revision.current) setStatus("Saved. Restart the game to apply changes.");
       } catch (error) {
         if (id === revision.current) setStatus("Save failed: " + String(error));
@@ -854,6 +854,14 @@ function Content() {
           margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
         }
         .claw-metric-row { margin-bottom: 7px; width: 100%; min-width: 0; }
+         .claw-style-row { margin-bottom: 7px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+         .claw-style-tiles { padding-bottom: 2px; }
+         .claw-style-detail {
+           margin: 8px 0 10px; padding: 9px 7px; width: 100%;
+           min-width: 0; max-width: 100%; box-sizing: border-box;
+           background: #102236; border: 1px solid #365d7c;
+           border-left: 3px solid #29dcff; border-radius: 8px;
+         }
         .claw-metric-tiles { padding-bottom: 2px; }
         .claw-metric-tiles .metric-card:focus-within {
           outline: 2px solid #ffffff; outline-offset: -2px; border-radius: 8px;
@@ -1281,7 +1289,11 @@ function Content() {
             })}
           </Focusable>
           <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>
-          <GamepadGrid items={styleTabs} columns={3} className="claw-tiles claw-style-tiles"
+          <Focusable flow-children="column" className="claw-style-rows">
+            {Array.from({length:Math.ceil(styleTabs.length/3)},(_,rowIndex)=>{
+              const row=styleTabs.slice(rowIndex*3,rowIndex*3+3);
+              return <Focusable key={rowIndex} flow-children="column" className="claw-style-row">
+                <GamepadGrid items={row} columns={3} className="claw-tiles claw-style-tiles"
             renderItem={([key,name])=><DialogButton key={key} className="claw-control-button" disabled={!ready}
               aria-pressed={styleCategory===key} aria-label={"Style: "+(key==="global"?name:named(key))}
               onClick={()=>chooseStyleCategory(key)}
@@ -1296,6 +1308,7 @@ function Content() {
                   textAlign:"center",width:"100%",minWidth:0}}>{key==="global"?name:named(key)}</span>
               </span>
             </DialogButton>}/>
+                {row.some(([key])=>key===styleCategory) && <div className="claw-style-detail">
           {styleCategory==="global" ? <>
           <PanelSectionRow><Field label="GLOBAL" description="Global settings apply by default. Custom element overrides remain until explicitly reset." /></PanelSectionRow>
           {toggle("sans", "Use bundled font")}
@@ -1376,6 +1389,10 @@ function Content() {
                 update({token_weights:nw,token_colors:nc});
               })}>Reset category overrides</ButtonItem></PanelSectionRow>
           </>}
+                </div>}
+              </Focusable>;
+            })}
+          </Focusable>
         </AccordionCard>
         <AccordionCard id="activation" title="Activation" subtitle="Launch Claw Metrics in games"
           icon={<FaPlayCircle />} open={openSection === "activation"} onToggle={() => toggleSection("activation")}>
