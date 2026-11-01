@@ -25,12 +25,12 @@ const { hudPositions, GraphStyleIcon, graphStyleChoices, GamepadGrid, defaults, 
 
 /** Standalone layout presentation; all mutable state is owned by the Decky controller. */
 export function LayoutCard({vm}:{vm:Core.ClawController}) {
-  const { settings, info, layoutPanel, setLayoutPanel, openSection, toggleSection, ready, update, confirmAction, hidden } = vm;
+  const { settings, info, layoutPanel, toggleLayoutPanel, openSection, toggleSection, ready, update, confirmAction, hidden } = vm;
   return (
 <AccordionCard id="layout" title="Layout" subtitle="Position, scale and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
-            open={layoutPanel==="position"} onToggle={()=>setLayoutPanel("position")}>
+            open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
         <PanelSectionRow><Field label="HUD position"
           description="Choose one of six screen-edge anchors."/></PanelSectionRow>
         {/* Steam's navigation tree must match the visual 3×2 grid: column
@@ -75,7 +75,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 
           </ControlGroup>
           <ControlGroup title="Size & appearance" summary="Text · FPS scale · background"
-            open={layoutPanel==="size"} onToggle={()=>setLayoutPanel("size")}>
+            open={layoutPanel==="size"} onToggle={()=>toggleLayoutPanel("size")}>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
           ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><div className="claw-layout-slider"><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
@@ -103,7 +103,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             <PanelSectionRow><Field label="Preview" description="Illustrative only: native game rendering may differ." /></PanelSectionRow>
           </ControlGroup>
           <ControlGroup title="Spacing" summary="Padding · element and column gaps"
-            open={layoutPanel==="spacing"} onToggle={()=>setLayoutPanel("spacing")}>
+            open={layoutPanel==="spacing"} onToggle={()=>toggleLayoutPanel("spacing")}>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical padding (px)"
           value={settings.padding_y} min={0} max={24} step={1} showValue disabled={!ready}
           onChange={v=>update({padding_y:v})}/></div></PanelSectionRow>
@@ -128,7 +128,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 
           </ControlGroup>
           <ControlGroup title="Frametime graph" summary="Graph style and width"
-            open={layoutPanel==="frametime"} onToggle={()=>setLayoutPanel("frametime")}>
+            open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
         <PanelSectionRow><Field label="Frametime graph style"
           description="Select a visual style using the D-pad." /></PanelSectionRow>
