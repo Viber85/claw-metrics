@@ -466,7 +466,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('label="Status ažuriranja"', SOURCE)
         self.assertIn('strOKButtonText="Instaliraj"', SOURCE)
         self.assertIn('release.notes', SOURCE)
-        self.assertIn('method("utilities/install_plugin")', SOURCE)
+        self.assertIn('installer.callable("utilities/install_plugin")', SOURCE)
         self.assertIn('release.asset_url, "Claw Metrics", release.version', SOURCE)
         self.assertIn('release.sha256, 2 /* UPDATE */', SOURCE)
         self.assertIn('Decky Settings → Developer → Install Plugin from URL', SOURCE)
