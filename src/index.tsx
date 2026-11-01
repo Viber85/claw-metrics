@@ -298,16 +298,19 @@ type GithubRelease = {
   asset_url:string;sha256:string;release_url:string;
 };
 type GithubUpdateInfo = {
-  current:string; available:boolean; latest:GithubRelease|null;
+  ok:boolean; current?:string; available:boolean; latest:GithubRelease|null;
+  error?:string; source?:string;
 };
+type DeckyHttpResponse = {status:number;body:string};
+const GITHUB_RELEASES_API = "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30";
 const checkUpdates = callable<[], GithubUpdateInfo>("check_updates");
+const validateGithubReleases = callable<[string],GithubUpdateInfo>("validate_github_releases");
 
 // Decky Loader handles ZIP download, SHA-256 verification, unloading and
 // reinstalling its plugins. This is a guarded loader-internal API, not part
 // of @decky/api. Do not copy/unzip a plugin from its own privileged backend.
 type LoaderInstaller = {
-  callable?: (route:string) =>
-    (artifact:string,name:string,version:string,hash:string,installType:number) => Promise<unknown>;
+  callable?: (route:string) => (...args:unknown[]) => Promise<unknown>;
 };
 function deckyInstaller(): LoaderInstaller|null {
   return (window as Window & {DeckyBackend?:LoaderInstaller}).DeckyBackend ?? null;
@@ -450,16 +453,57 @@ function Content() {
     setUpdateFallback(null);
     setUpdateStatus("Provjeravam GitHub Releases…");
     try {
-      const result=await withTimeout(checkUpdates());
+      let result:GithubUpdateInfo|null=null;
+      let deckyError="";
+      // Prefer the same HTTPS client/certificate handling Decky uses for
+      // plugin installation. This avoids SteamOS-specific urllib failures.
+      const loader=deckyInstaller();
+      if (typeof loader?.callable === "function") {
+        try {
+          const request=loader.callable("utilities/http_request");
+          const http=await withTimeout(request("GET",GITHUB_RELEASES_API,{
+            headers:{"Accept":"application/vnd.github+json",
+              "X-GitHub-Api-Version":"2022-11-28"},
+          },8)) as DeckyHttpResponse;
+          if (!http || typeof http.status !== "number" || typeof http.body !== "string") {
+            throw new Error("Decky nije vratio valjan HTTPS odgovor.");
+          }
+          if (http.status!==200) {
+            throw new Error("GitHub API: HTTP "+http.status+
+              (http.status===403||http.status===429?" (ograničenje broja zahtjeva)":""));
+          }
+          // The Python backend validates each asset URL/digest. The frontend
+          // must not install arbitrary URLs returned by a remote service.
+          result=await withTimeout(validateGithubReleases(http.body));
+          if (!result.ok) throw new Error(result.error||"GitHub podaci nisu valjani.");
+        } catch(error) {
+          deckyError=String(error);
+          result=null;
+        }
+      } else {
+        deckyError="Deckyjev mrežni API nije dostupan.";
+      }
+      if (!result) {
+        // Compatibility fallback for older Decky builds. All exceptions are
+        // returned as data, so the UI never displays 'Python Exception'.
+        const fallback=await withTimeout(checkUpdates());
+        if (!fallback.ok) {
+          const details=[deckyError,"Python HTTPS: "+(fallback.error||"nepoznata greška")]
+            .filter(Boolean).join(" · ");
+          throw new Error(details);
+        }
+        result=fallback;
+      }
       if (!result.available || !result.latest) {
-        setUpdateStatus("Instalirana verzija "+result.current+" je aktualna.");
+        setUpdateStatus("Instalirana verzija "+(result.current||"nepoznata")+
+          " je aktualna. Nema novijeg testnog izdanja.");
       } else {
         setUpdateStatus("Dostupna je nova verzija "+result.latest.tag+
           " (instalirana: "+result.current+").");
         confirmGithubInstall(result.latest);
       }
     } catch(error) {
-      setUpdateStatus("Provjera ažuriranja nije uspjela: "+String(error));
+      setUpdateStatus("Provjera ažuriranja nije uspjela: "+String(error).slice(0,420));
     } finally {
       setUpdateBusy(false);
     }
@@ -846,7 +890,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.41">
+      <PanelSection title="Claw Metrics · v0.2.4-test.42">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
