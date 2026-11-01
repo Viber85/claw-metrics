@@ -778,7 +778,10 @@ def mango_config(settings, native_spacing=False):
     # Both center anchors use our measured strip width in the patched renderer.
     position = d["hud_position"]
     is_horizontal = d["hud_orientation"] == "horizontal"
-    native_position = {"top-center": "top-left", "bottom-center": "bottom-left"}.get(position, position)
+    native_position = (
+        {"top-center": "top-left", "bottom-center": "bottom-left"}.get(position, position)
+        if is_horizontal else position
+    )
     # Offsets are distances IN from the selected corner.
     hud_x = -d["offset_x"] if position.endswith("right") else d["offset_x"]
     hud_y = -d["offset_y"] if position.startswith("bottom") else d["offset_y"]
