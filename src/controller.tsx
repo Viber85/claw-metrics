@@ -346,6 +346,10 @@ export {ControlGroup} from "./components/ControlGroup";
 export let lastOpenSection: SectionKey | null = "metrics";
 export let lastExpandedMetric: Group | null = null;
 export let lastStyleCategory: StyleCategory | null = "global";
+// Persist expanded subcard choices across Decky remounts, just like Metrics
+// and Colors & Font. Null means every subcard is collapsed.
+export let lastLayoutPanel: LayoutPanel | null = "position";
+export let lastAdvancedPanel: AdvancedPanel | null = "updates";
 
 export function useClawController() {
   const [settings, setSettings] = useState<Settings>(defaults);
@@ -355,8 +359,18 @@ export function useClawController() {
   const [connecting,setConnecting] = useState(true);
   const [connectionError,setConnectionError] = useState("");
   const connectionAttempt = useRef(0);
-  const [layoutPanel,setLayoutPanel]=useState<LayoutPanel>("position");
-  const [advancedPanel,setAdvancedPanel]=useState<AdvancedPanel>("updates");
+  const [layoutPanel,setLayoutPanel]=useState<LayoutPanel | null>(()=>lastLayoutPanel);
+  const [advancedPanel,setAdvancedPanel]=useState<AdvancedPanel | null>(()=>lastAdvancedPanel);
+  const toggleLayoutPanel=(id:LayoutPanel)=>{
+    const next=lastLayoutPanel===id?null:id;
+    lastLayoutPanel=next;
+    setLayoutPanel(next);
+  };
+  const toggleAdvancedPanel=(id:AdvancedPanel)=>{
+    const next=lastAdvancedPanel===id?null:id;
+    lastAdvancedPanel=next;
+    setAdvancedPanel(next);
+  };
   const [showTechnical,setShowTechnical] = useState(false);
   const [rendererStatus, setRendererStatus] = useState("Not checked. Start a game to verify.");
   const [tdpStatus, setTdpStatus] = useState("TDP has not been checked.");
@@ -776,7 +790,7 @@ export function useClawController() {
 
   // One central controller owns settings, Decky RPC and navigation state.
   // Cards only render this model; they never mount separate backend sessions.
-  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
+  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, toggleLayoutPanel, advancedPanel, setAdvancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
 }
 
 export type ClawController = ReturnType<typeof useClawController>;
