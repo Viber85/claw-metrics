@@ -74,8 +74,26 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('useState<SectionKey | null>(() => lastOpenSection)', SOURCE)
         self.assertIn('lastOpenSection = next', SOURCE)
         self.assertIn('lastExpandedMetric = key', SOURCE)
-        self.assertIn('lastStyleCategory = id', SOURCE)
-        self.assertIn('setStyleCategory(id)', SOURCE)
+        self.assertIn('lastStyleCategory = next', SOURCE)
+        self.assertIn('setStyleCategory(next)', SOURCE)
+
+    def test_appearance_category_is_collapsible_like_metrics(self):
+        self.assertIn('lastStyleCategory: StyleCategory | null = "global"', SOURCE)
+        self.assertIn('useState<StyleCategory | null>(() => lastStyleCategory)', SOURCE)
+        self.assertIn('const next = lastStyleCategory === id ? null : id;', SOURCE)
+        self.assertIn('setStyleCategory(next);', SOURCE)
+        self.assertIn('styleCategory!==null && row.some(([key])=>key===styleCategory)', SOURCE)
+        self.assertIn('onClick={()=>chooseStyleCategory(key)}', SOURCE)
+        self.assertIn('aria-pressed={styleCategory===key}', SOURCE)
+
+    def test_advanced_installed_version_comes_from_live_backend_not_literal(self):
+        self.assertIn('getInstalledVersion = callable<[], {version:string}>("get_installed_version")', SOURCE)
+        self.assertIn('withTimeout(getInstalledVersion())', SOURCE)
+        self.assertIn('setInstalledVersion(result.version);', SOURCE)
+        self.assertIn('installedVersionError', SOURCE)
+        self.assertIn('"Claw Metrics "+installedVersion', SOURCE)
+        self.assertNotIn('description="Claw Metrics 0.2.4-test.43"', SOURCE)
+        self.assertIn('Reading installed package…', SOURCE)
 
     def test_metric_style_ui_is_real_not_placeholder(self):
         for action in (
@@ -612,7 +630,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertLess(SOURCE.index('className="claw-style-detail"'),
                         SOURCE.index('styleCategory==="global" ? <>'))
         self.assertIn('onClick={()=>chooseStyleCategory(key)}', SOURCE)
-        self.assertIn('lastStyleCategory = id', SOURCE)
+        self.assertIn('lastStyleCategory = next', SOURCE)
         self.assertIn('className="claw-preset-list"', SOURCE)
 
     def test_ux_refresh_keeps_all_six_cards_controller_and_settings(self):
