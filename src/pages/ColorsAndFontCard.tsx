@@ -144,32 +144,51 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
           <PanelSectionRow><Field label={named(styleCategory)}
             description="Each element can override color and font weight. Global inherits the default." /></PanelSectionRow>
           {tokenGroups[styleCategory as Exclude<StyleCategory,"global">].map(token=>(
-            <div key={token.key} style={{padding:"8px 4px",marginBottom:8,
-              background:"#1a2c43",border:"1px solid #375878",borderRadius:8}}>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:5}}>{tokenTitle(token)}</div>
-              <PanelSectionRow>
-                <ButtonItem disabled={!ready} layout="below" onClick={()=>cycleTokenWeight(token.key)}>
-                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span>Font: {weightLabel[settings.token_weights?.[token.key]??"inherit"]}</span>
-                    <span style={{opacity:.7}}>Change <FaChevronRight /></span>
-                  </span>
-                </ButtonItem>
-              </PanelSectionRow>
-              <PanelSectionRow><Focusable flow-children="row" style={{display:"flex",gap:5}}>
-                <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}
-                  style={{flex:1,margin:0,padding:8}}>
-                  <span style={{display:"flex",alignItems:"center",gap:7}}>
-                    <span style={{width:17,height:17,borderRadius:4,
-                      background:"#"+(settings.token_colors?.[token.key]??
-                        settings.colors[token.defaultColor]??defaultColors[token.defaultColor]),
-                      border:"1px solid #adc7e7"}}/>
-                    {settings.token_colors?.[token.key]?"Custom color":"Global color"}
+            <div key={token.key} className="claw-token-card">
+              <div className="claw-token-title">{tokenTitle(token)}</div>
+              <Focusable flow-children="row" className="claw-token-controls"
+                style={{display:"flex",gap:5,width:"100%",minWidth:0}}>
+                <DialogButton className="claw-control-button claw-token-font"
+                  disabled={!ready} aria-label={"Change font weight: "+tokenTitle(token)}
+                  onClick={()=>cycleTokenWeight(token.key)}
+                  style={{flex:"1.15 1 0",minWidth:0,maxWidth:"100%",margin:0,
+                    padding:"6px 7px",minHeight:38,background:"#254765",
+                    border:"1px solid #456c8c",borderRadius:7}}>
+                  <span style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                    gap:3,width:"100%",minWidth:0,fontSize:11.5}}>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      Font: {weightLabel[settings.token_weights?.[token.key]??"inherit"]}
+                    </span>
+                    <FaChevronRight style={{flexShrink:0,opacity:0.72}}/>
                   </span>
                 </DialogButton>
-                <DialogButton className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}
+                <DialogButton className="claw-control-button claw-token-color"
+                  disabled={!ready} aria-label={"Change color: "+tokenTitle(token)}
+                  onClick={()=>openTokenColorPicker(token)}
+                  style={{flex:"1 1 0",minWidth:0,maxWidth:"100%",margin:0,
+                    padding:"6px 6px",minHeight:38,background:"#254765",
+                    border:"1px solid #456c8c",borderRadius:7}}>
+                  <span style={{display:"flex",alignItems:"center",gap:5,
+                    minWidth:0,fontSize:11.5,whiteSpace:"nowrap"}}>
+                    <span aria-hidden="true" style={{flexShrink:0,width:15,height:15,
+                      borderRadius:4,background:"#"+(settings.token_colors?.[token.key]??
+                        settings.colors[token.defaultColor]??defaultColors[token.defaultColor]),
+                      border:"1px solid #adc7e7"}}/>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {settings.token_colors?.[token.key]?"Custom":"Global"}
+                    </span>
+                  </span>
+                </DialogButton>
+                <DialogButton className="claw-control-button claw-token-reset"
+                  disabled={!ready || !settings.token_colors?.[token.key]}
+                  aria-label={"Reset custom color: "+tokenTitle(token)}
                   onClick={()=>resetTokenColor(token.key)}
-                  style={{minWidth:70,padding:7,margin:0}}>Reset</DialogButton>
-              </Focusable></PanelSectionRow>
+                  style={{flex:"0 0 52px",width:52,minWidth:0,maxWidth:52,margin:0,
+                    padding:"6px 2px",minHeight:38,fontSize:11,
+                    background:"#223a56",border:"1px solid #456682",borderRadius:7}}>
+                  Reset
+                </DialogButton>
+              </Focusable>
             </div>
           ))}
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
