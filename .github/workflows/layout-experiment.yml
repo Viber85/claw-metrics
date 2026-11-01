@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/style-metric-snapshot-38]
+    branches: [test/native-graph-height-bars-39]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.38
+  group: claw-metrics-v0.2.4-test.39
   cancel-in-progress: true
 
 jobs:
@@ -100,6 +100,7 @@ jobs:
           python3 ../experiments/enable_frametime_graph_styles.py src
           python3 ../experiments/enable_zero_vertical_padding.py src
           python3 ../experiments/center_hud_vertically.py src
+          python3 ../experiments/enhance_native_frametime_graph.py src
           python3 ../experiments/enable_fixed_numeric_slots.py src
           python3 ../experiments/trim_native_ink_padding.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
@@ -120,6 +121,10 @@ jobs:
           grep -q 'ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y)' src/overlay.cpp
           ! grep -q 'ImGui::BeginGroup()' src/hud_elements.cpp
           grep -q 'claw_graph_style' src/hud_elements.cpp
+          grep -q 'claw_frametime_columns' src/hud_elements.cpp
+          grep -q 'const float bar_width = ImMax(2.0f, slot - 1.4f)' src/hud_elements.cpp
+          grep -q 'height = ImClamp(HUDElements.params->font_size \* 1.40f' src/hud_elements.cpp
+          grep -q 'get_time_stat(HUDElements.sw_stats, idx)' src/hud_elements.cpp
           grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
           grep -q 'style.CellPadding.y = 0.0f;' src/hud_elements.cpp
           grep -q 'claw_bottom_padding' src/overlay.cpp
@@ -151,7 +156,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.38.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.39.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -170,14 +175,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.38
-          path: ClawMetrics-v0.2.4-test.38.zip
+          name: ClawMetrics-v0.2.4-test.39
+          path: ClawMetrics-v0.2.4-test.39.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.38 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.38 ClawMetrics-v0.2.4-test.38.zip \
+          gh release delete v0.2.4-test.39 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.39 ClawMetrics-v0.2.4-test.39.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.38 – save and restore metric selections in style slots" \
-            --notes "Fixes style slots 1 and 2 so they save and restore both enabled/disabled main Metrics groups and individual metric sensor switches, not only colors/fonts/layout. Active style dirty indicator now detects changes in metric selection. Existing version 2 appearance-only styles remain valid and do not alter metrics until re-saved; renamed metric labels and manual order remain global. Adds frontend logic and backend normalization regression tests. Native renderer unchanged."
+            --title "Claw Metrics v0.2.4-test.39 – taller overlay frametime graph and clear histogram bars" \
+            --notes "In the actual game overlay (not the Decky picker), increases the horizontal frametime graph height from about 15px to about 25px at the default font size. Histogram now displays visibly separated, finite, decimated real frametime columns instead of 1px hairlines. Keeps graph fill/line/dual styles and aligns the taller graph with FPS 100-200%, preserving user's vertical padding, six anchors and saved styles. Includes native build and geometry regressions; validate rendering on MSI Claw hardware."
