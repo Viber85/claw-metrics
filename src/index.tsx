@@ -292,19 +292,20 @@ type AccordionCardProps = {
 
 function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: AccordionCardProps) {
   const [focused, setFocused] = useState(false);
+  const active = open || focused;
   return (
     <div data-section={id} data-selected={open ? "true" : "false"}
       data-focused={focused ? "true" : "false"} style={{
-      background: "#111e30",
+      background: active ? "#0d2945" : "#111e30",
       width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box",
-      border: open ? "2px solid #ffffff" : "1px solid #395579",
-      borderLeft: open ? "4px solid #08d3fa" : "4px solid #8b65e7",
+      border: active ? "1px solid #2c709d" : "1px solid #395579",
+      borderLeft: active ? "4px solid #08d3fa" : "4px solid #8b65e7",
       borderRadius: 12,
       overflow: "hidden",
       marginBottom: 10,
-      boxShadow: open ? "inset 0 0 0 1px #ffffff, 0 0 15px #0285ca55" : "none",
+      boxShadow: active ? "0 0 12px rgba(0,153,237,0.13)" : "none",
     }}>
-      {/* Keep the selection border INSIDE the header: Decky can override DialogButton borders. */}
+      {/* Steam and Decky retain normal button navigation; highlight is in the background. */}
       <div className="claw-accordion-header"
         onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}
         style={{position:"relative",width:"100%",minWidth:0,
@@ -313,14 +314,15 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
           width: "100%", minWidth: 0, boxSizing: "border-box",
           display: "flex", alignItems: "center",
           textAlign: "left", margin: 0, padding: "12px 10px",
-          background: open ? "#073858" : "#14243b",
+          background: active ? "#073858" : "#14243b",
           border: "none", borderRadius: 0, minHeight: 66, whiteSpace: "normal",
-          outline: open ? "2px solid #ffffff" : "none", outlineOffset: "-3px",
+          outline: "none", boxShadow: "none",
         }}>
           <span style={{display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0}}>
-            <span style={{display: "flex", alignItems: "center", justifyContent: "center",
-              background: open ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
-              fontSize: 20, color: open ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
+            <span className="claw-accordion-icon"
+              style={{display: "flex", alignItems: "center", justifyContent: "center",
+              background: active ? "#075b83" : "#203551", borderRadius: 8, minWidth: 36, height: 36,
+              fontSize: 20, color: active ? "#42e0ff" : "#acd7fe"}}>{icon}</span>
             <span style={{display: "flex", flex: 1, minWidth: 0, flexDirection: "column", gap: 3}}>
               <span style={{fontWeight: 700, fontSize: 16, color: "#f1f7ff"}}>{title}</span>
               <span style={{fontWeight: 400, fontSize: 11, lineHeight: 1.35,
@@ -331,14 +333,6 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
             </span>
           </span>
         </DialogButton>
-        {/* Painted over the Decky button so Steam focus styling cannot hide the white outline.
-            Pointer events are disabled to preserve controller navigation and click behavior. */}
-        <div aria-hidden="true" className="claw-accordion-selection-ring"
-          style={{position:"absolute",inset:3,zIndex:2,pointerEvents:"none",
-            boxSizing:"border-box",borderRadius:8,
-            border:(open||focused)?"2px solid #ffffff":"2px solid transparent",
-            boxShadow:focused?"0 0 0 1px #ffffff, 0 0 12px rgba(255,255,255,0.8)"
-              :open?"0 0 0 1px rgba(255,255,255,0.50)":"none"}} />
       </div>
       {open && <div style={{padding: "10px 8px 12px", borderTop: "1px solid #235b81"}}>
         {children}
@@ -660,32 +654,43 @@ function Content() {
           display: block; flex: 0 0 auto;
           width: 12px; height: 12px;
         }
-        /* White focus border for closed as well as expanded cards.
-           Steam controller focus can be DOM :focus or the .gpfocus class.
-           The ring is above DialogButton so Decky's skin cannot cover it. */
-        [data-section] .claw-accordion-header:focus-within .claw-accordion-selection-ring,
-        [data-section] .claw-accordion-header:has(.gpfocus) .claw-accordion-selection-ring,
-        [data-section] .claw-accordion-header:has([class*="gpfocus"]) .claw-accordion-selection-ring,
-        [data-section][data-focused="true"] .claw-accordion-selection-ring {
-          border: 2px solid #ffffff !important;
-          box-shadow: 0 0 0 1px #ffffff, 0 0 12px rgba(255,255,255,0.8) !important;
-        }
-        [data-section] .claw-accordion-header > button:focus-visible,
+        /* Quiet SteamOS focus: use the open-card blue surface without a
+           white ring or double outline. Supports DOM focus and .gpfocus. */
+        [data-section] .claw-accordion-header > button,
         [data-section] .claw-accordion-header > button:focus,
+        [data-section] .claw-accordion-header > button:focus-visible,
         [data-section] .claw-accordion-header > button.gpfocus,
+        [data-section] .claw-accordion-header:has(.gpfocus) > button,
         [data-section][data-focused="true"] .claw-accordion-header > button {
-          outline: 2px solid #ffffff !important;
-          outline-offset: -3px !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
-        /* Persistent selection, independent of Decky keyboard/controller focus. */
+        [data-section] .claw-accordion-header:focus-within > button,
+        [data-section] .claw-accordion-header:has(.gpfocus) > button,
+        [data-section] .claw-accordion-header:has([class*="gpfocus"]) > button,
+        [data-section][data-focused="true"] .claw-accordion-header > button,
         [data-section][data-selected="true"] .claw-accordion-header > button {
-          outline: 2px solid #ffffff !important;
-          outline-offset: -3px !important;
+          background: #073858 !important;
+        }
+        [data-section] .claw-accordion-header:focus-within .claw-accordion-icon,
+        [data-section] .claw-accordion-header:has(.gpfocus) .claw-accordion-icon,
+        [data-section] .claw-accordion-header:has([class*="gpfocus"]) .claw-accordion-icon,
+        [data-section][data-focused="true"] .claw-accordion-icon,
+        [data-section][data-selected="true"] .claw-accordion-icon {
+          background: #075b83 !important;
+          color: #42e0ff !important;
+        }
+        [data-section]:has(> .claw-accordion-header:focus-within),
+        [data-section]:has(> .claw-accordion-header .gpfocus),
+        [data-section]:has(> .claw-accordion-header [class*="gpfocus"]) {
+          border-color: #2c709d !important;
+          border-left-color: #08d3fa !important;
+          box-shadow: 0 0 12px rgba(0,153,237,0.13) !important;
         }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.26">
+      <PanelSection title="Claw Metrics · v0.2.4-test.27">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
