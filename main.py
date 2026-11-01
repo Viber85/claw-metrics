@@ -849,7 +849,7 @@ def mango_config(settings, native_spacing=False):
         # An ordinary FPS label means the game is still using the stock profile.
         # This marker is temporary and only affects the experimental profile.
         lines.extend([
-            "fps_text=" + d["custom_labels"].get("fps", "FPS*"),
+            "fps_text=" + d["custom_labels"].get("fps", "FPS*" if is_horizontal else "FPS"),
             "cpu_text=" + d["custom_labels"].get("cpu", "CPU"),
             "gpu_text=" + d["custom_labels"].get("gpu", "GPU"),
             "claw_ram_label=" + d["custom_labels"].get("ram", "RAM"),

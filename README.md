@@ -1,3 +1,21 @@
+# Claw Metrics v0.2.4-test.53 — Vertical Layout Polish
+
+The native Vertical Stacked renderer now uses normal-sized sensor units
+(MHz, W and GiB) and read-only TDP/DRAW values rather than small fonts.
+Its frametime graph uses real samples, an adaptive amplitude range, a
+muted fill and four styles (Line, Filled area, Bars, Dual), now selectable
+in Layout. The existing Within-group gap slider is enabled in Vertical
+mode, and row borders have been made less prominent.
+
+The custom graph width and FPS-only scaling remain disabled in Vertical.
+Horizontal mode keeps its existing native renderer behavior, and the
+stock MangoHud vertical fallback is unchanged.
+
+This ZIP is a native-build-tested preview, not yet validated in a running
+game on an MSI Claw. Close and restart the game after upgrading.
+
+---
+
 # Claw Metrics v0.2.4-test.52 — Vertical Stacked native preview
 
 This version develops the separate Vertical Stacked renderer. With the

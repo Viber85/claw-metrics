@@ -108,6 +108,14 @@ class VerticalHudPreview(unittest.TestCase):
         self.assertGreater(native.index("\nframe_timing=1\n"), native.index("\ntime=1\n"))
         self.assertLess(stock.index("\ngpu_stats=1\n"), stock.index("\nfps=1\n"))
 
+    def test_native_vertical_graph_and_inline_gap_remain_configurable(self):
+        for style, index in (("line", "0"), ("area", "1"), ("bars", "2"), ("dual", "3")):
+            native = options_for({"hud_orientation": "vertical",
+                                  "graph_style": style, "inner_gap": 12}, True)
+            self.assertEqual(native["claw_graph_style"], index)
+            self.assertEqual(native["claw_inner_gap"], "12")
+        self.assertNotIn("claw_graph_style", options_for({"hud_orientation": "vertical"}, False))
+
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
             "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "fontsize": 20},

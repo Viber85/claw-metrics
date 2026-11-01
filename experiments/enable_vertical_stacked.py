@@ -68,44 +68,87 @@ for name in ("fps","cpu_stats","gpu_stats","ram","vram","battery"):
     if n!=1: raise RuntimeError(f"cannot locate {name} compact branch")
     s=s[:start]+revised+s[stop:]
 
+# In vertical mode, sensor unit glyphs must use the same font as the values.
+# The previous small units (GHz/MHz/GiB/W) looked like superscripts.
+for name in ("cpu_stats","gpu_stats","ram","vram"):
+    start=s.index("void HudElements::"+name+"(){")
+    stop=s.index("\\n        return;",start) if name in ("ram","vram") else s.index("\\n            return;",start)
+    chunk=s[start:stop]
+    pushes=chunk.count("ImGui::PushFont(HUDElements.sw_stats->font1);")
+    pops=chunk.count("ImGui::PopFont();")
+    if not pushes or pushes!=pops: raise RuntimeError(f"{name}: unit font pairs {pushes}/{pops}")
+    chunk=chunk.replace("ImGui::PushFont(HUDElements.sw_stats->font1);",
+        "if (!HUDElements.params->claw_vertical_stack) ImGui::PushFont(HUDElements.sw_stats->font1);")
+    chunk=chunk.replace("ImGui::PopFont();",
+        "if (!HUDElements.params->claw_vertical_stack) ImGui::PopFont();")
+    s=s[:start]+chunk+s[stop:]
+
+# Show TDP and DRAW at normal font size in Claw Stacked, without
+# changing their read-only values or horizontal rendering.
+old="const bool claw_exec_small_font = !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal];"
+if s.count(old)!=1: raise RuntimeError("exec font anchor drift")
+s=s.replace(old, "const bool claw_exec_small_font = !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal] && !HUDElements.params->claw_vertical_stack;", 1)
+
 graph=r"""
 static void ClawVerticalGraph() {
     auto* p = HUDElements.params;
     constexpr int samples=48;
     const int count=ARRAY_SIZE(HUDElements.sw_stats->frames_stats);
-    HUDElements.sw_stats->stat_selector = OVERLAY_PLOTS_frame_timing;
-    HUDElements.sw_stats->time_dividor = 1000000.0f;
-    const float w=ImMax(56.0f,float(p->width) -
-        2.0f * ImMax(0.0f,p->claw_padding_x) - 12.0f);
-    const float h=ImClamp(float(p->font_size)*1.55f,25.0f,44.0f);
+    HUDElements.sw_stats->stat_selector=OVERLAY_PLOTS_frame_timing;
+    HUDElements.sw_stats->time_dividor=1000000.0f;
+    const float w=ImMax(56.0f,float(p->width)-2.0f*ImMax(0.0f,p->claw_padding_x)-12.0f);
+    const float h=ImClamp(float(p->font_size)*1.40f,23.0f,38.0f);
     ImguiNextColumnFirstItem();
     const ImVec2 origin=ImGui::GetCursorScreenPos();
     ImGui::Dummy(ImVec2(0.0f,h));
     if(count<2) return;
     float values[samples];
-    float max_value=16.7f;
+    float low=250.0f, high=0.0f;
     for(int i=0;i<samples;++i) {
         const int idx=i*(count-1)/(samples-1);
         const double raw=get_time_stat(HUDElements.sw_stats,idx);
-        values[i]=std::isfinite(raw)&&raw>=0.0
-            ? ImClamp(float(raw),0.0f,250.0f) : 0.0f;
-        max_value=ImMax(max_value,values[i]);
+        values[i]=std::isfinite(raw)&&raw>=0.0 ? ImClamp(float(raw),0.0f,250.0f) : 0.0f;
+        if(values[i]>0.0f) {
+            low=ImMin(low,values[i]);
+            high=ImMax(high,values[i]);
+        }
     }
+    if(high<=0.0f) return;
+    // Adaptive, padded graph scale: a stable frame time is a fine
+    // line near the middle, not a bright, solid block at the top.
+    const float span=ImMax(4.0f,high-low);
+    const float lower=ImMax(0.0f,(low+high)*0.5f-span*0.75f);
+    const float range=span*1.5f;
     ImVec2 pts[samples];
     for(int i=0;i<samples;++i) {
-        pts[i]=ImVec2(origin.x+float(i)*w/float(samples-1),
-            origin.y+h-2.0f-(values[i]/max_value)*(h-5.0f));
+        const float y=ImClamp((values[i]-lower)/range,0.0f,1.0f);
+        pts[i]=ImVec2(origin.x+w*float(i)/float(samples-1),
+                      origin.y+h-3.0f-y*(h-6.0f));
     }
     ImDrawList* draw=ImGui::GetWindowDrawList();
-    const ImVec4 color=HUDElements.colors.frametime;
-    const ImU32 line=ImGui::ColorConvertFloat4ToU32(color);
+    const ImVec4 col=HUDElements.colors.frametime;
+    const int style=ImClamp(p->claw_graph_style,0,3);
+    const ImU32 line=ImGui::ColorConvertFloat4ToU32(col);
+    const float opacity=style==1 ? 0.20f : (style==3 ? 0.07f : 0.0f);
     const ImU32 fill=ImGui::ColorConvertFloat4ToU32(
-        ImVec4(color.x,color.y,color.z,0.24f));
-    const float bottom=origin.y+h-1.0f;
-    for(int i=1;i<samples;++i)
-        draw->AddQuadFilled(ImVec2(pts[i-1].x,bottom),pts[i-1],
-            pts[i],ImVec2(pts[i].x,bottom),fill);
-    draw->AddPolyline(pts,samples,line,false,1.8f);
+        ImVec4(col.x,col.y,col.z,col.w*opacity));
+    const float bottom=origin.y+h-2.0f;
+    draw->PushClipRect(origin,ImVec2(origin.x+w,origin.y+h),true);
+    if(style==2) {
+        const float slot=w/float(samples);
+        for(int i=0;i<samples;++i) {
+            const float x=origin.x+slot*float(i);
+            draw->AddRectFilled(ImVec2(x,pts[i].y),
+                ImVec2(x+ImMax(1.0f,slot-1.3f),bottom),line);
+        }
+    } else {
+        if(opacity>0.0f)
+            for(int i=1;i<samples;++i)
+                draw->AddQuadFilled(ImVec2(pts[i-1].x,bottom),pts[i-1],
+                    pts[i],ImVec2(pts[i].x,bottom),fill);
+        draw->AddPolyline(pts,samples,line,false,1.65f);
+    }
+    draw->PopClipRect();
 }
 
 """
@@ -138,5 +181,14 @@ replacement='''\g<0>
           }'''
 code,n=re.subn(pattern,replacement,code,count=1)
 if n!=1: raise RuntimeError(f"table layout marker count {n}")
+# Subtler horizontal row dividers, without changing horizontal style.
+begin='if (ImGui::BeginTable("hud", params.table_columns, table_flags )) {'
+if code.count(begin)!=1: raise RuntimeError("begin table anchor drift")
+code=code.replace(begin,
+    'if (claw_vertical_stack) ImGui::PushStyleColor(ImGuiCol_TableBorderLight,'
+    ' ImVec4(0.44f,0.58f,0.70f,0.20f));\n       '+begin,1)
+end='          HUDElements.table_columns_count = 0;\n       }'
+if code.count(end)!=1: raise RuntimeError("end table anchor drift")
+code=code.replace(end,end+'\n       if (claw_vertical_stack) ImGui::PopStyleColor();',1)
 overlay.write_text(code)
 print("Claw native vertical stacked renderer installed")

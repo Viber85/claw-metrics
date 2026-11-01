@@ -157,7 +157,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
         <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics || settings.hud_orientation==="vertical"}
+          disabled={!ready || !info?.layout_spacing_supported || (settings.hud_orientation==="horizontal" && !settings.inline_metrics)}
           onChange={(value: number) => update({inner_gap: value})} /></div></PanelSectionRow>
 
 
@@ -166,13 +166,13 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
         <PanelSectionRow><Field label="Frametime graph style"
-          description="Select a visual style using the D-pad." /></PanelSectionRow>
+          description="Select the real-time graph style with the D-pad. Supported in Horizontal and Vertical." /></PanelSectionRow>
         <GamepadGrid items={graphStyleChoices} columns={2}
           className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
             const selected=settings.graph_style===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"
               aria-label={"Graph style: "+choice.label}
-              aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
+              aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
               onClick={()=>update({graph_style:choice.id})}
               style={{width:"100%",minWidth:0,margin:0,minHeight:84,padding:"8px 3px",
                 background:selected?"#0b4c70":"#162b40",
