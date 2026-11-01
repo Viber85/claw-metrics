@@ -114,7 +114,7 @@ class TdpReadOnlyTests(unittest.TestCase):
             self.assertIn("RyzenAdj: executable not found", report)
             self.assertIn("PDC: global 23W", report)
             self.assertIn("game overrides 1", report)
-            self.assertIn("različiti game profiles", report)
+            self.assertIn("separate game profiles", report)
             self.assertNotIn('"123"', report)
 
     def test_diagnostics_ryzenadj_read_is_non_mutating(self):
