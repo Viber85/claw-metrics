@@ -95,6 +95,19 @@ def normalize_custom_labels(payload):
     return result
 
 
+def normalize_style_names(payload):
+    """Optional friendly labels; safe to preserve old unnamed styles."""
+    out = {}
+    if isinstance(payload, dict):
+        for slot in ("1", "2"):
+            name = payload.get(slot)
+            if isinstance(name, str):
+                value = re.sub(r"\\s+", " ", re.sub(r"[\\x00-\\x1f\\x7f=,]", " ", name)).strip()[:24]
+                if value:
+                    out[slot] = value
+    return out
+
+
 def normalize_style_presets(payload):
     out = {}
     if not isinstance(payload, dict):
@@ -175,7 +188,7 @@ DEFAULTS = {
     "colors": COLORS,
     "font_weight": "regular",
     "token_weights": {}, "token_colors": {}, "style_presets": {},
-    "active_style": None, "custom_labels": {},
+    "active_style": None, "custom_labels": {}, "style_names": {},
     "order": ORDER, "metrics": METRICS,
 }
 # The service is normally executed as root: use the invoking desktop user instead.
@@ -640,6 +653,7 @@ def normalize(payload):
     d["token_weights"] = normalize_token_weights(payload.get("token_weights"))
     d["token_colors"] = normalize_token_colors(payload.get("token_colors"))
     d["style_presets"] = normalize_style_presets(payload.get("style_presets"))
+    d["style_names"] = normalize_style_names(payload.get("style_names"))
     active_slot = payload.get("active_style")
     if active_slot in d["style_presets"]:
         d["active_style"] = active_slot
