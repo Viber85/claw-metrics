@@ -402,8 +402,7 @@ function Content() {
   const [updateFallback, setUpdateFallback] = useState<string|null>(null);
   const requestGithubInstall = (release:GithubRelease) => {
     const installer=deckyInstaller();
-    const method=installer?.callable;
-    if (typeof method !== "function") {
+    if (!installer || typeof installer.callable !== "function") {
       setUpdateFallback(release.asset_url);
       setUpdateStatus("Instalacijski API Decky Loadera nije dostupan. Koristi Decky Settings → Developer → Install Plugin from URL.");
       return;
@@ -411,7 +410,7 @@ function Content() {
     try {
       // Decky opens its OWN confirmation modal; the plugin may unload while
       // the installer runs, so do not wait to declare the install successful.
-      const launch=method("utilities/install_plugin");
+      const launch=installer.callable("utilities/install_plugin");
       if (typeof launch !== "function") throw new Error("API instalacije nije podržan.");
       setUpdateStatus("Zahtjev je poslan Deckyju. Potvrdi instalaciju u njegovom prozoru.");
       void launch(release.asset_url, "Claw Metrics", release.version,
