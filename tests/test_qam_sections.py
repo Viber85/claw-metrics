@@ -105,7 +105,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('className="claw-accordion-header"', SOURCE)
         self.assertIn('className="claw-accordion-selection-ring"', SOURCE)
         self.assertIn('position:"absolute",inset:3,zIndex:2,pointerEvents:"none"', SOURCE)
-        self.assertIn('border:open?"2px solid #ffffff":"2px solid transparent"', SOURCE)
+        self.assertIn('border:(open||focused)?"2px solid #ffffff":"2px solid transparent"', SOURCE)
         self.assertIn('[data-section][data-selected="true"] .claw-accordion-header > button', SOURCE)
         self.assertIn('outline: 2px solid #ffffff !important', SOURCE)
 
