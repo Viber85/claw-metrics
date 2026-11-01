@@ -195,7 +195,7 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_closed_main_cards_highlight_controller_focus(self):
         self.assertIn('data-focused={focused ? "true" : "false"}', SOURCE)
-        self.assertIn('onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}', SOURCE)
+        self.assertIn('onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}', SOURCE)
         self.assertIn('border:(open||focused)?"2px solid #ffffff"', SOURCE)
         self.assertIn('.claw-accordion-header:focus-within .claw-accordion-selection-ring', SOURCE)
         self.assertIn('.claw-accordion-header:has(.gpfocus) .claw-accordion-selection-ring', SOURCE)
