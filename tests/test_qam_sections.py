@@ -93,6 +93,25 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("openColorPicker(key,label)", SOURCE)
         self.assertIn("styleModified", SOURCE)
 
+    def test_styles_save_and_restore_enabled_metric_groups_and_submetrics(self):
+        helpers=(pathlib.Path(__file__).resolve().parents[1] /
+                 "src/style-presets.ts").read_text()
+        self.assertIn('version:3, ...styleLayoutFrom(d)', SOURCE)
+        self.assertIn('...styleMetricSnapshotFrom(d)', SOURCE)
+        self.assertIn('...styleMetricUpdatesFrom(preset,current.current)', SOURCE)
+        self.assertIn('styleMetricSnapshotFrom, styleMetricUpdatesFrom', SOURCE)
+        for name in ("styleMetricSnapshotFrom", "styleMetricUpdatesFrom",
+                     "styleMetricSelectionsFrom"):
+            self.assertIn("function "+name, helpers)
+        self.assertIn("const selected=styleMetricSelectionsFrom(preset)", helpers)
+        self.assertIn("if(current?.[key]!==value)return true;", helpers)
+        self.assertIn("if(current?.metrics?.[key]!==value)return true;", helpers)
+        self.assertIn("uključene/isključene grupe", SOURCE)
+        self.assertIn("tests/style_presets.test.mjs", (
+            pathlib.Path(__file__).resolve().parents[1] /
+            ".github/workflows/layout-experiment.yml").read_text())
+        self.assertNotIn("version:2, ...styleLayoutFrom(d)", SOURCE)
+
     def test_two_compact_preset_slots_fit_decky_width(self):
         self.assertIn('(["1","2"] as const).map(slot=>{', SOURCE)
         self.assertNotIn('(["1","2","3"] as const)', SOURCE)
