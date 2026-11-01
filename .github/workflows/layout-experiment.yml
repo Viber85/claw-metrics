@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/fps-vertical-alignment-25]
+    branches: [test/fps-live-scale-gamepad-focus-26]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.25
+  group: claw-metrics-v0.2.4-test.26
   cancel-in-progress: true
 
 jobs:
@@ -105,6 +105,8 @@ jobs:
           grep -q 'claw_center_horizontal' src/overlay.cpp
           grep -q 'claw_graph_style' src/hud_elements.cpp
           grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
+          grep -q 'chosen->Scale = ImClamp' src/hud_elements.cpp
+          grep -q 'fps_font->FontSize \* fps_font->Scale' src/hud_elements.cpp
           grep -q 'claw_fps_row_top' src/hud_elements.cpp
           grep -q 'position.x + 1.8f' src/hud_elements.cpp
           meson setup build --prefix=/usr --buildtype=release \
@@ -127,7 +129,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.25.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.26.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -146,14 +148,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.25
-          path: ClawMetrics-v0.2.4-test.25.zip
+          name: ClawMetrics-v0.2.4-test.26
+          path: ClawMetrics-v0.2.4-test.26.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.25 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.25 ClawMetrics-v0.2.4-test.25.zip \
+          gh release delete v0.2.4-test.26 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.26 ClawMetrics-v0.2.4-test.26.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.25 – vertical FPS centering" \
-            --notes "Vertically centers the entire one-row HUD, FPS label, frametime ms/graph and other metrics relative to an enlarged FPS numeric font (101-200%). Retains A/B/C/F graphs, icon dropdown, Z2 Extreme CPU/GPU power, PDC TDP and DRAW. Hardware visual validation required."
+            --title "Claw Metrics v0.2.4-test.26 – FPS scaling & controller focus" \
+            --notes "FPS number scales correctly from 100 to 200 percent using a dedicated font and runtime scale; other HUD elements stay vertically centered to the displayed FPS height. Adds a visible white controller focus outline to all six top-level cards, even when closed. Keeps A/B/C/F graphs and Z2 Extreme telemetry."
