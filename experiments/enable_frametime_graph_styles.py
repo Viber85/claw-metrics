@@ -11,8 +11,8 @@ def change(file,old,new):
     path.write_text(source.replace(old,new,1))
 
 change("overlay_params.h",
-    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)       \\",
-    "   OVERLAY_PARAM_CUSTOM(claw_center_horizontal)       \\\n"
+    "   OVERLAY_PARAM_CUSTOM(claw_align_right)       \\",
+    "   OVERLAY_PARAM_CUSTOM(claw_align_right)       \\\n"
     "   OVERLAY_PARAM_CUSTOM(claw_graph_style)             \\")
 change("overlay_params.h",
     "   bool claw_center_horizontal = false;",
