@@ -163,29 +163,52 @@ function OpaqueColorPicker({title, hex, closeModal, onConfirm}: OpaqueColorPicke
   const [s, setS] = useState(initialS);
   const [l, setL] = useState(initialL);
   const preview = hslToHex(h, s, l);
+  const [hexOverride, setHexOverride] = useState<string|null>(null);
+  const hexValue = hexOverride ?? preview;
+  const validHex = /^#?[0-9A-Fa-f]{6}$/.test(hexValue);
+  const chosen = validHex ? hexValue.replace(/^#/, "").toUpperCase() : preview;
   return (
     <ConfirmModal strTitle={title} bAllowFullSize onCancel={closeModal}
-      onOK={() => { onConfirm(preview); closeModal(); }}>
+      onOK={() => { onConfirm(chosen); closeModal(); }}>
       <div style={{padding: "8px 4px 14px"}}>
         <div style={{display: "flex", alignItems: "center", gap: 12, marginBottom: 12}}>
           <div style={{height: 48, width: 48, borderRadius: 5,
-            backgroundColor: "#" + preview, border: "1px solid #8794a4"}} />
+            backgroundColor: "#" + chosen, border: "1px solid #8794a4"}} />
           <div>
-            <div>#{preview}</div>
+            <div>#{chosen}</div>
             <div style={{fontSize: 12, opacity: 0.7}}>Opaque RGB color (100% alpha)</div>
           </div>
         </div>
+        <TextField label="HEX color (#RRGGBB)" value={hexValue}
+          onChange={event=>setHexOverride(event.currentTarget.value.slice(0,7))}
+          description={validHex?"Exact RGB color. Edit with SteamOS keyboard.":"Invalid HEX — the slider color will be used."}/>
         <SliderField showValue editableValue label="Hue"
-          value={h} min={0} max={360} step={1} onChange={setH} />
+          value={h} min={0} max={360} step={1}
+          onChange={v=>{setH(v);setHexOverride(null);}} />
         <SliderField showValue editableValue label="Saturation"
-          value={s} min={0} max={100} step={1} onChange={setS} />
+          value={s} min={0} max={100} step={1}
+          onChange={v=>{setS(v);setHexOverride(null);}} />
         <SliderField showValue editableValue label="Lightness"
-          value={l} min={0} max={100} step={1} onChange={setL} />
+          value={l} min={0} max={100} step={1}
+          onChange={v=>{setL(v);setHexOverride(null);}} />
       </div>
     </ConfirmModal>
   );
 }
 const groupIcons: Record<string, ReactNode> = {global:<FaPalette/>,fps:<FaTachometerAlt/>,cpu:<FaMicrochip/>,gpu:<FaDesktop/>,ram:<FaMemory/>,vram:<FaMemory/>,battery:<FaBatteryThreeQuarters/>,time:<FaClock/>,tdp:<FaBolt/>,draw:<FaBolt/>,values:<FaHashtag/>};
+function RenameStyleModal({value,slot,onConfirm,onCancel}:{
+  value:string; slot:string; onConfirm:(value:string)=>void; onCancel:()=>void;
+}) {
+  const [text,setText]=useState(value);
+  return <ConfirmModal strTitle={"Rename style "+slot} onCancel={onCancel}
+    onOK={()=>onConfirm(cleanName(text))}>
+    <div style={{padding:"10px 4px"}}>
+      <TextField label="Style name" focusOnMount value={text} placeholder={"Style "+slot}
+        description="Up to 24 characters. Clear to restore the default style name."
+        onChange={e=>setText(e.currentTarget.value.slice(0,24))}/>
+    </div>
+  </ConfirmModal>;
+}
 function RenameMetricModal({name,original,onConfirm,onCancel}:any){
  const [value,setValue]=useState(name);
  return <ConfirmModal strTitle="Rename metric" onCancel={onCancel}
@@ -205,7 +228,7 @@ function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 }
 
 type Settings = Record<Group, boolean> & {
-  active_style: string|null;
+  active_style: string|null; style_names: Record<string,string>;
   custom_labels: Record<string,string>;
   enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
@@ -249,7 +272,7 @@ type Info = {
 };
 
 const defaults: Settings = {
-  active_style:null, custom_labels: {},
+  active_style:null, style_names:{}, custom_labels: {},
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
@@ -711,10 +734,8 @@ function Content() {
       onConfirm={(hex: string) => {
         const token_colors={...current.current.token_colors};
         const changed=new Set<ColorKey>(key==="fps_label"?["fps_label","fps_value"]:[key]);
-        for(const tokens of Object.values(tokenGroups))for(const token of tokens){
-          if(changed.has(token.defaultColor))delete token_colors[token.key];
-        }
-        update({colors:{...current.current.colors,[key]:hex,...(key==="fps_label"?{fps_value:hex}:{})},token_colors});
+        // Global color changes must not silently erase individually set colors.
+        update({colors:{...current.current.colors,[key]:hex,...(key==="fps_label"?{fps_value:hex}:{})}});
       }}
     />);
   };
@@ -736,7 +757,7 @@ function Content() {
   const metric = (key: string, value: boolean) => update({metrics: {...current.current.metrics, [key]: value}});
   const visible = settings.order.filter(key => settings[key]);
   const hidden = settings.order.filter(key => !settings[key]);
-  const smallButton = {minWidth: 28, width: 28, padding: "6px 0", margin: 0, fontSize: 17, borderRadius: 6};
+  const smallButton = {minWidth: 40, width: 40, minHeight:40, padding: "7px 0", margin: 0, fontSize: 17, borderRadius: 6};
 
   return (
     <>
@@ -1128,7 +1149,7 @@ function Content() {
             columns={2} className="claw-tiles claw-weight-tiles" renderItem={(weight)=>
               <DialogButton key={weight} className="claw-control-button" disabled={!ready || !settings.sans}
                 aria-pressed={settings.font_weight===weight}
-                onClick={()=>update({font_weight:weight,token_weights:{}})}
+                onClick={()=>update({font_weight:weight})}
                 style={{minWidth:0,width:"100%",minHeight:39,margin:0,padding:"7px 2px",
                   background:settings.font_weight===weight?"#096e9e":"#23364c",
                   border:"1px solid #406080",borderRadius:7,
