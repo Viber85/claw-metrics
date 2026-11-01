@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/unified-subcard-toggles-49]
+    branches: [test/vertical-hud-preview-50]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.49
+  group: claw-metrics-v0.2.4-test.50
   cancel-in-progress: true
 
 jobs:
@@ -160,7 +160,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.49.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.50.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -176,19 +176,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.49', package['version']
+              assert package['version'] == '0.2.4-test.50', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.49
-          path: ClawMetrics-v0.2.4-test.49.zip
+          name: ClawMetrics-v0.2.4-test.50
+          path: ClawMetrics-v0.2.4-test.50.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.49 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.49 ClawMetrics-v0.2.4-test.49.zip \
+          gh release delete v0.2.4-test.50 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.50 ClawMetrics-v0.2.4-test.50.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.49 – Consistent open/close for every subcard" \
-            --notes "UI interaction consistency. Layout: Position, Size & appearance, Spacing and Frametime graph now collapse on a second press of their selected header, and switching headers closes the previous group. Advanced: Updates, Diagnostics and Backup launch commands behave identically. Preserves the already working Metrics and Colors & Font toggles. Expanded subcard state survives Decky frontend remounts. English UI, settings, backend and MangoHud renderer unchanged. Device testing recommended."
+            --title "Claw Metrics v0.2.4-test.50 – Vertical HUD Preview" \
+            --notes "First functional Vertical HUD Preview. Layout now selects Horizontal or Vertical with controller-friendly buttons. Existing installations default to unchanged horizontal. Native and stock MangoHud configs use horizontal=0 and the standard 3-column multi-row layout in Vertical mode, including proper edge anchors. Both Saved Styles now retain orientation. Font, color, metrics, padding, opacity and positions remain configurable. FPS-only scaling, custom inline gap, custom frametime styles/width still require native vertical adaptations; those controls are disabled only in Vertical mode to avoid misleading settings. No changes to horizontal native renderer. MSI Claw game testing required before claiming feature parity."
