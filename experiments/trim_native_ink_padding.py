@@ -60,9 +60,8 @@ replace_once(
 )
 
 replace_once(
-    """          ImGui::EndTable();
-          HUDElements.table_columns_count = 0;""",
-    """          ImGui::EndTable();
+    "ImGui::EndTable();",
+    """ImGui::EndTable();
           if (claw_ink_trim) {
               // The table splitter is merged by EndTable; include FPS glyphs,
               // all other metrics, graph strokes and separator line pixels.
@@ -88,7 +87,7 @@ replace_once(
                   claw_has_ink = true;
               }
           }
-          HUDElements.table_columns_count = 0;""",
+          }""",
     "measure final draw vertices after table channel merge"
 )
 
