@@ -14,7 +14,8 @@ CARD_NAMES = ("OverlayCard", "LayoutCard", "MetricsCard", "ColorsAndFontCard",
 # not just the thin index.tsx entry point. Preserve visual card order.
 SOURCE = "\n".join(
     (SRC / path).read_text()
-    for path in ("controller.tsx", "index.tsx",
+    for path in ("components/AccordionCard.tsx", "components/GamepadGrid.tsx",
+                 "components/ControlGroup.tsx", "controller.tsx", "index.tsx",
                  *(f"pages/{name}.tsx" for name in CARD_NAMES))
 )
 
@@ -28,6 +29,10 @@ class GroupedQamTests(unittest.TestCase):
         self.assertEqual(entry.count(" vm={vm}/>"), 6)
         self.assertNotIn("<AccordionCard id=", entry)
         self.assertIn("export type ClawController = ReturnType<typeof useClawController>", controller)
+        for common in ("AccordionCard", "GamepadGrid", "ControlGroup"):
+            body = (SRC / "components" / f"{common}.tsx").read_text()
+            self.assertIn(f"export function {common}", body)
+            self.assertIn(f'from "./components/{common}"', controller)
         self.assertIn("export function useClawController()", controller)
         self.assertIn("const [settings, setSettings] = useState<Settings>(defaults);", controller)
         self.assertIn("const saved=await withTimeout(load());", controller)
