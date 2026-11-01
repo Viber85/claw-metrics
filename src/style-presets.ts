@@ -1,12 +1,13 @@
 // A style snapshots appearance + enabled metric groups/submetrics. Renamed labels and
 // manual metric order remain global; legacy appearance-only styles stay compatible.
-export const styleLayoutKeys = ['sans','fontsize','fps_scale','center_horizontal','hud_position','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','graph_style','inline_metrics'] as const;
+export const styleLayoutKeys = ['sans','fontsize','fps_scale','center_horizontal','hud_position','hud_orientation','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','graph_style','inline_metrics'] as const;
 export function styleLayoutFrom(value:any){
  const result:any={};
  for(const key of styleLayoutKeys){
   const v=value?.[key];
   if(key==='sans'||key==='inline_metrics'||key==='center_horizontal'){if(typeof v==='boolean')result[key]=v}
   else if(key==='hud_position'){if(['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'].includes(v))result[key]=v}
+  else if(key==='hud_orientation'){if(v==='horizontal'||v==='vertical')result[key]=v}
   else if(key==='graph_style'){if(['area','line','bars','dual'].includes(v))result[key]=v}
   else if(typeof v==='number'&&Number.isFinite(v))result[key]=v;
  }
