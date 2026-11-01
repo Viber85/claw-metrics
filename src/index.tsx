@@ -16,7 +16,7 @@ import {
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
-import {styleLayoutFrom, independentColors, styleModified} from "./style-presets";
+import {styleLayoutFrom, styleMetricSelectionsFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
@@ -101,6 +101,7 @@ const styleTabs: [StyleCategory,string][] = [
 ];
 type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width",number>> & {
   sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; version?:number;
+  groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
   token_colors: Partial<Record<TokenKey, string>>;
@@ -549,7 +550,10 @@ function Content() {
   const savePreset = (slot: string) => {
     const d = current.current;
     const preset: SavedStyle = {
-      version:2, ...styleLayoutFrom(d),
+      version:3, ...styleLayoutFrom(d),
+      // Save BOTH the main cards and individual sensor switches per style.
+      groups: Object.fromEntries(order.map(key=>[key,d[key]])) as Record<Group,boolean>,
+      metrics: {...d.metrics},
       colors: {...d.colors}, font_weight: d.font_weight, fps_bold: d.fps_bold,
       token_weights: {...d.token_weights}, token_colors: {...d.token_colors},
     };
@@ -558,9 +562,15 @@ function Content() {
   const loadPreset = (slot: string) => {
     const preset = current.current.style_presets?.[slot];
     if (!preset) return;
-    update({...styleLayoutFrom(preset),active_style:slot,colors: independentColors(preset.colors,defaultColors), font_weight: preset.font_weight,
-      fps_bold: preset.fps_bold, token_weights: {...preset.token_weights},
-      token_colors: {...preset.token_colors}});
+    const selected = styleMetricSelectionsFrom(preset);
+    const metricUpdates = Object.keys(selected.metrics).length
+      ? {metrics:{...current.current.metrics,...selected.metrics}} : {};
+    // Old appearance-only styles have no group/sensor snapshot. Keep the
+    // current metric selection until the user saves those slots again.
+    update({...styleLayoutFrom(preset),...selected.groups,...metricUpdates,
+      active_style:slot,colors: independentColors(preset.colors,defaultColors),
+      font_weight:preset.font_weight,fps_bold:preset.fps_bold,
+      token_weights:{...preset.token_weights},token_colors:{...preset.token_colors}});
   };
 
   const paletteLabel = (key:ColorKey,label:string) => {
@@ -753,7 +763,7 @@ function Content() {
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.37">
+      <PanelSection title="Claw Metrics · v0.2.4-test.38">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -1016,7 +1026,7 @@ function Content() {
           <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
             onClick={()=>update({colors:{...defaultColors}, token_colors:{}})}>Vrati zadane boje</ButtonItem></PanelSectionRow>
           <PanelSectionRow><Field label="MOJI STILOVI"
-            description="Spremi ili učitaj cijeli izgled: boje, font, veličinu, položaj i razmake." /></PanelSectionRow>
+            description="Stil pamti boje, font, layout te uključene/isključene grupe i pojedinačne metrike. Postojeći stariji stilovi dobit će metrike nakon ponovnog spremanja." /></PanelSectionRow>
           <div className="loaded-style-status" role="status">
             {loadedPreset?`Trenutno učitan: Stil ${settings.active_style}${presetDirty?" · izmijenjen":""}`:"Trenutno učitan: nijedan"}
           </div>
