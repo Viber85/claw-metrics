@@ -1029,7 +1029,7 @@ function Content() {
             open={layoutPanel==="size"} onToggle={()=>setLayoutPanel("size")}>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
           ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
-          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready || (key==="padding_x" && !info?.layout_spacing_supported)}
+          <PanelSectionRow key={key}><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></PanelSectionRow>)}
 
         <PanelSectionRow><Field label="FPS value scale"
