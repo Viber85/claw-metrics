@@ -290,6 +290,38 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('className="claw-control-button" disabled={!ready} onClick={()=>openTokenColorPicker(token)}', SOURCE)
         self.assertIn('className="claw-control-button" disabled={!ready || !settings.token_colors?.[token.key]}', SOURCE)
 
+    def test_in_game_graph_taller_and_histogram_uses_separated_real_columns(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        patch = (root / "experiments/enhance_native_frametime_graph.py").read_text()
+        self.assertIn("python3 ../experiments/enhance_native_frametime_graph.py src", workflow)
+        self.assertLess(workflow.index("center_hud_vertically.py"),
+                        workflow.index("enhance_native_frametime_graph.py"))
+        # Text alignment and plot area must use identical height scaling.
+        self.assertEqual(patch.count("font_size * 1.40f"), 2)
+        self.assertEqual(patch.count("24.0f, 36.0f"), 2)
+        self.assertIn("height = ImClamp(", patch)
+        # Histogram uses actual frametimes, not fabricated or static data.
+        self.assertIn("get_time_stat(HUDElements.sw_stats, idx)", patch)
+        self.assertIn("const int n = ImMin(count, ImMax(2, int(w / 6.0f)))", patch)
+        self.assertIn("const float bar_width = ImMax(2.0f, slot - 1.4f)", patch)
+        self.assertIn("draw->AddRectFilled(", patch)
+        self.assertIn("draw->PushClipRect(origin,", patch)
+        self.assertIn("draw->PopClipRect();", patch)
+        self.assertIn("std::isfinite(raw)", patch)
+        self.assertIn("claw_style == 2", patch)
+        # Geometry: 80-200px ranges, columns remain separate and within width.
+        for width in (80, 100, 150, 200):
+            n=max(2,int(width/6))
+            slot=width/n
+            bar_width=max(2.0,slot-1.4)
+            self.assertLess(bar_width, slot)
+            last_start=(n-1)*slot+0.7
+            self.assertLessEqual(last_start+bar_width,width+0.0001)
+        # No new global padding, native style ID or font-size control.
+        self.assertNotIn("claw_padding_y=", patch)
+        self.assertNotIn("claw_graph_height=", patch)
+
     def test_graph_styles_native_patch_present(self):
         root=pathlib.Path(__file__).resolve().parents[1]
         workflow=(root/".github/workflows/layout-experiment.yml").read_text()
