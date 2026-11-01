@@ -72,7 +72,7 @@ for name in ("fps","cpu_stats","gpu_stats","ram","vram","battery"):
 # The previous small units (GHz/MHz/GiB/W) looked like superscripts.
 for name in ("cpu_stats","gpu_stats","ram","vram"):
     start=s.index("void HudElements::"+name+"(){")
-    stop=s.index("\\n        return;",start) if name in ("ram","vram") else s.index("\\n            return;",start)
+    stop=s.index("\n        return;",start) if name in ("ram","vram") else s.index("\n            return;",start)
     chunk=s[start:stop]
     pushes=chunk.count("ImGui::PushFont(HUDElements.sw_stats->font1);")
     pops=chunk.count("ImGui::PopFont();")
