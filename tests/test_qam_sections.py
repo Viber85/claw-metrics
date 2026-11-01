@@ -6,10 +6,41 @@ against future redesigns accidentally hiding/removing working controls.
 import pathlib
 import unittest
 
-SOURCE = (pathlib.Path(__file__).resolve().parents[1] / "src" / "index.tsx").read_text()
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+CARD_NAMES = ("OverlayCard", "LayoutCard", "MetricsCard", "ColorsAndFontCard",
+              "ActivationCard", "AdvancedCard")
+# Keep static regression coverage over ALL of the actual production modules,
+# not just the thin index.tsx entry point. Preserve visual card order.
+SOURCE = "\n".join(
+    (SRC / path).read_text()
+    for path in ("controller.tsx", "index.tsx",
+                 *(f"pages/{name}.tsx" for name in CARD_NAMES))
+)
+
 
 
 class GroupedQamTests(unittest.TestCase):
+    def test_six_independent_card_modules_keep_one_shared_controller(self):
+        entry = (SRC / "index.tsx").read_text()
+        controller = (SRC / "controller.tsx").read_text()
+        self.assertIn("const vm=useClawController();", entry)
+        self.assertEqual(entry.count(" vm={vm}/>"), 6)
+        self.assertNotIn("<AccordionCard id=", entry)
+        self.assertIn("export type ClawController = ReturnType<typeof useClawController>", controller)
+        self.assertIn("export function useClawController()", controller)
+        self.assertIn("const [settings, setSettings] = useState<Settings>(defaults);", controller)
+        self.assertIn("const saved=await withTimeout(load());", controller)
+        self.assertIn("queue.current = queue.current.then", controller)
+        for name, section in zip(CARD_NAMES,
+                ("overlay","layout","metrics","colors","activation","advanced")):
+            content = (SRC / "pages" / f"{name}.tsx").read_text()
+            self.assertEqual(content.count("<AccordionCard id="), 1, name)
+            self.assertIn(f'<AccordionCard id="{section}"', content)
+            self.assertIn("vm:Core.ClawController", content)
+            self.assertIn(f"<{name} vm={{vm}}/>", entry)
+
+
     def test_six_gamepad_focusable_accordion_sections(self):
         sections = ("overlay", "layout", "metrics", "colors", "activation", "advanced")
         for key in sections:
