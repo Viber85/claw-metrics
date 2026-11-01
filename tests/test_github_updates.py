@@ -110,7 +110,7 @@ class UpdateChecks(unittest.TestCase):
 
     def test_backend_check_never_throws_python_exception_on_network_error(self):
         p=main.Plugin()
-        with patch.object(main,"check_github_update",
+        with patch.object(updates,"check_github_update",
                           side_effect=OSError("certificates unavailable")):
             response=asyncio.run(p.check_updates())
         self.assertIs(response["ok"],False)
