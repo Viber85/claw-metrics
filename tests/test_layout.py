@@ -47,7 +47,7 @@ class VerticalHudPreview(unittest.TestCase):
                         "padding_x": 8, "padding_y": 4,
                     }, native)
                     self.assertEqual(cfg["horizontal"], "0")
-                    self.assertEqual(cfg["table_columns"], "3")
+                    self.assertEqual(cfg["table_columns"], "2" if native else "3")
                     self.assertEqual(cfg["position"], anchor)
                     self.assertEqual(cfg["hud_compact"], "0")
                     self.assertEqual(cfg["fps"], "1")
@@ -75,12 +75,37 @@ class VerticalHudPreview(unittest.TestCase):
             cfg = options_for({"hud_orientation": "vertical", "vertical_width": 280}, native)
             self.assertEqual(cfg["width"], "280")
             self.assertEqual(cfg["horizontal"], "0")
-            self.assertEqual(cfg["table_columns"], "3")
+            self.assertEqual(cfg["table_columns"], "2" if native else "3")
             for edge in main.HUD_POSITIONS:
                 cfg = options_for({"hud_orientation": "vertical",
                                    "vertical_width": 280, "hud_position": edge}, native)
                 self.assertEqual(cfg["width"], "280")
                 self.assertEqual(cfg["position"], edge)
+
+    def test_native_vertical_stack_and_stock_fallback(self):
+        d = {"hud_orientation": "vertical", "vertical_width": 0}
+        native = options_for(d, True)
+        stock = options_for(d, False)
+        self.assertEqual(native["claw_vertical_stack"], "1")
+        self.assertEqual(native["claw_inline_metrics"], "1")
+        self.assertEqual(native["table_columns"], "2")
+        self.assertEqual(native["width"], "270")
+        self.assertEqual(stock["table_columns"], "3")
+        self.assertNotIn("claw_vertical_stack", stock)
+        self.assertNotIn("width", stock)
+        horizontal = options_for({"hud_orientation": "horizontal"}, True)
+        self.assertEqual(horizontal["claw_vertical_stack"], "0")
+        self.assertEqual(horizontal["table_columns"], "64")
+
+    def test_native_vertical_fps_at_front_and_graph_at_end(self):
+        payload = {"hud_orientation": "vertical", "order": [
+            "gpu", "frametime", "cpu", "fps", "ram", "vram",
+            "battery", "tdp", "draw", "time"]}
+        native = main.mango_config(payload, native_spacing=True)
+        stock = main.mango_config(payload, native_spacing=False)
+        self.assertLess(native.index("\nfps\n"), native.index("\ngpu_stats\n"))
+        self.assertGreater(native.index("\nframe_timing\n"), native.index("\ntime\n"))
+        self.assertLess(stock.index("\ngpu_stats\n"), stock.index("\nfps\n"))
 
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {

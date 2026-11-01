@@ -37,7 +37,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('Vertical HUD width (px)', SOURCE)
         self.assertIn('vertical_width:defaults.vertical_width', SOURCE)
         self.assertIn('settings.vertical_width===0', SOURCE)
-        self.assertIn('Uses MangoHud', SOURCE)
+        self.assertIn('native Claw Stacked layout', SOURCE)
         self.assertIn('FPS-only scaling', SOURCE)
 
     def test_six_independent_card_modules_keep_one_shared_controller(self):

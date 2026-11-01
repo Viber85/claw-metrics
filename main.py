@@ -813,7 +813,7 @@ def mango_config(settings, native_spacing=False):
         "font_size_text=" + str(max(10, round(d["fontsize"] * 0.78))),
         # Horizontal needs 64 columns for inline tokens; native vertical
         # MangoHud uses its supported three-column multi-row table.
-        "text_outline=0", "table_columns=" + ("64" if is_horizontal else "3"),
+        "text_outline=0", "table_columns=" + ("64" if is_horizontal else ("2" if native_spacing else "3")),
         flag("no_display", not d["enabled"]),
         'time_format=%H:%M',
         # Set submetrics before the ordered display blocks.
@@ -836,8 +836,14 @@ def mango_config(settings, native_spacing=False):
     ]
     # MangoHud v0.8.1 supports native width= in its vertical renderer.
     # Zero keeps its calculated width, and horizontal output is untouched.
-    if not is_horizontal and d["vertical_width"]:
-        lines.append("width=" + str(d["vertical_width"]))
+    if not is_horizontal:
+        # Claw's two-column stack must fit labels and multi-value sensor rows.
+        # Stock MangoHud retains its unchanged automatic width.
+        vertical_width = d["vertical_width"]
+        if native_spacing and not vertical_width:
+            vertical_width = min(420, max(260, d["fontsize"] * 15))
+        if vertical_width:
+            lines.append("width=" + str(vertical_width))
     if native_spacing:
         # Visible diagnostic: FPS* confirms this experimental config was read.
         # An ordinary FPS label means the game is still using the stock profile.
@@ -855,7 +861,8 @@ def mango_config(settings, native_spacing=False):
             "claw_graph_width=" + str(d["graph_width"]),
             "claw_graph_style=" + str(GRAPH_STYLES.index(d["graph_style"])),
             "claw_inner_gap=" + str(d["inner_gap"]),
-            "claw_inline_metrics=" + str(int(d["inline_metrics"])),
+            "claw_inline_metrics=" + str(int(d["inline_metrics"] if is_horizontal else True)),
+            "claw_vertical_stack=" + str(int(not is_horizontal)),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
             "claw_fps_scale=" + str(d["fps_scale"]),
             "claw_center_horizontal=" + str(int(position in ("top-center", "bottom-center"))),
@@ -878,7 +885,11 @@ def mango_config(settings, native_spacing=False):
     display = {"fps": "fps", "frametime": "frame_timing", "cpu": "cpu_stats",
                "gpu": "gpu_stats", "ram": "ram", "vram": "vram",
                "battery": "battery", "time": "time"}
-    for group in d["order"]:
+    # Preserve group order among remaining metrics; the vertical mode has
+    # one FPS header and one frametime graph footer.
+    display_order = (["fps"] + [g for g in d["order"] if g not in ("fps", "frametime")]
+                     + ["frametime"]) if native_spacing and not is_horizontal else d["order"]
+    for group in display_order:
         if group == "tdp":
             if active("tdp"):
                 lines.append("exec=cat " + shlex.quote(str(tdp_path())))

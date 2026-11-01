@@ -50,7 +50,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>}/>
           {settings.hud_orientation==="vertical" && <PanelSectionRow>
             <Field label="Vertical preview"
-              description="Uses MangoHud's native multi-row layout. Column width can be automatic or fixed. FPS-only scaling, inline gaps and graph styles still require native vertical adaptation."/>
+              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback."/>
           </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
@@ -114,7 +114,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
               onChange={(value:number)=>update({vertical_width:value})}/></div>
           </PanelSectionRow>}
           <PanelSectionRow><Field label="Width behavior"
-            description="Automatic follows MangoHud's font-dependent size. A fixed width also changes the space available to the vertical frametime graph. Very long metric values may need a wider HUD." /></PanelSectionRow>
+            description="With the Claw renderer, Auto chooses a compact font-dependent width. Fixed width changes the stacked rows and graph together. Long values may need extra room." /></PanelSectionRow>
         </>}
         <PanelSectionRow><Field label="FPS value scale"
           description="Scales the FPS number only; other values retain their size." /></PanelSectionRow>

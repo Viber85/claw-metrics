@@ -1,3 +1,21 @@
+# Claw Metrics v0.2.4-test.52 — Vertical Stacked native preview
+
+This version develops the separate Vertical Stacked renderer. With the
+bundled Claw MangoHud 0.8.1 library it uses two-column metric rows,
+a prominent FPS header and a real-sample frametime graph footer.
+
+The native auto-width is based on font size and starts at 260 pixels.
+Manual width remains 160–420 pixels. Horizontal rendering and saved
+orientation preferences are not changed. If the custom renderer is
+unavailable, stock MangoHud retains its three-column vertical layout.
+
+This is a native-build-tested preview; the real MSI Claw A8 game
+appearance still requires validation. The FPS-only scale, inline
+spacing toggle and graph-style controls intentionally remain disabled
+in vertical mode until tested vertical implementations exist.
+
+---
+
 # Claw Metrics v0.2.4-test.51 — vertical HUD width
 
 This isolated development version extends the native vertical preview from test.50.
