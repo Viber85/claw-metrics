@@ -16,14 +16,24 @@ def change(path, before, after):
 change("overlay_params.h",
     "   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\",
     "   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\\n"
-    "   OVERLAY_PARAM_CUSTOM(claw_vertical_stack)          \\")
+    "   OVERLAY_PARAM_CUSTOM(claw_vertical_stack)          \\\n"
+    "   OVERLAY_PARAM_CUSTOM(claw_vertical_value_gap)      \\\n"
+    "   OVERLAY_PARAM_CUSTOM(claw_vertical_graph_width)    \\\n"
+    "   OVERLAY_PARAM_CUSTOM(claw_vertical_graph_height)   \\")
 change("overlay_params.h",
     "   bool claw_center_horizontal = false;",
-    "   bool claw_vertical_stack = false;\n   bool claw_center_horizontal = false;")
+    "   bool claw_vertical_stack = false;\n"
+    "   float claw_vertical_value_gap = 8.0f;\n"
+    "   float claw_vertical_graph_width = 0.0f;\n"
+    "   float claw_vertical_graph_height = 28.0f;\n"
+    "   bool claw_center_horizontal = false;")
 change("overlay_params.cpp",
     "#define parse_claw_fps_scale(s) parse_unsigned(s)",
     "#define parse_claw_fps_scale(s) parse_unsigned(s)\n"
-    "#define parse_claw_vertical_stack(s) parse_unsigned(s) != 0")
+    "#define parse_claw_vertical_stack(s) parse_unsigned(s) != 0\n"
+    "#define parse_claw_vertical_value_gap(s) parse_float(s)\n"
+    "#define parse_claw_vertical_graph_width(s) parse_float(s)\n"
+    "#define parse_claw_vertical_graph_height(s) parse_float(s)")
 
 hud=root/"hud_elements.cpp"
 s=hud.read_text()
@@ -55,7 +65,10 @@ swap("""static void ClawMetricGap() {
         claw_vertical_first_value = false;
         ImGui::TableSetColumnIndex(1);
     } else {
-        ImGui::SameLine(0.0f, HUDElements.params->claw_inner_gap);
+        ImGui::SameLine(0.0f,
+            HUDElements.params->claw_vertical_stack
+                ? HUDElements.params->claw_vertical_value_gap
+                : HUDElements.params->claw_inner_gap);
     }
 }""")
 for name in ("fps","cpu_stats","gpu_stats","ram","vram","battery"):
@@ -82,6 +95,30 @@ for name in ("cpu_stats","gpu_stats","ram","vram"):
     chunk=chunk.replace("ImGui::PopFont();",
         "if (!HUDElements.params->claw_vertical_stack) ImGui::PopFont();")
     s=s[:start]+chunk+s[stop:]
+
+# Vertically center the small FPS label and ms value against the enlarged
+# FPS number, without touching the pre-existing horizontal centering behavior.
+fps_begin=s.index("void HudElements::fps(){")
+fps_end=s.index("\n            return;", fps_begin)
+fps_chunk=s[fps_begin:fps_end]
+old_center="ClawFpsVerticalCenterOffset(ImGui::GetFontSize())"
+if fps_chunk.count(old_center)!=2:
+    raise RuntimeError(f"FPS labels need 2 center markers, found {fps_chunk.count(old_center)}")
+fps_chunk=fps_chunk.replace(old_center,"ClawStackedFpsCenterOffset(ImGui::GetFontSize())")
+s=s[:fps_begin]+fps_chunk+s[fps_end:]
+fps_helper="""static float ClawStackedFpsCenterOffset(float item_height) {
+    if (!HUDElements.params || !HUDElements.params->claw_vertical_stack ||
+        HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal])
+        return ClawFpsVerticalCenterOffset(item_height);
+    const ImFont* font=ClawFpsFontForToken();
+    if (!font) return 0.0f;
+    const float height=font->FontSize * font->Scale * ImGui::GetIO().FontGlobalScale;
+    return ImMax(0.0f,(height-item_height)*0.5f);
+}
+
+"""
+if s.count("void HudElements::fps(){")!=1: raise RuntimeError("fps helper anchor")
+s=s.replace("void HudElements::fps(){",fps_helper+"void HudElements::fps(){",1)
 
 # _exec() is still MangoHud's right-aligned full text item; in two-column
 # Claw Vertical it flows outside the label column and overlaps the next
@@ -126,8 +163,10 @@ static void ClawVerticalGraph() {
     const int count=ARRAY_SIZE(HUDElements.sw_stats->frames_stats);
     HUDElements.sw_stats->stat_selector=OVERLAY_PLOTS_frame_timing;
     HUDElements.sw_stats->time_dividor=1000000.0f;
-    const float w=ImMax(56.0f,float(p->width)-2.0f*ImMax(0.0f,p->claw_padding_x)-12.0f);
-    const float h=ImClamp(float(p->font_size)*1.40f,23.0f,38.0f);
+    const float available=ImMax(56.0f,float(p->width)-2.0f*ImMax(0.0f,p->claw_padding_x)-12.0f);
+    const float w=p->claw_vertical_graph_width>0.0f
+        ? ImMax(56.0f,ImMin(available,p->claw_vertical_graph_width)) : available;
+    const float h=ImClamp(p->claw_vertical_graph_height,16.0f,72.0f);
     ImguiNextColumnFirstItem();
     const ImVec2 origin=ImGui::GetCursorScreenPos();
     ImGui::Dummy(ImVec2(0.0f,h));
@@ -216,7 +255,7 @@ begin='if (ImGui::BeginTable("hud", params.table_columns, table_flags )) {'
 if code.count(begin)!=1: raise RuntimeError("begin table anchor drift")
 code=code.replace(begin,
     'if (claw_vertical_stack) ImGui::PushStyleColor(ImGuiCol_TableBorderLight,'
-    ' ImVec4(0.44f,0.58f,0.70f,0.10f));\n       '+begin,1)
+    ' ImVec4(0.44f,0.58f,0.70f,0.055f));\n       '+begin,1)
 end_pattern=r'HUDElements\.table_columns_count\s*=\s*0;\s*\n\s*\}'
 code,n=re.subn(end_pattern,lambda m: m.group(0)+"\n       if (claw_vertical_stack) ImGui::PopStyleColor();",code,count=1)
 if n!=1: raise RuntimeError(f"end table style guard found {n} blocks")

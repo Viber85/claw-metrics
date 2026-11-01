@@ -270,6 +270,17 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_vertical_graph_dimensions_and_native_fps_center(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        patch = (root / "experiments/enable_vertical_stacked.py").read_text()
+        layout = (root / "src/pages/LayoutCard.tsx").read_text()
+        for token in ("ClawStackedFpsCenterOffset","claw_vertical_value_gap",
+                      "claw_vertical_graph_width","claw_vertical_graph_height"):
+            self.assertIn(token,patch)
+        for label in ("Metric value gap (px)","Automatic graph width",
+                      "Vertical graph width (px)","Vertical graph height (px)"):
+            self.assertIn(label,layout)
+
     def test_vertical_exec_rows_and_fps_scaling_have_native_patch(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         patch = (root / "experiments/enable_vertical_stacked.py").read_text()
@@ -646,7 +657,7 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_layout_nested_sliders_are_bounded_inside_cards(self):
         self.assertIn('className="claw-layout-slider"', SOURCE)
-        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 11)
+        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 14)
         self.assertIn('width: min(330px, calc(100% - 18px)) !important;', SOURCE)
         self.assertIn('max-width: calc(100% - 18px) !important;', SOURCE)
         self.assertIn('padding: 0 20px 0 0 !important;', SOURCE)

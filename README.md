@@ -1,3 +1,26 @@
+# Claw Metrics v0.2.4-test.55 — Vertical Graph Dimensions & FPS Polish
+
+The native two-column Vertical Stacked HUD gains three independent settings:
+- **Metric value gap** 0–16 px (default 8 px) to space CPU/GPU values without
+  altering horizontal Inner gap.
+- **Vertical graph width**: Automatic (full available HUD width, default),
+  or 80–420 px capped safely at the actual available width.
+- **Vertical graph height**: 16–72 px (default 28 px), for all four native
+  real-sample frametime graph styles.
+
+The vertical FPS label and frametime text are now centered against the
+selected oversized FPS number via its real font height. Horizontal FPS
+centering code and its drawing behavior are preserved. Row separators are
+slightly muted again. All settings are saved in both styles, and old styles
+are backwards compatible. DRAW remains read-only and shows -- on AC power.
+
+Close and restart the game to reload the native Vulkan library and HUD
+configuration. Compile/test success does not establish the appearance on
+MSI Claw; confirm it with on-device screenshots, including FPS scale 100,
+150 and 200, and graph widths smaller than the HUD.
+
+---
+
 # Claw Metrics v0.2.4-test.54 — Vertical Exec Rows and FPS Scaling
 
 Fixes the visibly overlapping TDP and DRAW strings in the native two-column

@@ -156,9 +156,12 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         <PanelSectionRow><ToggleField label="Even spacing across inline metrics"
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
-          disabled={!ready || !info?.layout_spacing_supported || (settings.hud_orientation==="horizontal" && !settings.inline_metrics)}
+        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></div></PanelSectionRow>
+        : <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Metric value gap (px)" value={settings.vertical_value_gap} min={0} max={16} step={1} showValue
+          disabled={!ready || !info?.layout_spacing_supported}
+          onChange={(value: number) => update({vertical_value_gap: value})} /></div></PanelSectionRow>}
 
 
           </ControlGroup>
@@ -186,8 +189,22 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
               </span>
             </DialogButton>;
           }}/>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
-          disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
+        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+          disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
+        : <>
+          <PanelSectionRow><ToggleField label="Automatic graph width"
+            checked={settings.vertical_graph_width===0} disabled={!ready || !info?.layout_spacing_supported}
+            onChange={(enabled:boolean)=>update({vertical_graph_width:enabled?0:200})}/></PanelSectionRow>
+          {settings.vertical_graph_width>0 && <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical graph width (px)"
+            value={settings.vertical_graph_width} min={80} max={420} step={5} showValue
+            disabled={!ready || !info?.layout_spacing_supported}
+            onChange={(value:number)=>update({vertical_graph_width:value})}/></div></PanelSectionRow>}
+          <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical graph height (px)"
+            value={settings.vertical_graph_height} min={16} max={72} step={2} showValue
+            disabled={!ready || !info?.layout_spacing_supported}
+            onChange={(value:number)=>update({vertical_graph_height:value})}/></div></PanelSectionRow>
+          <PanelSectionRow><Field label="Graph dimensions" description="Width is capped at the HUD's available space. Height applies to all four graph styles." /></PanelSectionRow>
+        </>}
             </> : <Field label="Graph disabled" description="Enable Frametime → Graph in Metrics to edit graph settings."/>}
           </ControlGroup>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
@@ -199,6 +216,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
+          vertical_value_gap:defaults.vertical_value_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
           graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
         }))}>
             Reset layout to defaults

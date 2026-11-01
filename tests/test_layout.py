@@ -127,13 +127,39 @@ class VerticalHudPreview(unittest.TestCase):
         self.assertEqual(a["claw_fps_scale"],"160")
         self.assertEqual(a["claw_vertical_stack"],"0")
 
+    def test_vertical_dimensions_and_spacing_are_persistent_and_isolated(self):
+        self.assertEqual(main.normalize({})["vertical_value_gap"], 8)
+        self.assertEqual(main.normalize({})["vertical_graph_width"], 0)
+        self.assertEqual(main.normalize({})["vertical_graph_height"], 28)
+        for raw, expected in ((-5, 0), (20, 80), (120, 120), (999, 420)):
+            self.assertEqual(main.normalize({"vertical_graph_width":raw})["vertical_graph_width"],expected)
+        self.assertEqual(main.normalize({"vertical_graph_height":5})["vertical_graph_height"],16)
+        self.assertEqual(main.normalize({"vertical_graph_height":999})["vertical_graph_height"],72)
+        cfg=options_for({"hud_orientation":"vertical","vertical_value_gap":11,
+                         "vertical_graph_width":185,"vertical_graph_height":46},True)
+        self.assertEqual(cfg["claw_vertical_value_gap"],"11")
+        self.assertEqual(cfg["claw_vertical_graph_width"],"185")
+        self.assertEqual(cfg["claw_vertical_graph_height"],"46")
+        for native in (False, True):
+            old=options_for({"hud_orientation":"horizontal"},native)
+            new=options_for({"hud_orientation":"horizontal",
+               "vertical_value_gap":15,"vertical_graph_width":300,
+               "vertical_graph_height":70},native)
+            # Vertical-only settings should not mutate the horizontal renderer.
+            for key in ("claw_vertical_value_gap","claw_vertical_graph_width","claw_vertical_graph_height"):
+                new.pop(key,None);old.pop(key,None)
+            self.assertEqual(old,new)
+
     def test_saved_styles_keep_orientation_and_legacy_styles_do_not_override(self):
         slots = main.normalize({"hud_orientation":"vertical", "style_presets": {
-            "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "fontsize": 20},
+            "1": {"version": 3, "hud_orientation": "vertical", "vertical_width": 290, "vertical_value_gap": 13, "vertical_graph_width": 190, "vertical_graph_height": 40, "fontsize": 20},
             "2": {"version": 2, "fontsize": 17}
         }})["style_presets"]
         self.assertEqual(slots["1"]["hud_orientation"], "vertical")
         self.assertEqual(slots["1"]["vertical_width"], 290)
+        self.assertEqual(slots["1"]["vertical_value_gap"],13)
+        self.assertEqual(slots["1"]["vertical_graph_width"],190)
+        self.assertEqual(slots["1"]["vertical_graph_height"],40)
         self.assertNotIn("vertical_width", slots["2"])
         self.assertNotIn("hud_orientation", slots["2"])
         self.assertNotIn("hud_orientation", main.normalize({"style_presets":{

@@ -75,6 +75,9 @@ STYLE_LAYOUT_RANGES = {
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12),
     "inner_gap": (0, 16), "graph_width": (80, 200),
+    "vertical_value_gap": (0, 16),
+    "vertical_graph_width": (0, 420),
+    "vertical_graph_height": (16, 72),
     "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
@@ -153,6 +156,8 @@ def normalize_style_presets(payload):
                 preset[field] = min(hi, max(lo, value))
                 if field == "vertical_width" and 0 < preset[field] < 160:
                     preset[field] = 160
+                if field == "vertical_graph_width" and 0 < preset[field] < 80:
+                    preset[field] = 80
         for field in STYLE_LAYOUT_FLAGS:
             if type(item.get(field)) is bool:
                 preset[field] = item[field]
@@ -183,7 +188,8 @@ def normalize_color_overrides(payload):
 
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
-    "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0, "opacity": 80,
+    "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0,
+    "vertical_value_gap": 8, "vertical_graph_width": 0, "vertical_graph_height": 28, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -625,12 +631,17 @@ def normalize(payload):
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
                            ("table_gap", 0, 12), ("graph_width", 80, 200),
-                           ("inner_gap", 0, 16), ("vertical_width", 0, 420)):
+                           ("inner_gap", 0, 16), ("vertical_width", 0, 420),
+                           ("vertical_value_gap", 0, 16),
+                           ("vertical_graph_width", 0, 420),
+                           ("vertical_graph_height", 16, 72)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
     if 0 < d["vertical_width"] < 160:
         d["vertical_width"] = 160
+    if 0 < d["vertical_graph_width"] < 80:
+        d["vertical_graph_width"] = 80
     # Existing settings do not contain orientation: keep the old horizontal HUD.
     if payload.get("hud_orientation") in HUD_ORIENTATIONS:
         d["hud_orientation"] = payload["hud_orientation"]
@@ -861,6 +872,9 @@ def mango_config(settings, native_spacing=False):
             "claw_graph_width=" + str(d["graph_width"]),
             "claw_graph_style=" + str(GRAPH_STYLES.index(d["graph_style"])),
             "claw_inner_gap=" + str(d["inner_gap"]),
+            "claw_vertical_value_gap=" + str(d["vertical_value_gap"]),
+            "claw_vertical_graph_width=" + str(d["vertical_graph_width"]),
+            "claw_vertical_graph_height=" + str(d["vertical_graph_height"]),
             "claw_inline_metrics=" + str(int(d["inline_metrics"] if is_horizontal else True)),
             "claw_vertical_stack=" + str(int(not is_horizontal)),
             "claw_fps_bold=" + str(int(d["fps_bold"])),

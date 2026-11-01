@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/vertical-exec-fps-54]
+    branches: [test/vertical-finish-55]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.54
+  group: claw-metrics-v0.2.4-test.55
   cancel-in-progress: true
 
 jobs:
@@ -141,6 +141,10 @@ jobs:
           grep -q 'position.x + 1.8f' src/hud_elements.cpp
           grep -q 'claw_vertical_stack' src/overlay_params.cpp
           grep -q 'ClawVerticalGraph' src/hud_elements.cpp
+          grep -q 'ClawStackedFpsCenterOffset' src/hud_elements.cpp
+          grep -q 'claw_vertical_graph_width' src/overlay_params.cpp
+          grep -q 'claw_vertical_graph_height' src/overlay_params.cpp
+          grep -q 'claw_vertical_value_gap' src/hud_elements.cpp
           grep -q 'const std::string label = has_value' src/hud_elements.cpp
           grep -q 'const int token = item.value.find("tdp.txt")' src/hud_elements.cpp
           grep -q 'Adaptive, padded graph scale' src/hud_elements.cpp
@@ -168,7 +172,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.54.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.55.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -184,19 +188,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.54', package['version']
+              assert package['version'] == '0.2.4-test.55', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.54
-          path: ClawMetrics-v0.2.4-test.54.zip
+          name: ClawMetrics-v0.2.4-test.55
+          path: ClawMetrics-v0.2.4-test.55.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.54 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.54 ClawMetrics-v0.2.4-test.54.zip \
+          gh release delete v0.2.4-test.55 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.55 ClawMetrics-v0.2.4-test.55.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.54 – Vertical Exec Rows and FPS Scaling" \
-            --notes "Claw Vertical fixes TDP/DRAW collision via separate native label/value rows and makes FPS-only 100-200 percent scaling selectable. Row separator alpha reduced. Horizontal render path preserved; on-device test required."
+            --title "Claw Metrics v0.2.4-test.55 – Vertical Graph Dimensions and FPS Polish" \
+            --notes "Vertical HUD now supports independent value spacing and 0-auto graph width/adjustable graph height. FPS label and frametime value are centered against scaled FPS numeral. More subtle row dividers. Horizontal native path and charging DRAW semantics unchanged; MSI Claw game test needed."
