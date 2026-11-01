@@ -308,6 +308,64 @@ class Settings(unittest.TestCase):
                 self.assertIn(f"claw_graph_style={idx}\n",native)
                 self.assertNotIn("claw_graph_style=",stock)
 
+    def test_style_slots_snapshot_main_groups_and_individual_sensor_toggles(self):
+        slot1 = {
+            "version": 3,
+            "groups": {
+                "fps": True, "frametime": True, "cpu": False, "gpu": True,
+                "ram": True, "vram": False, "battery": True,
+                "tdp": True, "draw": False, "time": False,
+            },
+            "metrics": {
+                "fps_ms": False, "graph": False, "cpu_temp": True,
+                "gpu_temp": False, "gpu_power": True,
+                "battery_icon": True, "battery_time": False,
+            },
+        }
+        slot2 = {
+            "version": 3,
+            "groups": {"cpu": True, "gpu": False, "tdp": False, "time": True},
+            "metrics": {"graph": True, "cpu_temp": False, "battery_icon": False},
+        }
+        d = main.normalize({"style_presets": {"1": slot1, "2": slot2},
+                            "active_style": "1"})
+        a, b = d["style_presets"]["1"], d["style_presets"]["2"]
+        self.assertEqual(a["version"], 3)
+        self.assertEqual(a["groups"], slot1["groups"])
+        self.assertEqual(a["metrics"], slot1["metrics"])
+        self.assertEqual(b["groups"], slot2["groups"])
+        self.assertEqual(b["metrics"], slot2["metrics"])
+        self.assertEqual(d["active_style"], "1")
+        # Snapshot fields are separate from the current live settings.
+        self.assertTrue(d["cpu"])
+        self.assertTrue(d["metrics"]["graph"])
+        self.assertFalse(d["style_presets"]["1"]["groups"]["cpu"])
+        self.assertFalse(d["style_presets"]["1"]["metrics"]["graph"])
+
+    def test_style_slots_reject_invalid_group_sensor_values_and_preserve_legacy(self):
+        values = {
+            "1": {
+                "version": 3,
+                "groups": {"fps": 0, "cpu": "false", "gpu": False,
+                           "tdp": True, "unknown": True},
+                "metrics": {"graph": False, "cpu_temp": 1,
+                            "gpu_voltage": True, "unknown": False},
+            },
+            "2": {"version": 2, "fontsize": 20, "font_weight": "light"},
+        }
+        normalized = main.normalize({"style_presets": values})["style_presets"]
+        self.assertEqual(normalized["1"]["groups"], {"gpu": False, "tdp": True})
+        self.assertEqual(normalized["1"]["metrics"],
+                         {"graph": False, "gpu_voltage": True})
+        self.assertNotIn("groups", normalized["2"])
+        self.assertNotIn("metrics", normalized["2"])
+        self.assertEqual(normalized["2"]["version"], 2)
+        self.assertEqual(normalized["2"]["fontsize"], 20)
+        # Normalizing multiple times must never add the missing legacy fields.
+        twice = main.normalize({"style_presets": normalized})["style_presets"]
+        self.assertNotIn("groups", twice["2"])
+        self.assertNotIn("metrics", twice["2"])
+
     def test_graph_style_presets_and_old_style_compatibility(self):
         settings=main.normalize({"style_presets":{
             "1":{"version":2,"graph_style":"area"},
