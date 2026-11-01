@@ -68,7 +68,7 @@ change("hud_elements.cpp",
     if (!fps_font)
         return 0.0f;
     const float fps_height =
-        fps_font->FontSize * ImGui::GetIO().FontGlobalScale;
+        fps_font->FontSize * fps_font->Scale * ImGui::GetIO().FontGlobalScale;
     return ImMax(0.0f, (fps_height - item_height) * 0.5f);
 }
 
