@@ -153,7 +153,7 @@ DEFAULTS = {
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
-    "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 8, "padding_y": 0,
+    "sans": True, "rounding": 10, "offset_x": 8, "offset_y": 0, "padding_y": 0,
     # Native MangoHud 0.8.1 hard-codes these; retain the desired values
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
