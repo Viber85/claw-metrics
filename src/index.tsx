@@ -305,10 +305,11 @@ function AccordionCard({id, title, subtitle, icon, open, onToggle, children}: Ac
       boxShadow: open ? "inset 0 0 0 1px #ffffff, 0 0 15px #0285ca55" : "none",
     }}>
       {/* Keep the selection border INSIDE the header: Decky can override DialogButton borders. */}
-      <div className="claw-accordion-header" style={{position:"relative",width:"100%",minWidth:0,
+      <div className="claw-accordion-header"
+        onFocusCapture={()=>setFocused(true)} onBlurCapture={()=>setFocused(false)}
+        style={{position:"relative",width:"100%",minWidth:0,
         maxWidth:"100%",boxSizing:"border-box"}}>
-        <DialogButton onClick={onToggle} aria-pressed={open}
-          onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} style={{
+        <DialogButton onClick={onToggle} aria-pressed={open} style={{
           width: "100%", minWidth: 0, boxSizing: "border-box",
           display: "flex", alignItems: "center",
           textAlign: "left", margin: 0, padding: "12px 10px",
