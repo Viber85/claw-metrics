@@ -444,7 +444,7 @@ function Content() {
   const [copyStatus, setCopyStatus] = useState("");
   const [layoutPanel,setLayoutPanel]=useState<LayoutPanel>("position");
   const [advancedPanel,setAdvancedPanel]=useState<AdvancedPanel>("updates");
-  const [showLegacyCommand, setShowLegacyCommand] = useState(false);
+  const [showTechnical,setShowTechnical] = useState(false);
   const [rendererStatus, setRendererStatus] = useState("Not checked. Start a game to verify.");
   const [tdpStatus, setTdpStatus] = useState("TDP has not been checked.");
   const [rendererBusy, setRendererBusy] = useState(false);
@@ -1356,6 +1356,9 @@ function Content() {
         </AccordionCard>
         <AccordionCard id="advanced" title="Advanced" subtitle="Updates and troubleshooting"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>
+          <ControlGroup title="Updates" summary="Installed version · GitHub releases"
+            open={advancedPanel==="updates"} onToggle={()=>setAdvancedPanel("updates")}>
+            <PanelSectionRow><Field label="Installed version" description="Claw Metrics 0.2.4-test.43" /></PanelSectionRow>
         <PanelSectionRow><Field label="GitHub updates"
           description="Check for releases and confirm installation through Decky Loader." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready || updateBusy}
@@ -1366,23 +1369,10 @@ function Content() {
         <PanelSectionRow><Field label="Update status" description={updateStatus} /></PanelSectionRow>
         {updateFallback && <PanelSectionRow><Field label="Manual install via Decky Settings → Developer"
           description={updateFallback} /></PanelSectionRow>}
-        <PanelSectionRow><ButtonItem layout="below" onClick={() => setShowLegacyCommand(!showLegacyCommand)}>
-          {showLegacyCommand ? "Hide backup commands" : "Show backup commands"}
-        </ButtonItem></PanelSectionRow>
-        {showLegacyCommand && <>
-          <PanelSectionRow><Field label="Extended Vulkan command (backup)"
-            description={info?.experimental_launch_option ?? "Unavailable"} /></PanelSectionRow>
-          <PanelSectionRow><ButtonItem disabled={!info?.experimental_launch_option} layout="below"
-            onClick={()=>{ void copyLaunchCommand(true); }}>
-            <FaCopy style={{marginRight:8}}/> Copy extended Vulkan command
-          </ButtonItem></PanelSectionRow>
-          <PanelSectionRow><Field label="Stock MangoHud (without Claw renderer)"
-            description={info?.launch_option ?? "Unavailable"} /></PanelSectionRow>
-          <PanelSectionRow><ButtonItem disabled={!info?.launch_option} layout="below"
-            onClick={()=>{ void copyLaunchCommand(); }}>
-            <FaCopy style={{marginRight:8}}/> Copy stock launch command
-          </ButtonItem></PanelSectionRow>
-        </>}
+
+          </ControlGroup>
+          <ControlGroup title="Diagnostics" summary="TDP sensor · renderer · configuration"
+            open={advancedPanel==="diagnostics"} onToggle={()=>setAdvancedPanel("diagnostics")}>
         <PanelSectionRow><Field label="TDP limit (read-only)" description="Read-only TDP limit from the active profile. Panel de Control still manages TDP." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Check TDP sensor
@@ -1397,10 +1387,36 @@ function Content() {
           <Field label="Loaded renderer library" description={rendererStatus} />
         </PanelSectionRow>}
 
+          {showTechnical && <>
           <PanelSectionRow><Field label="Configuration path" description={info?.config_path ?? "Not loaded"} /></PanelSectionRow>
           <PanelSectionRow><Field label="TDP" description={info?.tdp_note ?? "TDP -- · no verified reading."} /></PanelSectionRow>
           <PanelSectionRow><Field label="DRAW" description={info?.power_note ?? "Reading depends on the battery sensor."} /></PanelSectionRow>
+          </>}
           <PanelSectionRow><ButtonItem layout="below" disabled={!ready} onClick={() => { void refresh(); }}>Refresh status</ButtonItem></PanelSectionRow>
+
+          <PanelSectionRow><ButtonItem layout="below"
+            onClick={()=>setShowTechnical(!showTechnical)}>
+            {showTechnical?"Hide technical details":"Show technical details"}
+          </ButtonItem></PanelSectionRow>
+          </ControlGroup>
+          <ControlGroup title="Backup launch commands" summary="Only for troubleshooting"
+            open={advancedPanel==="backup"} onToggle={()=>setAdvancedPanel("backup")}>
+
+          <PanelSectionRow><Field label="Extended Vulkan command (backup)"
+            description={info?.experimental_launch_option ?? "Unavailable"} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem disabled={!info?.experimental_launch_option} layout="below"
+            onClick={()=>{ void copyLaunchCommand(true); }}>
+            <FaCopy style={{marginRight:8}}/> Copy extended Vulkan command
+          </ButtonItem></PanelSectionRow>
+          <PanelSectionRow><Field label="Stock MangoHud (without Claw renderer)"
+            description={info?.launch_option ?? "Unavailable"} /></PanelSectionRow>
+          <PanelSectionRow><ButtonItem disabled={!info?.launch_option} layout="below"
+            onClick={()=>{ void copyLaunchCommand(); }}>
+            <FaCopy style={{marginRight:8}}/> Copy stock launch command
+          </ButtonItem></PanelSectionRow>
+
+
+          </ControlGroup>
         </AccordionCard>
       </div>
     </>
