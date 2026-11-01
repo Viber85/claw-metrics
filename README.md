@@ -1,3 +1,14 @@
+# Claw Metrics v0.2.4-test.30 — vratiti visinu i veličinu fonta iz test.28
+
+Ispravak regresije nastale u test.29: prilikom stabilizacije širine brojeva dodatni ImGui BeginGroup/EndGroup/Dummy elementi promijenili su izračun visine i optički smanjili tekst u odnosu na povećanu traku, čak kada je dodatni gornji/donji padding 0.
+
+U test.30 stabilna brojčana polja više ne stvaraju dodatne ImGui elemente. Originalni RenderOutlinedText crta slova potpuno jednako kao prije, a kod ImGui::ItemSize povećava se samo **horizontalna širina** rezerviranog brojčanog polja. Druga koordinata ItemSize, tekst i pozicija ostaju netaknuti. Time visina trake, font i margine trebaju izgledati kao u provjerenom test.28.
+
+Brojevi CPU/GPU (8%→10%→100%), FPS, temperature, frekvencije, W, memorija i sat i dalje imaju rezerviranu širinu i ne bi trebali izazivati vodoravno podrhtavanje. Centriranje uzima u obzir i njihove nevidljive horizontalne krajeve, ali ne dodaje prazan gornji i donji padding.
+
+Provjera na MSI Claw A8: postaviti padding gore/dolje na 0, usporediti visinu trake i veličinu teksta s test.28 te promatrati stabilnost trake pri promjenama brojki. Automatski build nije zamjena za vizualni test na uređaju.
+
+---
 # Claw Metrics v0.2.4-test.29 — stabilna širina brojčanih podataka
 
 Popravak mikro-pomicanja horizontalno centriranog HUD-a tijekom igre kada se CPU, GPU ili druge metrike mijenjaju između jedne, dvije ili tri znamenke.

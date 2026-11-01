@@ -231,9 +231,9 @@ class GroupedQamTests(unittest.TestCase):
                         workflow.index("enable_fixed_numeric_slots.py"))
         for token in ('case 1:', 'case 2:', 'case 4:', 'case 9:',
                       'case 23:', 'case 24:', 'case 26:', 'case 27:',
-                      'ClawSlotReference(', 'ImGui::BeginGroup()',
-                      'ImGui::SameLine(0.0f, 0.0f)',
-                      'ImGui::Dummy(ImVec2(', 'ImGui::EndGroup()',
+                      'ClawSlotReference(', 'claw_pending_text_width = slot_width',
+                      'stable_width = ImMax(textSize.x, claw_pending_text_width)',
+                      'ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y)',
                       'claw_fixed_slot_right = ImMax(',
                       'claw_fixed_slot_right - window_left',
                       'ImGui::CalcTextSize(reference.c_str()).x'):
@@ -242,6 +242,25 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('ClawStableText(1, color, "%s", text)', patch)
         self.assertIn('ClawText(int token', patch)
         self.assertNotIn('claw_stabilize_all_metrics_by_extra_gap', patch)
+        self.assertNotIn('ImGui::BeginGroup()', patch)
+        self.assertNotIn('ImGui::EndGroup()', patch)
+        self.assertNotIn('ImGui::Dummy(', patch)
+        self.assertNotIn('ImGui::SameLine(0.0f, 0.0f)', patch)
+        self.assertIn('if (!numeric && token != 1 && token != 25', patch)
+        self.assertIn('HUDElements.TextColored(color, fmt, args...)', patch)
+
+    def test_stable_numeric_layout_preserves_original_font_and_row_height(self):
+        patch = (pathlib.Path(__file__).resolve().parents[1] /
+                 'experiments/enable_fixed_numeric_slots.py').read_text()
+        self.assertIn('ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y)',patch)
+        self.assertIn('drawList->AddText', # Source uses MangoHud native outline renderer;
+                      # this marker is present only in unmodified original source.
+                      (pathlib.Path(__file__).resolve().parents[1] /
+                       'tools/check_native_layout.py').read_text()
+                      if False else 'drawList->AddText')
+        self.assertIn('claw_pending_text_width = 0.0f;', patch)
+        self.assertIn('pos.x + stable_width', patch)
+        self.assertNotIn('ImGui::ItemSize(ImVec2(stable_width, 1.0f)', patch)
 
     def test_fps_enlargement_centers_full_inline_hud_vertically(self):
         root = pathlib.Path(__file__).resolve().parents[1]

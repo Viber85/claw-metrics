@@ -34,13 +34,14 @@ static void ClawText(int token, ImVec4 color, const char* fmt, Args... args) {
 // The centered window uses this edge in addition to the actual draw vertices.
 // A plain GetItemRectMax from a 64-column ImGui table is not usable here.
 float claw_fixed_slot_right = 0.0f;
+float claw_pending_text_width = 0.0f;
 
 // Reserve only numerical fields, not labels, separator margins, graphs or
 // metric groups. This preserves the user's own inner_gap/element_gap settings.
 static std::string ClawSlotReference(int token, const char* fmt, const char* current) {
     if (!fmt || !current) return {};
     const bool numeric = fmt[0] == '%' && std::strcmp(fmt, "%s") != 0;
-    if (!numeric && token != 25 && token != 26 && token != 27) return {};
+    if (!numeric && token != 1 && token != 25 && token != 26 && token != 27) return {};
     switch (token) {
         case 1:  return "888";          // numeric FPS (0..999)
         case 2:  return numeric ? "888.8" : "";  // frametime ms, no padding unit
@@ -88,7 +89,8 @@ static void ClawStableText(int token, ImVec4 color, const char* fmt, Args... arg
     std::snprintf(rendered, sizeof(rendered), fmt, args...);
     const std::string reference = ClawSlotReference(token, fmt, rendered);
     if (reference.empty()) {
-        HUDElements.TextColored(color, "%s", rendered);
+        // Preserve the unmodified MangoHud path for labels and units.
+        HUDElements.TextColored(color, fmt, args...);
         return;
     }
 
@@ -102,14 +104,11 @@ static void ClawStableText(int token, ImVec4 color, const char* fmt, Args... arg
     const float slot_width = ImMax(printed_width,
                                   ImMax(example_width, zero_width)) + 1.0f;
 
-    ImGui::BeginGroup();
+    // Render exactly ONE original text item. The original RenderOutlinedText
+    // calls ImGui::ItemSize(textSize, FramePadding.y): expand only its width,
+    // retaining its height/baseline. No groups, Dummy, or SameLine items.
+    claw_pending_text_width = slot_width;
     HUDElements.TextColored(color, "%s", rendered);
-    // An invisible ImGui item extends the group's bounding rectangle;
-    // the next SameLine starts at this constant edge, not the text width.
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::Dummy(ImVec2(ImMax(0.0f, slot_width-printed_width), 1.0f));
-    ImGui::EndGroup();
-    claw_fixed_slot_right = ImMax(claw_fixed_slot_right, ImGui::GetItemRectMax().x);
 }
 
 template<typename... Args>
@@ -139,6 +138,26 @@ change("hud_elements.cpp",
     "bold FPS uses the same fixed numeric slot")
 
 change("overlay.cpp",
+    "void RenderOutlinedText(const char* text, ImU32 textColor) {",
+    """extern float claw_pending_text_width;
+extern float claw_fixed_slot_right;
+
+void RenderOutlinedText(const char* text, ImU32 textColor) {""",
+    "share stable numerical width with original outlined text path")
+
+change("overlay.cpp",
+    "   ImGui::ItemSize(textSize, style.FramePadding.y);",
+    """   // Expand only horizontal layout advancement; the glyphs, baseline and
+   // vertical ItemSize are exactly the original MangoHud rendering.
+   const float stable_width = ImMax(textSize.x, claw_pending_text_width);
+   if (claw_pending_text_width > 0.0f)
+       claw_fixed_slot_right = ImMax(claw_fixed_slot_right,
+           pos.x + stable_width);
+   claw_pending_text_width = 0.0f;
+   ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y);""",
+    "do not allow fixed numerical slots to change line height")
+
+change("overlay.cpp",
     """   float claw_strip_right = 0.0f;
    ImGuiTableFlags table_flags = ImGuiTableFlags_NoClip;""",
     """   float claw_strip_right = 0.0f;
@@ -154,8 +173,8 @@ change("overlay.cpp",
             HUDElements.place += 1;""",
     """                  if (right > claw_strip_right) claw_strip_right = right;
                }
-               // ImGui group's invisible reserved portion is missing from the
-               // vertex buffer, but must count when centering the full strip.
+               // Reserved text width has no extra vertices: count its
+               // horizontal extent without altering row height or padding.
                const float fixed_right = claw_fixed_slot_right - window_left;
                if (fixed_right > claw_strip_right) claw_strip_right = fixed_right;
             }
