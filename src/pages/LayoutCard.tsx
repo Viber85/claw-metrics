@@ -50,7 +50,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </DialogButton>}/>
           {settings.hud_orientation==="vertical" && <PanelSectionRow>
             <Field label="Vertical preview"
-              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows with automatic value wrapping and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS scaling and graph styles are available in this native preview; graph width remains horizontal-only."/>
+              description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows with automatic value wrapping and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS scaling and graph styles are available in this native preview; Smooth Curve and Dual Layer are now available with independent graph width and height settings."/>
           </PanelSectionRow>}
           <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
@@ -177,14 +177,16 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
         <PanelSectionRow><Field label="Frametime graph style"
-          description="Select the real-time graph style with the D-pad. Supported in Horizontal and Vertical." /></PanelSectionRow>
-        <GamepadGrid items={graphStyleChoices} columns={2}
+          description="Choose a graph style using the D-pad. Smooth Curve and Dual Layer are native Vertical modes; Horizontal keeps its own selection." /></PanelSectionRow>
+        <GamepadGrid items={settings.hud_orientation==="vertical" ? graphStyleChoices : graphStyleChoices.filter(choice=>choice.id!=="smooth" && choice.id!=="dual_layer")} columns={2}
           className="claw-tiles claw-graph-tiles" renderItem={(choice)=>{
-            const selected=settings.graph_style===choice.id;
+            const selected=(settings.hud_orientation==="vertical" ? settings.vertical_graph_style : settings.graph_style)===choice.id;
             return <DialogButton key={choice.id} className="claw-control-button"
               aria-label={"Graph style: "+choice.label}
               aria-pressed={selected} disabled={!ready || !info?.layout_spacing_supported}
-              onClick={()=>update({graph_style:choice.id})}
+              onClick={()=>settings.hud_orientation==="vertical"
+                  ? update({vertical_graph_style:choice.id})
+                  : update({graph_style:choice.id})}
               style={{width:"100%",minWidth:0,margin:0,minHeight:84,padding:"8px 3px",
                 background:selected?"#0b4c70":"#162b40",
                 border:selected?"2px solid #31cefa":"1px solid #43607a",
@@ -208,10 +210,10 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_graph_width:value})}/></div></PanelSectionRow>}
           <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical graph height (px)"
-            value={settings.vertical_graph_height} min={16} max={72} step={2} showValue
+            value={settings.vertical_graph_height} min={16} max={120} step={2} showValue
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_graph_height:value})}/></div></PanelSectionRow>
-          <PanelSectionRow><Field label="Graph dimensions" description="Width is capped at the HUD's available space. Height applies to all four graph styles." /></PanelSectionRow>
+          <PanelSectionRow><Field label="Graph dimensions" description="Width is capped at the HUD's available space. Height applies to all six Vertical graph styles." /></PanelSectionRow>
         </>}
             </> : <Field label="Graph disabled" description="Enable Frametime → Graph in Metrics to edit graph settings."/>}
           </ControlGroup>
@@ -225,7 +227,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           vertical_value_gap:defaults.vertical_value_gap,vertical_category_gap:defaults.vertical_category_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
-          graph_width:defaults.graph_width,graph_style:defaults.graph_style,inline_metrics:defaults.inline_metrics
+          graph_width:defaults.graph_width,graph_style:defaults.graph_style,vertical_graph_style:defaults.vertical_graph_style,inline_metrics:defaults.inline_metrics
         }))}>
             Reset layout to defaults
           </ButtonItem></PanelSectionRow>

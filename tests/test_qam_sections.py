@@ -270,6 +270,23 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_smooth_curve_and_dual_layer_have_independent_native_renderers(self):
+        root=pathlib.Path(__file__).resolve().parents[1]
+        patch=(root/"experiments/enable_vertical_graph_modes.py").read_text()
+        workflow=(root/".github/workflows/layout-experiment.yml").read_text()
+        layout=(root/"src/pages/LayoutCard.tsx").read_text()
+        self.assertLess(workflow.index("enable_vertical_category_gap.py"),
+                        workflow.index("enable_vertical_graph_modes.py"))
+        for snippet in ("const ImVec2& p0=", "ImClamp(y,ImMin(p1.y,p2.y)",
+                        "ImVec2 trend[samples]", "draw->AddQuadFilled",
+                        "draw->AddPolyline(smooth,idx_out"):
+            self.assertIn(snippet,patch)
+        self.assertIn('id:"smooth",label:"Smooth Curve"',SOURCE)
+        self.assertIn('id:"dual_layer",label:"Dual Layer"',SOURCE)
+        self.assertIn('kind === "smooth" || kind === "dual_layer"',SOURCE)
+        self.assertIn("vertical_graph_style:choice.id",layout)
+        self.assertIn("max={120}",layout)
+
     def test_vertical_category_gap_is_native_and_saved(self):
         root=pathlib.Path(__file__).resolve().parents[1]
         source=(root/"experiments/enable_vertical_category_gap.py").read_text()
@@ -426,9 +443,10 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('<GraphStyleIcon kind={choice.id}/>', SOURCE)
         self.assertIn('width={46} height={35}', SOURCE)
         self.assertIn('minHeight:84', SOURCE)
-        self.assertIn('items={graphStyleChoices} columns={2}', SOURCE)
+        self.assertIn('items={settings.hud_orientation==="vertical" ? graphStyleChoices', SOURCE)
         self.assertIn('aria-pressed={selected}', SOURCE)
-        self.assertIn('onClick={()=>update({graph_style:choice.id})}', SOURCE)
+        self.assertIn('update({graph_style:choice.id})', SOURCE)
+        self.assertIn('update({vertical_graph_style:choice.id})', SOURCE)
         self.assertIn('disabled={!ready || !info?.layout_spacing_supported}', SOURCE)
         self.assertIn('kind === "bars"', SOURCE)
         self.assertIn('kind === "dual" ? 2.8 : 2.3', SOURCE)

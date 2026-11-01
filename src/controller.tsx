@@ -22,7 +22,7 @@ import type {SectionKey} from "./components/AccordionCard";
 
 export type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
 export type FontWeight = "light" | "regular" | "semibold" | "bold";
-export type GraphStyle = "area" | "line" | "bars" | "dual";
+export type GraphStyle = "area" | "line" | "bars" | "dual" | "smooth" | "dual_layer";
 export type HudOrientation = "horizontal" | "vertical";
 export type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 export const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
@@ -37,6 +37,21 @@ export const hudPositions: {id:HudPosition; label:string; icon:string; column:nu
 // Actual silhouettes of the four native frametime render modes.
 // They are the primary symbols in the gamepad grid; no letter shortcuts.
 export function GraphStyleIcon({kind}:{kind:GraphStyle}) {
+  if (kind === "smooth" || kind === "dual_layer") {
+    const curve = "M3 23 C9 23 10 13 17 16 S26 24 32 12 S41 11 45 7";
+    return <svg width={46} height={35} viewBox="0 0 48 34" aria-hidden="true"
+      style={{display:"block",flexShrink:0,overflow:"visible"}}>
+      <path d="M3 30 H45" fill="none" stroke="#7090a7" strokeWidth={1} strokeOpacity={0.55}/>
+      {kind === "dual_layer" && <>
+        <path d="M3 20 C9 20 10 20 17 20 S26 18 32 16 S41 13 45 13
+                 L45 24 C41 24 39 22 32 23 S25 28 17 28 S9 26 3 27Z"
+          fill="#39dabe" fillOpacity={0.21}/>
+        <path d="M3 23 C9 22 10 21 17 24 S26 24 32 18 S41 16 45 15"
+          fill="none" stroke="#77eaff" strokeWidth={1.6} strokeOpacity={0.6}/>
+      </>}
+      <path d={curve} fill="none" stroke="#39dabe" strokeWidth={2.5} strokeLinecap="round"/>
+    </svg>;
+  }
   const isArea = kind === "area" || kind === "dual";
   return <svg width={46} height={35} viewBox="0 0 48 34" aria-hidden="true"
     style={{display:"block",flexShrink:0,overflow:"visible"}}>
@@ -58,6 +73,8 @@ export const graphStyleChoices: {id:GraphStyle;label:string}[] = [
   {id:"line",label:"Line"},
   {id:"bars",label:"Histogram"},
   {id:"dual",label:"Line + fill"},
+  {id:"smooth",label:"Smooth Curve"},
+  {id:"dual_layer",label:"Dual Layer"},
 ];
 
 export {GamepadGrid} from "./components/GamepadGrid";
@@ -88,7 +105,7 @@ export const styleTabs: [StyleCategory,string][] = [
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
 export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
-  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
+  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; vertical_graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
   groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
@@ -218,7 +235,7 @@ export function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 export type Settings = Record<Group, boolean> & {
   active_style: string|null; style_names: Record<string,string>;
   custom_labels: Record<string,string>;
-  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; vertical_width: number; vertical_value_gap: number; vertical_category_gap: number; vertical_graph_width: number; vertical_graph_height: number; opacity: number; power: boolean; tdp: boolean;
+  enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; vertical_width: number; vertical_value_gap: number; vertical_category_gap: number; vertical_graph_width: number; vertical_graph_height: number; vertical_graph_style: GraphStyle; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number; graph_style: GraphStyle;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
@@ -261,7 +278,7 @@ export type Info = {
 
 export const defaults: Settings = {
   active_style:null, style_names:{}, custom_labels: {},
-  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", vertical_width:0, vertical_value_gap:8, vertical_category_gap:6, vertical_graph_width:0, vertical_graph_height:28, opacity: 80, fps: true, frametime: true,
+  enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", vertical_width:0, vertical_value_gap:8, vertical_category_gap:6, vertical_graph_width:0, vertical_graph_height:44, vertical_graph_style:"smooth", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",

@@ -77,13 +77,14 @@ STYLE_LAYOUT_RANGES = {
     "inner_gap": (0, 16), "graph_width": (80, 200),
     "vertical_value_gap": (0, 16), "vertical_category_gap": (0, 20),
     "vertical_graph_width": (0, 420),
-    "vertical_graph_height": (16, 72),
+    "vertical_graph_height": (16, 120),
     "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
 HUD_ORIENTATIONS = ("horizontal", "vertical")
 GRAPH_STYLES = ("line", "area", "bars", "dual")
+VERTICAL_GRAPH_STYLES = GRAPH_STYLES + ("smooth", "dual_layer")
 
 
 def normalize_custom_labels(payload):
@@ -171,6 +172,11 @@ def normalize_style_presets(payload):
             preset["center_horizontal"] = preset["hud_position"] in ("top-center", "bottom-center")
         if item.get("graph_style") in GRAPH_STYLES:
             preset["graph_style"] = item["graph_style"]
+        if item.get("vertical_graph_style") in VERTICAL_GRAPH_STYLES:
+            preset["vertical_graph_style"] = item["vertical_graph_style"]
+        elif preset.get("hud_orientation") == "vertical" and "graph_style" in preset:
+            # Existing vertical styles use their old graph selection.
+            preset["vertical_graph_style"] = preset["graph_style"]
         out[key] = preset
     return out
 
@@ -189,7 +195,7 @@ def normalize_color_overrides(payload):
 DEFAULTS = {
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
     "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0,
-    "vertical_value_gap": 8, "vertical_category_gap": 6, "vertical_graph_width": 0, "vertical_graph_height": 28, "opacity": 80,
+    "vertical_value_gap": 8, "vertical_category_gap": 6, "vertical_graph_width": 0, "vertical_graph_height": 44, "opacity": 80,
     "fps": True, "frametime": True, "cpu": True, "gpu": True,
     "ram": True, "vram": True, "battery": True, "draw": True,
     "power": True, "time": True, "tdp": False,
@@ -198,6 +204,7 @@ DEFAULTS = {
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line",
+    "vertical_graph_style": "smooth",
     "colors": COLORS,
     "font_weight": "regular",
     "token_weights": {}, "token_colors": {}, "style_presets": {},
@@ -634,7 +641,7 @@ def normalize(payload):
                            ("inner_gap", 0, 16), ("vertical_width", 0, 420),
                            ("vertical_value_gap", 0, 16), ("vertical_category_gap", 0, 20),
                            ("vertical_graph_width", 0, 420),
-                           ("vertical_graph_height", 16, 72)):
+                           ("vertical_graph_height", 16, 120)):
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
@@ -653,6 +660,13 @@ def normalize(payload):
     d["center_horizontal"] = d["hud_position"] in ("top-center", "bottom-center")
     if payload.get("graph_style") in GRAPH_STYLES:
         d["graph_style"] = payload["graph_style"]
+    if payload.get("vertical_graph_style") in VERTICAL_GRAPH_STYLES:
+        d["vertical_graph_style"] = payload["vertical_graph_style"]
+    elif ("vertical_graph_style" not in payload
+          and payload.get("hud_orientation") == "vertical"
+          and payload.get("graph_style") in GRAPH_STYLES):
+        # Backward compatibility: preserve legacy vertical style choices.
+        d["vertical_graph_style"] = payload["graph_style"]
     # Preserve the old top-margin preference when upgrading to explicit X/Y.
     if "offset_y" not in payload and type(payload.get("margin")) is int:
         d["offset_y"] = min(1200, max(-1200, payload["margin"]))
@@ -870,7 +884,8 @@ def mango_config(settings, native_spacing=False):
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
-            "claw_graph_style=" + str(GRAPH_STYLES.index(d["graph_style"])),
+            "claw_graph_style=" + str((VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"])
+                if not is_horizontal else GRAPH_STYLES.index(d["graph_style"]))),
             "claw_inner_gap=" + str(d["inner_gap"]),
             "claw_vertical_value_gap=" + str(d["vertical_value_gap"]),
             "claw_vertical_graph_width=" + str(d["vertical_graph_width"]),

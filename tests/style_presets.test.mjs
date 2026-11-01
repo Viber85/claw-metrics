@@ -80,6 +80,10 @@ assert.equal(styleModified({...legacy,hud_orientation:"vertical"},{...live,hud_o
 assert.equal(styleModified(legacy,{...live,hud_orientation:"vertical"}),false);
 assert.equal(styleLayoutFrom({hud_orientation:"vertical",vertical_width:280}).vertical_width,280);
 assert.equal(styleLayoutFrom({}).vertical_width,undefined);
+assert.equal(styleLayoutFrom({vertical_graph_style:"smooth"}).vertical_graph_style,"smooth");
+assert.equal(styleLayoutFrom({vertical_graph_style:"dual_layer"}).vertical_graph_style,"dual_layer");
+assert.equal(styleLayoutFrom({hud_orientation:"vertical",graph_style:"dual"}).vertical_graph_style,"dual");
+assert.equal(styleModified({...legacy,vertical_graph_style:"smooth"},{...live,vertical_graph_style:"dual_layer"}),true);
 assert.equal(styleLayoutFrom({vertical_category_gap:9}).vertical_category_gap,9);
 assert.equal(styleModified({...legacy,vertical_category_gap:4},{...live,vertical_category_gap:10}),true);
 assert.equal(styleLayoutFrom({vertical_graph_width:200,vertical_graph_height:40,vertical_value_gap:12}).vertical_graph_height,40);

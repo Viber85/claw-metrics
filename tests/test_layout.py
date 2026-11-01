@@ -151,14 +151,37 @@ class VerticalHudPreview(unittest.TestCase):
             self.assertEqual(options_for({"hud_orientation":"horizontal"},native),
                              options_for({"hud_orientation":"horizontal","vertical_category_gap":18},native))
 
+    def test_extended_vertical_graph_styles_and_legacy_presets(self):
+        self.assertEqual(main.normalize({})["vertical_graph_style"], "smooth")
+        self.assertEqual(main.normalize({})["graph_style"], "line")
+        for style, index in (("line","0"),("area","1"),("bars","2"),
+                             ("dual","3"),("smooth","4"),("dual_layer","5")):
+            d={"hud_orientation":"vertical","vertical_graph_style":style}
+            self.assertEqual(options_for(d,True)["claw_graph_style"],index)
+            self.assertNotIn("claw_graph_style",options_for(d,False))
+            # Horizontal renderer is never handed a new vertical style ID.
+            h={"hud_orientation":"horizontal","graph_style":"line",
+               "vertical_graph_style":style}
+            self.assertEqual(options_for(h,True)["claw_graph_style"],"0")
+        old=main.normalize({"hud_orientation":"vertical","graph_style":"bars"})
+        self.assertEqual(old["vertical_graph_style"],"bars")
+        slots=main.normalize({"style_presets":{"1":{
+            "hud_orientation":"vertical","graph_style":"dual"
+        },"2":{"hud_orientation":"vertical",
+               "vertical_graph_style":"dual_layer","graph_style":"line"}}})["style_presets"]
+        self.assertEqual(slots["1"]["vertical_graph_style"],"dual")
+        self.assertEqual(slots["2"]["vertical_graph_style"],"dual_layer")
+        self.assertEqual(main.normalize({"vertical_graph_style":"invalid"})["vertical_graph_style"],"smooth")
+        self.assertEqual(main.normalize({"vertical_graph_height":118})["vertical_graph_height"],118)
+
     def test_vertical_dimensions_and_spacing_are_persistent_and_isolated(self):
         self.assertEqual(main.normalize({})["vertical_value_gap"], 8)
         self.assertEqual(main.normalize({})["vertical_graph_width"], 0)
-        self.assertEqual(main.normalize({})["vertical_graph_height"], 28)
+        self.assertEqual(main.normalize({})["vertical_graph_height"], 44)
         for raw, expected in ((-5, 0), (20, 80), (120, 120), (999, 420)):
             self.assertEqual(main.normalize({"vertical_graph_width":raw})["vertical_graph_width"],expected)
         self.assertEqual(main.normalize({"vertical_graph_height":5})["vertical_graph_height"],16)
-        self.assertEqual(main.normalize({"vertical_graph_height":999})["vertical_graph_height"],72)
+        self.assertEqual(main.normalize({"vertical_graph_height":999})["vertical_graph_height"],120)
         cfg=options_for({"hud_orientation":"vertical","vertical_value_gap":11,
                          "vertical_graph_width":185,"vertical_graph_height":46},True)
         self.assertEqual(cfg["claw_vertical_value_gap"],"11")
