@@ -1,3 +1,26 @@
+# Claw Metrics v0.2.4-test.56 — Automatic Vertical Metric Wrapping
+
+Vertical Stacked now checks the **available HUD width before each metric value**,
+using the selected token font. When multiple CPU/GPU/VRAM submetrics no longer
+fit on one line, the next complete value moves to a continuation line inside
+the same group, aligned with the numeric values column. Units are measured
+with their number (e.g., 2532MHz, 3.1W or 4.0GiB) so they are not separated.
+
+- The HUD width stays fixed; continuation lines grow only that group's height.
+- Row separators remain between metric groups, not between wrapped values.
+- The setting is automatic in native Vertical Stacked, with no extra toggle.
+- Horizontal behavior, group ordering, saved styles, graph options and
+  charging DRAW `--` behavior are unchanged.
+- Stock MangoHud's fallback vertical display is untouched.
+
+**Test in game after a complete restart:** enable GPU Junction, Core Clock,
+Power and Voltage plus CPU Temp, Clock and Power. Check that overflow readings
+appear on a second line inside their group and do not escape the right edge.
+Also check text at 12 and 28 px and manual widths 160 and 260 px. CI checks
+compilation but only on-device testing confirms final geometry.
+
+---
+
 # Claw Metrics v0.2.4-test.55 — Vertical Graph Dimensions & FPS Polish
 
 The native two-column Vertical Stacked HUD gains three independent settings:

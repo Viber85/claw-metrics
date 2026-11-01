@@ -270,6 +270,21 @@ class GroupedQamTests(unittest.TestCase):
                          "nread < sizeof(gpu_metrics_v3_0)"):
             self.assertIn(required, script)
 
+    def test_vertical_value_wrap_is_real_native_build_step(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        wrapper = (root / "experiments/enable_vertical_value_wrap.py").read_text()
+        workflow = (root / ".github/workflows/layout-experiment.yml").read_text()
+        self.assertLess(workflow.index("enable_vertical_stacked.py"),
+                        workflow.index("enable_vertical_value_wrap.py"))
+        for item in ("claw_vertical_pending_first", "claw_vertical_values_x",
+                     "std::snprintf(displayed", "ImGui::CalcTextSize(suffix)",
+                     "ImGui::NewLine()", "ImGui::SetCursorScreenPos"):
+            self.assertIn(item, wrapper)
+        for token in ("token==6", "token==11", "token==21", "token==7",
+                      "token==12", "token==17", "token==19"):
+            self.assertIn(token, wrapper)
+        self.assertIn("automatic value wrapping", SOURCE)
+
     def test_vertical_graph_dimensions_and_native_fps_center(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         patch = (root / "experiments/enable_vertical_stacked.py").read_text()

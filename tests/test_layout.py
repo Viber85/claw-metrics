@@ -127,6 +127,19 @@ class VerticalHudPreview(unittest.TestCase):
         self.assertEqual(a["claw_fps_scale"],"160")
         self.assertEqual(a["claw_vertical_stack"],"0")
 
+    def test_wrapping_keeps_native_vertical_width_and_existing_metric_flags(self):
+        config = options_for({"hud_orientation":"vertical","vertical_width":260,
+                              "gpu":True,"cpu":True,
+                              "metrics":{"gpu_junction_temp":True,
+                                         "gpu_power":True,
+                                         "gpu_core_clock":True}}, True)
+        self.assertEqual(config["width"],"260")
+        self.assertEqual(config["table_columns"],"2")
+        self.assertEqual(config["claw_vertical_stack"],"1")
+        self.assertEqual(config["gpu_junction_temp"],"1")
+        self.assertEqual(config["gpu_core_clock"],"1")
+        self.assertEqual(config["gpu_power"],"1")
+
     def test_vertical_dimensions_and_spacing_are_persistent_and_isolated(self):
         self.assertEqual(main.normalize({})["vertical_value_gap"], 8)
         self.assertEqual(main.normalize({})["vertical_graph_width"], 0)
