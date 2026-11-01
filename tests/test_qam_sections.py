@@ -39,7 +39,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('vertical_width:defaults.vertical_width', SOURCE)
         self.assertIn('settings.vertical_width===0', SOURCE)
         self.assertIn('native Claw Stacked layout', SOURCE)
-        self.assertIn('FPS-only scaling', SOURCE)
+        self.assertIn('FPS scaling and graph styles are available', SOURCE)
 
     def test_six_independent_card_modules_keep_one_shared_controller(self):
         entry = (SRC / "index.tsx").read_text()
