@@ -60,7 +60,7 @@ jobs:
       - name: Test frontend style persistence
         run: node tests/style_presets.test.mjs
       - name: Verify isolated Decky backend import
-        run: python3 -m unittest tests.test_decky_backend_import
+        run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
       - name: Type-check QAM
         run: npm run typecheck
       - name: Build QAM
