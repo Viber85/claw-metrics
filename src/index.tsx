@@ -16,7 +16,7 @@ import {
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSelectionsFrom, independentColors, styleModified} from "./style-presets";
+import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 
 type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
@@ -552,8 +552,7 @@ function Content() {
     const preset: SavedStyle = {
       version:3, ...styleLayoutFrom(d),
       // Save BOTH the main cards and individual sensor switches per style.
-      groups: Object.fromEntries(order.map(key=>[key,d[key]])) as Record<Group,boolean>,
-      metrics: {...d.metrics},
+      ...styleMetricSnapshotFrom(d),
       colors: {...d.colors}, font_weight: d.font_weight, fps_bold: d.fps_bold,
       token_weights: {...d.token_weights}, token_colors: {...d.token_colors},
     };
@@ -562,12 +561,9 @@ function Content() {
   const loadPreset = (slot: string) => {
     const preset = current.current.style_presets?.[slot];
     if (!preset) return;
-    const selected = styleMetricSelectionsFrom(preset);
-    const metricUpdates = Object.keys(selected.metrics).length
-      ? {metrics:{...current.current.metrics,...selected.metrics}} : {};
     // Old appearance-only styles have no group/sensor snapshot. Keep the
     // current metric selection until the user saves those slots again.
-    update({...styleLayoutFrom(preset),...selected.groups,...metricUpdates,
+    update({...styleLayoutFrom(preset),...styleMetricUpdatesFrom(preset,current.current),
       active_style:slot,colors: independentColors(preset.colors,defaultColors),
       font_weight:preset.font_weight,fps_bold:preset.fps_bold,
       token_weights:{...preset.token_weights},token_colors:{...preset.token_colors}});
