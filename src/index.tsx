@@ -240,7 +240,7 @@ const defaults: Settings = {
   active_style:null, custom_labels: {},
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
-  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 8, padding_y: 0,
+  power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
   inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
@@ -696,10 +696,29 @@ function Content() {
           border-left-color: #08d3fa !important;
           box-shadow: 0 0 12px rgba(0,153,237,0.13) !important;
         }
+        /* SteamOS controller focus can come from DOM :focus or Decky's
+           .gpfocus class. Focus must be distinct from the saved anchor. */
+        .claw-hud-anchor:focus,
+        .claw-hud-anchor:focus-visible,
+        .claw-hud-anchor.gpfocus,
+        .claw-hud-anchor[class*="gpfocus"],
+        .claw-hud-anchor:focus-within,
+        .claw-hud-anchor:has(.gpfocus),
+        .claw-hud-anchor:has([class*="gpfocus"]) {
+          background: #0874a9 !important;
+          border: 2px solid #ffffff !important;
+          outline: 2px solid #31deff !important;
+          outline-offset: -5px !important;
+          color: #ffffff !important;
+          box-shadow: 0 0 0 2px #31deff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
+        }
+        .claw-hud-anchor:focus span,
+        .claw-hud-anchor.gpfocus span,
+        .claw-hud-anchor[class*="gpfocus"] span { color: #ffffff !important; }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.33">
+      <PanelSection title="Claw Metrics · v0.2.4-test.34">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
@@ -754,7 +773,8 @@ function Content() {
           gap:5,padding:"0 4px 12px",maxWidth:"100%",boxSizing:"border-box"}}>
           {hudPositions.map((anchor)=>{
             const selected=settings.hud_position===anchor.id;
-            return <DialogButton key={anchor.id} aria-label={anchor.label} aria-pressed={selected}
+            return <DialogButton key={anchor.id} className="claw-hud-anchor" data-anchor-position={anchor.id}
+              aria-label={anchor.label} aria-pressed={selected}
               disabled={!ready || (anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
               onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
               style={{gridColumn:anchor.column,gridRow:anchor.row,margin:0,
