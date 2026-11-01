@@ -1,5 +1,7 @@
 """Updater safety tests: never install arbitrary URLs or skip checksum checks."""
 import io
+import asyncio
+import main
 import json
 import tempfile
 import unittest
@@ -51,6 +53,10 @@ class UpdateChecks(unittest.TestCase):
         self.assertTrue(newest["asset_url"].startswith("https://github.com/ikorljan-droid/claw-metrics/releases/download/"))
         self.assertNotIn("bad.invalid",newest["asset_url"])
 
+    def test_expected_github_feed_url_never_depends_on_untrusted_parameters(self):
+        self.assertEqual(updates.RELEASES_API,
+             "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30")
+
     def test_ignores_other_project_and_unsafe_or_incomplete_archives(self):
         for candidate in [
             {"tag_name":"v0.2.4-test.60","assets":[{"name":"xx.zip"}]},
@@ -86,6 +92,43 @@ class UpdateChecks(unittest.TestCase):
             with patch.object(updates.urllib.request,"urlopen",side_effect=OSError("offline")):
                 with self.assertRaisesRegex(RuntimeError,"povezati"):
                     updates.check_github_update(path)
+
+    def test_decky_feed_matches_python_network_feed(self):
+        with tempfile.TemporaryDirectory() as d:
+            package=Path(d)/"package.json"
+            package.write_text('{"version":"0.2.4-test.42"}')
+            raw=json.dumps([release(41),release(43)])
+            checked=updates.validate_github_feed(package,raw)
+            self.assertTrue(checked["available"])
+            self.assertEqual(checked["latest"]["version"],"0.2.4-test.43")
+            self.assertEqual(checked["latest"]["sha256"],"a"*64)
+            self.assertFalse(updates.validate_github_feed(
+                package,json.dumps([release(41)]))["available"])
+            for bad in ('', '{invalid', '{}', "X"*(updates.MAX_RESPONSE+1)):
+                with self.assertRaises(RuntimeError):
+                    updates.validate_github_feed(package,bad)
+
+    def test_backend_check_never_throws_python_exception_on_network_error(self):
+        p=main.Plugin()
+        with patch.object(main,"check_github_update",
+                          side_effect=OSError("certificates unavailable")):
+            response=asyncio.run(p.check_updates())
+        self.assertIs(response["ok"],False)
+        self.assertIs(response["available"],False)
+        self.assertIn("certificates unavailable",response["error"])
+        self.assertEqual(response["source"],"Python HTTPS")
+        self.assertIsNone(response["latest"])
+
+    def test_backend_decky_feed_validation_reports_errors_without_exception(self):
+        p=main.Plugin()
+        bad=asyncio.run(p.validate_github_releases("<html>no release</html>"))
+        self.assertIs(bad["ok"],False)
+        self.assertIn("GitHub",bad["error"])
+        self.assertEqual(bad["source"],"GitHub response")
+        good=asyncio.run(p.validate_github_releases(json.dumps([release(41)])))
+        self.assertIs(good["ok"],True)
+        self.assertEqual(good["latest"]["tag"],"v0.2.4-test.41")
+        self.assertFalse(good["available"])
 
     def test_rejects_oversized_api_payloads_and_untrusted_release_body(self):
         with tempfile.TemporaryDirectory() as d:
