@@ -1,5 +1,6 @@
 #include "claw_modular_transport.h"
 #include "claw_modular_loader.h"
+#include "claw_modular_power.h"
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -8,6 +9,13 @@
 using namespace claw_modular;
 int main(int argc,char**argv){
  if(argc!=2)return 2;
+ assert(power_text("TDP 28W","TDP")=="TDP 28W");
+ assert(power_text("Total draw 12.3 W","DRAW")=="Total draw 12.3 W");
+ assert(power_text("Discharge --","DRAW")=="Discharge --");
+ assert(power_text("cat: /tmp/profile/tdp.txt: No such file or directory","TDP")=="TDP --");
+ assert(power_text("DRAW nanW","DRAW")=="DRAW --");
+ assert(power_text("DRAW 123456789W","DRAW")=="DRAW --");
+ assert(power_text("DRAW 12W\ninjected","DRAW")=="DRAW --");
  std::ifstream file(argv[1]);std::string bytes((std::istreambuf_iterator<char>(file)),{});
  auto doc=decode(bytes);assert(doc.nodes.size()>1);
  assert(doc.appearance[0].background=="112233"&&doc.appearance[0].opacity==44&&doc.appearance[0].outline);

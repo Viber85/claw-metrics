@@ -71,8 +71,8 @@ bool ClawTryModular() {
     }
     set("time.value",data.time.empty()?"--":data.time);
     for(const auto& item:HUDElements.exec_list){
-        if(item.value.find("tdp.txt")!=std::string::npos)set("tdp.value",item.ret.empty()?"--":item.ret);
-        if(item.value.find("draw.txt")!=std::string::npos)set("battery.power",item.ret.empty()?"--":item.ret);
+        if(item.value.find("tdp.txt")!=std::string::npos)set("tdp.value",claw_modular::power_text(item.ret,"TDP"));
+        if(item.value.find("draw.txt")!=std::string::npos)set("battery.power",claw_modular::power_text(item.ret,"DRAW"));
     }
     data.stat_selector=OVERLAY_PLOTS_frame_timing;
     data.time_dividor=1000000.0f;
@@ -108,7 +108,7 @@ bool ClawTryModular() {
         if(std::getenv("CLAW_METRICS_VERIFY")){
             static std::string previous;
             const auto key=active->nodes[0].id;
-            if(data.n_frames>100&&(previous!=key||data.n_frames%120==0)){previous=key;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames));}
+            if(data.n_frames>100&&(previous!=key||data.n_frames%120==0)){previous=key;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y);}
         }
         return true;
     }catch(const std::exception&){return false;} // Legacy HUD remains the fallback.
