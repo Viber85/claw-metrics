@@ -36,7 +36,9 @@ with tempfile.TemporaryDirectory() as directory:
             'hud_position':'top-center' if mode==2 else 'top-left',
             'inline_metrics':mode!=2,'fontsize':26 if mode==1 else 18,
             'fps_scale':200 if mode==1 else 100,
-            'background':{'mode':'linear' if mode in (0,3) else 'radial', 'angle':45,
+            'opacity':0 if mode==4 else 80,
+            'background':{'mode':'solid' if mode==4 else 'linear' if mode in (0,3) else 'radial', 'angle':45,
+                'outline_enabled':True,'outline_color':'FFFFFF','outline_width':2,'outline_opacity':60,
                 'stops':[{'position':0,'color':'FF0000'},{'position':50,'color':'00FF00'},{'position':100,'color':'0000FF'}]},
             'graph_style':'area' if mode in (0,1) else 'dual',
             'vertical_graph_style':'area' if mode in (0,1) else 'dual',
@@ -50,7 +52,7 @@ with tempfile.TemporaryDirectory() as directory:
     def switch():
         try:
             # Warm up >100 frames in each initial layout before switching.
-            for mode in (1,2,3,0):
+            for mode in (1,2,3,4,0):
                 if stop.wait(3): return
                 write(mode)
         except Exception as error:
@@ -62,7 +64,7 @@ with tempfile.TemporaryDirectory() as directory:
     worker.start()
     try:
         result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
-                               'vkcube','--c','900','--width','1280','--height','720'],
+                               'vkcube','--c','1200','--width','1280','--height','720'],
                               env=env,text=True,capture_output=True,timeout=100)
     finally:
         stop.set();worker.join()
@@ -99,3 +101,12 @@ with tempfile.TemporaryDirectory() as directory:
                 assert int(stops)==3 and abs(float(alpha)-.8)<.01
                 assert int(vertices)>1000 and int(max_alpha)==204 and int(colors)>3
     print('PASS native multistop backgrounds: linear and radial gradients in both layouts, rounded mesh, shared 80% opacity and clean Vulkan exit.')
+
+    outlines=re.findall(r'CLAW_OUTLINE mode=(\d+) vertical=(\d+) width=([\d.]+) alpha=(\d+) vertices=(\d+) inside=(\d+) background_alpha=([\d.]+)',log)
+    for mode,vertical in ((1,0),(1,1),(2,0),(2,1),(0,0)):
+        matches=[item for item in outlines if int(item[0])==mode and int(item[1])==vertical]
+        assert matches,('Missing outline evidence',mode,vertical)
+        for _,_,width,alpha,vertices,inside,background_alpha in matches:
+            assert float(width)==2 and int(alpha)==153 and int(vertices)>8 and int(inside)==1,matches
+            if mode==0: assert float(background_alpha)==0,'Outline must survive fully transparent background'
+    print('PASS native rounded outlines: color/width/opacity, both layouts, all backgrounds including 0% fill, vertices inside HUD bounds.')

@@ -726,7 +726,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertEqual(layout.count('className="claw-layout-slider"'), 15)
         self.assertEqual(layout.count('<LayoutSliderField'), 15)
         self.assertNotIn('<SliderField', layout)
-        self.assertIn('<SliderField {...props} label="" showValue={false}/>', component)
+        self.assertIn('<SliderField {...props} label="" showValue={false} layout="below" childrenContainerWidth="max"/>', component)
         self.assertIn('<output className="claw-slider-number">{String(props.value)}</output>', component)
         self.assertIn('grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);', SOURCE)
         self.assertIn('text-overflow: clip;', SOURCE)

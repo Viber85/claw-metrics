@@ -60,37 +60,37 @@ function Content(){
          /* Each Layout slider uses exactly the available inset card width.
             A safe inset keeps headings, values and both thumb endpoints away
             from Decky's card edges. No clipping or fixed pixel track width. */
-         :is([data-section="layout"],.claw-background-slider) .claw-control-group,
-         :is([data-section="layout"],.claw-background-slider) .claw-control-group > div:last-child {
+         .claw-theme .claw-control-group,
+         .claw-theme .claw-control-group > div:last-child {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-layout-slider {
+         .claw-theme .claw-layout-slider {
            display: block; width: 100% !important; max-width: 100% !important;
            min-width: 0 !important; box-sizing: border-box !important;
            margin: 2px 0 8px !important; padding: 0 14px 0 10px !important;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-control,
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-native {
+         .claw-theme .claw-slider-control,
+         .claw-theme .claw-slider-native {
            display: block; width: 100%; max-width: 100%;
            min-width: 0; box-sizing: border-box;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-heading {
+         .claw-theme .claw-slider-heading {
            display: grid; width: 100%; max-width: 100%; min-width: 0;
            grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);
            column-gap: 10px; align-items: baseline; box-sizing: border-box;
            padding: 0 0 4px 0;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-label {
+         .claw-theme .claw-slider-label {
            min-width: 0; overflow-wrap: anywhere;
            white-space: normal; line-height: 1.25;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-number {
+         .claw-theme .claw-slider-number {
            min-width: 48px; text-align: right; white-space: nowrap;
            overflow: visible; text-overflow: clip;
            font-variant-numeric: tabular-nums;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-native > *,
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-native :is(
+         .claw-theme .claw-slider-native > *,
+         .claw-theme .claw-slider-native :is(
            [class*="DialogSlider"], [class*="SliderControl"],
            [class*="SliderRoot"], [class*="SliderTrack"],
            [class*="sliderTrack"], [class*="SliderField"], input[type="range"]
@@ -98,7 +98,7 @@ function Content(){
            min-width: 0 !important; max-width: 100% !important;
            box-sizing: border-box !important; flex-shrink: 1 !important;
          }
-         :is([data-section="layout"],.claw-background-slider) .claw-slider-native > * {
+         .claw-theme .claw-slider-native > * {
            width: 100% !important;
          }
 
@@ -260,12 +260,9 @@ function Content(){
         .claw-theme [data-section] .claw-accordion-icon { color:#d5dce6 !important; }
         .claw-theme [data-section] .claw-accordion-header:focus-within .claw-accordion-icon { color:#ffffff !important; }
         .claw-theme .claw-control-button svg { color:#d5dce6; }
-        .claw-theme .claw-background-slider { padding:6px 12px 10px 8px; min-width:0; max-width:100%; box-sizing:border-box; }
-        .claw-theme .claw-background-slider .claw-slider-heading { display:flex;justify-content:space-between;gap:8px; }
-        .claw-theme .claw-background-slider .claw-slider-label { min-width:0; }
-        .claw-theme .claw-background-slider .claw-slider-number { min-width:36px;text-align:right; }
+
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.68">
+      <PanelSection title="Claw Metrics · v0.2.4-test.69">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#1c2c40", border: "1px solid #315476", color: "#dbe3ee",

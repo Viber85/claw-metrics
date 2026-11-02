@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/background-theme-final-68]
+    branches: [test/outline-slider-fit-69]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.68
+  group: claw-metrics-v0.2.4-test.69
   cancel-in-progress: true
 
 jobs:
@@ -57,8 +57,10 @@ jobs:
         run: python3 -m unittest discover -s tests
       - name: Install Decky dependencies
         run: npm install --no-audit --no-fund
-      - name: Test frontend style persistence
-        run: node tests/style_presets.test.mjs
+      - name: Test frontend style persistence and responsive slider contract
+        run: |
+          node tests/style_presets.test.mjs
+          node tests/slider_field.test.mjs
       - name: Verify isolated Decky backend import
         run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
       - name: Type-check QAM
@@ -115,6 +117,7 @@ jobs:
           python3 ../experiments/enable_extra_metrics.py src
           python3 ../experiments/verify_graph_fill_alpha.py src
           python3 ../experiments/enable_overlay_background.py src
+          python3 ../experiments/enable_background_outline.py src
           python3 ../tools/check_background.py src
           python3 ../tools/check_extra_metrics.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
@@ -197,7 +200,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.68.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.69.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -213,18 +216,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.68', package['version']
+              assert package['version'] == '0.2.4-test.69', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.68
-          path: ClawMetrics-v0.2.4-test.68.zip
+          name: ClawMetrics-v0.2.4-test.69
+          path: ClawMetrics-v0.2.4-test.69.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.68 ClawMetrics-v0.2.4-test.68.zip \
+          gh release create v0.2.4-test.69 ClawMetrics-v0.2.4-test.69.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.68 – Background Gradients and Charcoal Theme" \
-            --notes "Adds solid RGB, multistop linear and circular/radial backgrounds under Colors & Font → Background, with shared opacity, direction, center and spread controls. Supports 2–8 stops, rounded corners and per-style persistence. The plugin UI now uses a charcoal theme with blue active controls and light icons. Existing HUD metric colors, settings and launch command preserved. Native math and software Vulkan checks cover gradients, opacity and live style switches; on-device validation remains separate."
+            --title "Claw Metrics v0.2.4-test.69 – Background Outline and Slider Width Fix" \
+            --notes "Adds a rounded overlay outline with RGB color, 1–6 px thickness and independent opacity, saved per style. The outline works with solid, gradient and fully transparent backgrounds. Background sliders now reuse Layout’s inset row and explicitly request Decky below/max-width layout; shared slider constraints prevent fixed-width controls extending past nested cards. Native software Vulkan checks exercise outlines and live style changes. Physical-device slider appearance and controller navigation still need confirmation. Existing settings and launch command preserved."

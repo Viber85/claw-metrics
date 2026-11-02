@@ -33,3 +33,22 @@ class BackgroundTests(unittest.TestCase):
         stock=main.mango_config(data)
         self.assertIn('background_color=112233\n',stock)
         self.assertNotIn('claw_background_',stock)
+
+    def test_outline_migration_validation_and_style_persistence(self):
+        self.assertFalse(main.normalize({'background':{'mode':'radial'}})['background']['outline_enabled'])
+        outline={'outline_enabled':True,'outline_color':'#a1b2c3','outline_width':99,'outline_opacity':-20}
+        data=main.normalize({'background':outline,'style_presets':{'1':{'background':outline}}})
+        b=data['background']
+        self.assertEqual(b['outline_color'],'A1B2C3')
+        self.assertEqual(b['outline_width'],6)
+        self.assertEqual(b['outline_opacity'],0)
+        self.assertEqual(b,data['style_presets']['1']['background'])
+        self.assertFalse(main.normalize_background({'outline_enabled':1})['outline_enabled'])
+        self.assertEqual(main.normalize_background({'outline_color':'bad=code'})['outline_color'],'6B7E99')
+
+    def test_outline_is_independent_of_fill_and_native_only(self):
+        data=main.normalize({'opacity':0,'background':{'outline_enabled':True,'outline_color':'AABBCC','outline_width':3,'outline_opacity':60}})
+        cfg=main.mango_config(data,native_spacing=True)
+        for line in ('background_alpha=0.0','claw_outline_enabled=1','claw_outline_color=AABBCC','claw_outline_width=3','claw_outline_opacity=60'):
+            self.assertIn(line+'\n',cfg)
+        self.assertNotIn('claw_outline_',main.mango_config(data))

@@ -5,7 +5,7 @@ import {FaChevronDown,FaChevronRight} from "react-icons/fa";
 export function ControlGroup({title,summary,open,onToggle,children}:{
  title:string;summary:string;open:boolean;onToggle:()=>void;children:ReactNode;
 }) {
- return <div className="claw-control-group" style={{margin:"7px 0",minWidth:0,
+ return <div className="claw-control-group" style={{margin:"7px 0",minWidth:0,width:"100%",maxWidth:"100%",boxSizing:"border-box",
    border:"1px solid #2d3744",borderRadius:9,background:"#101820",overflow:"hidden"}}>
    <DialogButton aria-expanded={open} onClick={onToggle}
      style={{display:"block",width:"100%",margin:0,minWidth:0,minHeight:57,
@@ -18,7 +18,7 @@ export function ControlGroup({title,summary,open,onToggle,children}:{
        </span>{open?<FaChevronDown/>:<FaChevronRight/>}
      </span>
    </DialogButton>
-   {open && <div style={{padding:"10px 7px 12px",borderTop:"1px solid #2c3743"}}>
+   {open && <div style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",padding:"10px 7px 12px",borderTop:"1px solid #2c3743"}}>
      {children}
    </div>}
  </div>;

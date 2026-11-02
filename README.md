@@ -797,3 +797,18 @@ The plugin UI uses charcoal surfaces, subtle borders, light icons and blue
 active controls. Existing HUD metric colors are preserved. Software Vulkan
 validation covers gradient vertex colors, opacity and live layout changes;
 physical-device visuals and controller navigation remain separate checks.
+
+### test.69: background outline and slider sizing
+
+Background now includes **Outline**, with an RGB color, 1–6 px width and
+independent opacity. It follows rounded corners, stays inside the HUD rectangle
+and remains visible with a 0% background fill. Outline settings are stored with
+the background in each saved style; existing styles default to outline off.
+
+Background controls reuse the Layout slider's PanelSectionRow and safe inset
+wrapper. The shared native SliderField explicitly requests `layout="below"`
+and `childrenContainerWidth="max"`, so the empty native label cannot leave a
+fixed inline control column wider than a nested card. Control-group widths and
+box sizing are constrained consistently. The frontend test checks that API
+contract and endpoint callbacks; actual SteamOS control geometry/navigation
+still requires device verification.

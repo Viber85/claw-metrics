@@ -197,6 +197,7 @@ def normalize_color_overrides(payload):
 
 BACKGROUND_DEFAULT = {
     "mode": "solid", "color": "161820", "angle": 0,
+    "outline_enabled": False, "outline_color": "6B7E99", "outline_width": 1, "outline_opacity": 100,
     "center_x": 50, "center_y": 50, "radius": 70,
     "stops": [{"position": 0, "color": "101A2C"}, {"position": 100, "color": "30204D"}],
 }
@@ -210,7 +211,12 @@ def normalize_background(value):
     color = value.get("color")
     if isinstance(color, str) and re.fullmatch(r"#?[0-9A-Fa-f]{6}", color):
         out["color"] = color.lstrip("#").upper()
-    for key, low, high in (("angle", 0, 360), ("center_x", 0, 100),
+    if type(value.get("outline_enabled")) is bool:
+        out["outline_enabled"] = value["outline_enabled"]
+    color = value.get("outline_color")
+    if isinstance(color, str) and re.fullmatch(r"#?[0-9A-Fa-f]{6}", color):
+        out["outline_color"] = color.lstrip("#").upper()
+    for key, low, high in (("outline_width", 1, 6), ("outline_opacity", 0, 100), ("angle", 0, 360), ("center_x", 0, 100),
                            ("center_y", 0, 100), ("radius", 1, 200)):
         if type(value.get(key)) is int:
             out[key] = min(high, max(low, value[key]))
@@ -918,6 +924,10 @@ def mango_config(settings, native_spacing=False):
             "claw_ram_label=" + d["custom_labels"].get("ram", "RAM"),
             "claw_vram_label=" + d["custom_labels"].get("vram", "VRAM"),
             "claw_battery_label=" + d["custom_labels"].get("battery", "BATT"),
+            "claw_outline_enabled=" + str(int(d["background"]["outline_enabled"])),
+            "claw_outline_color=" + d["background"]["outline_color"],
+            "claw_outline_width=" + str(d["background"]["outline_width"]),
+            "claw_outline_opacity=" + str(d["background"]["outline_opacity"]),
             "claw_background_mode=" + str(("solid", "linear", "radial").index(d["background"]["mode"])),
             "claw_background_stops=" + "/".join(str(stop["position"]) + ":" + stop["color"] for stop in d["background"]["stops"]),
             "claw_background_angle=" + str(d["background"]["angle"]),

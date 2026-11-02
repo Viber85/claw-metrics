@@ -14,7 +14,7 @@ export function LayoutSliderField(props:ComponentProps<typeof SliderField>) {
       <output className="claw-slider-number">{String(props.value)}</output>
     </div>
     <div className="claw-slider-native">
-      <SliderField {...props} label="" showValue={false}/>
+      <SliderField {...props} label="" showValue={false} layout="below" childrenContainerWidth="max"/>
     </div>
   </div>;
 }
