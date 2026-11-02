@@ -14,7 +14,7 @@ import updates
 def release(n, *, digest=None, draft=False, url=None):
     tag=f"v0.2.4-test.{n}"
     filename=f"ClawMetrics-{tag}.zip"
-    asset=f"https://github.com/ikorljan-droid/claw-metrics/releases/download/{tag}/{filename}"
+    asset=f"https://github.com/Viber85/claw-metrics/releases/download/{tag}/{filename}"
     return {
         "draft": draft, "tag_name": tag,
         "body": f"Promjene za {tag} - zadržane postavke i renderer.",
@@ -69,12 +69,23 @@ class UpdateChecks(unittest.TestCase):
         self.assertEqual(newest["tag"],"v0.2.4-test.41")
         self.assertEqual(newest["sha256"],"a"*64)
         self.assertEqual(newest["version"],"0.2.4-test.41")
-        self.assertTrue(newest["asset_url"].startswith("https://github.com/ikorljan-droid/claw-metrics/releases/download/"))
+        self.assertTrue(newest["asset_url"].startswith("https://github.com/Viber85/claw-metrics/releases/download/"))
         self.assertNotIn("bad.invalid",newest["asset_url"])
 
     def test_expected_github_feed_url_never_depends_on_untrusted_parameters(self):
         self.assertEqual(updates.RELEASES_API,
-             "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30")
+             "https://api.github.com/repos/Viber85/claw-metrics/releases?per_page=30")
+
+    def test_transferred_repository_assets_are_accepted_but_old_owner_is_rejected(self):
+        item = release(62)
+        item['assets'][0]['browser_download_url'] = (
+            'https://github.com/Viber85/claw-metrics/releases/download/'
+            'v0.2.4-test.62/ClawMetrics-v0.2.4-test.62.zip')
+        checked = updates.latest_compatible_release([item])
+        self.assertEqual(checked['version'], '0.2.4-test.62')
+        self.assertEqual(checked['asset_url'], item['assets'][0]['browser_download_url'])
+        item['assets'][0]['browser_download_url'] = item['assets'][0]['browser_download_url'].replace('Viber85', 'ikorljan-droid')
+        self.assertIsNone(updates.latest_compatible_release([item]))
 
     def test_ignores_other_project_and_unsafe_or_incomplete_archives(self):
         for candidate in [

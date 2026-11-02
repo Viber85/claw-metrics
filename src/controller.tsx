@@ -330,7 +330,7 @@ export type GithubUpdateInfo = {
   error?:string; source?:string;
 };
 export type DeckyHttpResponse = {status:number;body:string};
-export const GITHUB_RELEASES_API = "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30";
+export const GITHUB_RELEASES_API = "https://api.github.com/repos/Viber85/claw-metrics/releases?per_page=30";
 export const checkUpdates = callable<[], GithubUpdateInfo>("check_updates");
 export const getInstalledVersion = callable<[], {version:string}>("get_installed_version");
 export const validateGithubReleases = callable<[string],GithubUpdateInfo>("validate_github_releases");

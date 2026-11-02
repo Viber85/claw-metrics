@@ -674,7 +674,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('onClick={()=>{ void checkGithubRelease(); }}', SOURCE)
 
     def test_github_check_uses_decky_https_and_safe_python_validation(self):
-        self.assertIn('GITHUB_RELEASES_API = "https://api.github.com/repos/ikorljan-droid/claw-metrics/releases?per_page=30"', SOURCE)
+        self.assertIn('GITHUB_RELEASES_API = "https://api.github.com/repos/Viber85/claw-metrics/releases?per_page=30"', SOURCE)
         self.assertIn('loader.callable("utilities/http_request")', SOURCE)
         self.assertIn('request("GET",GITHUB_RELEASES_API', SOURCE)
         self.assertIn('const validateGithubReleases = callable<[string],GithubUpdateInfo>("validate_github_releases")', SOURCE)

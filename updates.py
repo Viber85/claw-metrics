@@ -11,7 +11,7 @@ import re
 import urllib.error
 import urllib.request
 
-REPOSITORY = "ikorljan-droid/claw-metrics"
+REPOSITORY = "Viber85/claw-metrics"
 RELEASES_API = "https://api.github.com/repos/" + REPOSITORY + "/releases?per_page=30"
 VERSION_PATTERN = re.compile(r"^v?0\.2\.4-test\.(\d+)$")
 SHA256_PATTERN = re.compile(r"^sha256:([a-fA-F0-9]{64})$")
