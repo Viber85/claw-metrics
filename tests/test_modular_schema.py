@@ -56,6 +56,15 @@ class ModularSchemaTests(unittest.TestCase):
             current = child
         with self.assertRaises(ValueError): schema.validate_layout(value)
 
+    def test_native_transport_preserves_fields_and_unicode_ids(self):
+        self.layout['root']['id'] = 'čćž' * 20
+        self.layout['root'].update(background='#112233', opacity=44, outline=True)
+        text = schema.encode_native(self.layout)
+        self.assertTrue(text.startswith('CLAW_MODULAR_V1\n'))
+        self.assertIn(self.layout['root']['id'].encode().hex(), text)
+        self.assertIn('112233 44 1', text)
+        with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
+
     def test_unknown_fields_do_not_become_renderer_parameters(self):
         self.layout['exec'] = 'ignored'
         self.layout['root']['unsupported'] = 'ignored'

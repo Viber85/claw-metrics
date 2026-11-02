@@ -60,3 +60,33 @@ def load_layout(text):
         return validate_layout(json.loads(text))
     except (RecursionError, TypeError, KeyError) as error:
         raise ValueError('Malformed layout') from error
+
+
+def encode_native(value):
+    """Bounded native transport; no live config or shell command is generated."""
+    layout = validate_layout(value)
+    nodes = []
+    def flatten(node):
+        index = len(nodes)
+        nodes.append((node, []))
+        for child in node['children']:
+            nodes[index][1].append(flatten(child))
+        return index
+    flatten(layout['root'])
+    def numeric(value):
+        return format(value, '.17g')
+    lines = ['CLAW_MODULAR_V1', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes))))]
+    for n, children in nodes:
+        fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
+                  str(int(n['visible'])), str(int(n['axis'] == 'column')),
+                  str(('start', 'center', 'end').index(n['align']))]
+        fields += [numeric(n[k]) for k in ('gap', 'padding')]
+        fields += [numeric(n['scale'] / 100)]
+        fields += [numeric(n[k]) for k in ('width', 'height')]
+        fields += [n['color'][1:] or '-', n['background'][1:] or '-', numeric(n['opacity']), str(int(n['outline'])), str(len(children))]
+        fields += [str(index) for index in children]
+        lines.append(' '.join(fields))
+    encoded = '\n'.join(lines) + '\n'
+    if len(encoded.encode()) > 1024 * 1024:
+        raise ValueError('Native transport exceeds 1 MiB')
+    return encoded

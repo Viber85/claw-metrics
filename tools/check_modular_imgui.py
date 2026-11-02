@@ -105,12 +105,13 @@ def run(args):
         for name in ('two-rows','graph-focus'):
             document=schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text())
             (tmp/'modular_fixture.h').write_text(fixture(document))
+            transport=tmp/'input.layout';transport.write_text(schema.encode_native(document))
             binary=tmp/'probe'
             subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(tmp),'-I',str(ROOT/'experiments/native'),
                             str(ROOT/'tools/modular_imgui_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
             for width,height in ((1280,800),(1920,1080)):
                 target=output/f'{name}-{width}x{height}'
-                subprocess.run([str(binary),str(font),str(width),str(height),str(target)],check=True)
+                subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport)],check=True)
                 raster(target.with_suffix('.json'))
 
 if __name__=='__main__':

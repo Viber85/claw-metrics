@@ -39,7 +39,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
         if(i>=nodes.size()||depth>8||visited[i])throw std::invalid_argument("Cycle, repeated parent or depth limit");
         visited[i]=true;
         const auto& n=nodes[i];
-        if(n.id.size()>100||std::find(ids.begin(),ids.end(),n.id)!=ids.end()||
+        if(n.id.size()>400||std::find(ids.begin(),ids.end(),n.id)!=ids.end()||
            (n.axis!=Axis::Row&&n.axis!=Axis::Column)||
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            !range(n.gap,0,80)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||

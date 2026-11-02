@@ -1,4 +1,4 @@
-# Modular renderer — development stage 1
+# Modular renderer — experimental development
 
 Base: Claw Metrics test.72. DevLab model: Viber85/claw-devlab commit 4aad44fab8d00beaab47f0d65427e53cca93b8b2. This directory is an isolated development path. There is no new user-facing mode, configuration output, launch change or replacement release.
 
@@ -16,8 +16,8 @@ Base: Claw Metrics test.72. DevLab model: Viber85/claw-devlab commit 4aad44fab8d
 
 ## Next stages
 
-1. Flatten validated JSON to native node records, with a versioned representation and strict input bounds; the current C++ interface takes typed nodes only and does not parse JSON.
-2. Add an ImGui adapter that measures and draws each token using the same font selection, text, formatting and numerical-width policy. Create rendered fixtures for both layouts at 1280x800 and 1920x1080 before exposing the mode.
+1. Wire the validated transport and immutable exchange into an explicitly experimental native activation path.
+2. Connect the ImGui adapter to production token formatting, numerical-width policy and font selection. Maintain rendered fixtures at 1280x800 and 1920x1080 before exposing the mode.
 3. Load validated snapshots outside live mutation paths; only swap the complete layout on the renderer thread between frames. Never let the watcher mutate groups or font resources in place.
 4. Add background/outline and graph rendering within measured node rectangles. Match alpha and sRGB behavior of the working renderer.
 5. Add explicit experimental activation and import/export without rewriting legacy settings or existing saved styles. A malformed layout must keep the last valid complete snapshot.
@@ -31,3 +31,12 @@ Base: Claw Metrics test.72. DevLab model: Viber85/claw-devlab commit 4aad44fab8d
 `tools/check_modular_imgui.py` uses hash-verified ImGui v1.89.9 sources and both DevLab starter documents. It produces actual draw-list vertices/indices, font-atlas images and CPU-rasterized PNGs at 1280x800 and 1920x1080. CI uses the bundled fallback font; `--font` accepts hash-verified Barlow Regular for inspection against the packaged font. These are renderer fixtures, not screenshots from SteamOS or a GPU backend. The fixture rasterizer approximates texture filtering and does not reproduce Vulkan color-space conversion. Visual browser/native parity and numerical-width stability remain unverified.
 
 No active MangoHud integration, game sensor wiring or modular JSON import UI has been enabled yet. Next is the validated native transport and renderer-thread snapshot switch described above, followed by existing token formatting/font policies and live Vulkan tests.
+
+
+## Stage 3: bounded transport and immutable exchange
+
+`schema.encode_native` converts a strictly validated DevLab document into a bounded versioned transport. `claw_modular_transport.h` validates the complete native input before constructing an immutable `Document`: fixed token allowlist, indices, unique IDs, child ownership, numeric ranges, style colors/opacity, size/depth limits and trailing data. IDs use hex-encoded UTF-8 so whitespace and localized names cannot become delimiters. Geometry accepts up to 400 ID bytes to cover the schema's 100 Unicode-character cap.
+
+`Exchange.publish` builds a new snapshot before publishing under a mutex. The rendering thread calls `take` between frames. Changes coalesce, old frames retain their shared immutable document, and rejected/truncated imports do not replace pending or active snapshots. Rendering/font calls stay out of the loader. `tools/check_modular_transport.py` passes both actual DevLab documents from Python into C++ and exercises concurrent updates under ASan/UBSan. This is not a Vulkan/thread-sanitizer test.
+
+The ImGui probe now consumes the encoded native document as well, so its fixtures cover the Python-to-C++ path, per-node colors/backgrounds/opacity and anchored geometry. Defaults in this fixture are explicit test values, not an implementation of all saved plugin styles. Reading the file and swapping the snapshot are not yet wired to the active MangoHud watcher or HUD draw path.

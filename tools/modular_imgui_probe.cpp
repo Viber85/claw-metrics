@@ -1,22 +1,36 @@
 // Actual ImGui draw-list fixture, not Vulkan injection or real sensor data.
 #include "claw_modular_imgui.h"
+#include "claw_modular_transport.h"
 #include "modular_fixture.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
 using namespace claw_modular;
 int main(int argc,char**argv){
- if(argc!=5)return 2;
+ if(argc!=6)return 2;
  const int width=std::stoi(argv[2]),height=std::stoi(argv[3]);
  ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
  ImFont* font=io.Fonts->AddFontFromFileTTF(argv[1],24);assert(font);
  ImFont* large=io.Fonts->AddFontFromFileTTF(argv[1],48);assert(large);
  io.FontDefault=font;io.Fonts->Build();unsigned char* atlas;int aw,ah;io.Fonts->GetTexDataAsAlpha8(&atlas,&aw,&ah);
  std::ofstream pgm(std::string(argv[4])+"-atlas.pgm",std::ios::binary);pgm<<"P5\n"<<aw<<" "<<ah<<"\n255\n";pgm.write((char*)atlas,aw*ah);pgm.close();
- auto nodes=fixture();std::map<std::string,Text> values;
+ std::ifstream layout_file(argv[5]);
+ std::string bytes((std::istreambuf_iterator<char>(layout_file)),{});
+ auto document=decode(bytes);auto nodes=document.nodes;std::map<std::string,Text> values;
  for(const auto& n:nodes)if(!n.group&&n.token!="graph")values[n.token]={reading(n.token),n.token=="fps.value"?large:font,color(n.token)};
  std::vector<Style> styles(nodes.size());styles[0].fill=IM_COL32(16,24,38,240);styles[0].outline=IM_COL32(107,126,153,150);styles[0].rounding=10;
- auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},Anchor::TopCenter,0,20,24);
+ for(size_t i=0;i<nodes.size();++i){
+  const auto& appearance=document.appearance[i];
+  auto packed=[](const std::string& hex,float opacity)->ImU32{
+   if(hex.empty())return 0;
+   const unsigned rgb=std::stoul(hex,nullptr,16);
+   return IM_COL32((rgb>>16)&255,(rgb>>8)&255,rgb&255,static_cast<unsigned>(std::round(opacity*255/100)));
+  };
+  if(!appearance.background.empty())styles[i].fill=packed(appearance.background,appearance.opacity);
+  styles[i].text=packed(appearance.color,100);
+  if(appearance.outline)styles[i].outline=IM_COL32(143,184,217,255);
+ }
+ auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24);
  assert(!frame.geometry.outside);
  for(size_t i=0;i<nodes.size();++i){const auto& b=frame.geometry.boxes[i];assert(b.visible&&b.w>0&&b.h>0);}
  // Readings are owned by the prepared frame; mutation of the caller's map
