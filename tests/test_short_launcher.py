@@ -13,6 +13,13 @@ import main
 
 
 class ShortLauncherTests(unittest.TestCase):
+    def setUp(self):
+        self.home = tempfile.TemporaryDirectory(prefix="legion-user-")
+        self.addCleanup(self.home.cleanup)
+        patcher = patch.object(main, "user_home", return_value=Path(self.home.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_short_launcher_execs_unmodified_args_and_environment(self):
         # Paths deliberately contain both whitespace and a single quote.
         with tempfile.TemporaryDirectory(prefix="Claw's test ") as folder:
@@ -28,6 +35,8 @@ class ShortLauncherTests(unittest.TestCase):
                 main.install_short_launcher()
                 launcher = main.short_launcher_path()
                 self.assertTrue(main.short_launcher_ready())
+                self.assertTrue(main.home_launcher_ready())
+                self.assertEqual(main.short_launch_option(), '~/claw-metrics %command%')
                 self.assertEqual(stat.S_IMODE(launcher.stat().st_mode), 0o755)
                 with patch.object(main.os, "replace", wraps=os.replace) as replace_call:
                     main.install_short_launcher()
@@ -41,7 +50,7 @@ class ShortLauncherTests(unittest.TestCase):
                          "'disabled':os.environ.get('DISABLE_MANGOHUD'),"
                          "'config':os.environ.get('MANGOHUD_CONFIGFILE')}))")
                 result = subprocess.run(
-                    [str(launcher), sys.executable, "-c", probe, "hello world", "it's ok", "$(not-executed)"],
+                    [str(main.home_launcher_path()), sys.executable, "-c", probe, "hello world", "it's ok", "$(not-executed)"],
                     capture_output=True, text=True, check=True, env={**os.environ, "VK_INSTANCE_LAYERS": "old"}
                 )
                 payload = json.loads(result.stdout)
@@ -79,6 +88,20 @@ class ShortLauncherTests(unittest.TestCase):
                     self.assertIsNone(fallback[key])
                 self.assertIn("missing renderer assets", fallback_result.stderr)
                 self.assertFalse(main.short_launcher_ready())
+
+    def test_existing_home_file_is_preserved(self):
+        alias = main.home_launcher_path()
+        alias.write_text('user file')
+        main.install_home_launcher()
+        self.assertEqual(alias.read_text(), 'user file')
+        self.assertFalse(main.home_launcher_ready())
+
+    def test_existing_foreign_symlink_is_preserved(self):
+        alias = main.home_launcher_path()
+        alias.symlink_to('/missing/user/target')
+        main.install_home_launcher()
+        self.assertEqual(os.readlink(alias), '/missing/user/target')
+        self.assertFalse(main.home_launcher_ready())
 
     def test_native_binary_absent_means_no_short_command(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -349,6 +349,35 @@ def short_launcher_path():
     return BASE / "claw-metrics"
 
 
+def home_launcher_path():
+    return user_home() / "claw-metrics"
+
+
+def home_launcher_ready():
+    try:
+        path = home_launcher_path()
+        return (path.is_symlink() and os.readlink(path) == str(short_launcher_path())
+                and short_launcher_ready())
+    except OSError:
+        return False
+
+
+def install_home_launcher():
+    # Atomic, create-only alias: never replace a user's existing file or link.
+    try:
+        home_launcher_path().symlink_to(short_launcher_path())
+    except FileExistsError:
+        pass
+    except OSError as error:
+        print("Claw Metrics: home launcher unavailable:", error)
+
+
+def short_launch_option():
+    if home_launcher_ready():
+        return '~/claw-metrics %command%'
+    return shlex.quote(str(short_launcher_path())) + ' %command%' if short_launcher_ready() else ''
+
+
 def short_launcher_script():
     """POSIX shell equivalent of the existing experimental Steam command."""
     return (
@@ -374,9 +403,11 @@ def install_short_launcher():
     if not native_renderer_available():
         return
     if short_launcher_ready():
+        install_home_launcher()
         return
     # Publish a fully executable file atomically, without a 0644 race window.
     write_atomic(short_launcher_path(), short_launcher_script(), mode=0o755)
+    install_home_launcher()
 
 
 def short_launcher_ready():
@@ -1328,8 +1359,7 @@ class Plugin:
                 and bool(native_hud_path().stat().st_mode & 0o004)
             ),
             "short_launcher_ready": short_launcher_ready(),
-            "short_launch_option": (shlex.quote(str(short_launcher_path())) + " %command%"
-                                    if short_launcher_ready() else ""),
+            "short_launch_option": short_launch_option(),
             "experimental_launch_option": (
                 "env VK_ADD_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent))
                 + " VK_INSTANCE_LAYERS=" + EXPERIMENTAL_LAYER_NAME

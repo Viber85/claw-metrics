@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/compatibility-diagnostics-71]
+    branches: [test/short-home-launcher-72]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.71
+  group: claw-metrics-v0.2.4-test.72
   cancel-in-progress: true
 
 jobs:
@@ -201,7 +201,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.71.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.72.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -217,18 +217,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.71', package['version']
+              assert package['version'] == '0.2.4-test.72', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.71
-          path: ClawMetrics-v0.2.4-test.71.zip
+          name: ClawMetrics-v0.2.4-test.72
+          path: ClawMetrics-v0.2.4-test.72.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.71 ClawMetrics-v0.2.4-test.71.zip \
+          gh release create v0.2.4-test.72 ClawMetrics-v0.2.4-test.72.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.71 – Compatibility Diagnostics" \
-            --notes "Independent journal queries protect GPU, Decky and warning evidence from unrelated RGB log floods. Session reports include read-only device, OS, DRM, battery and hwmon discovery captured at session start. Missing nodes remain unavailable. This prepares Legion Go 1 / Bazzite 44 testing; hardware compatibility is not yet verified. Native renderer and launch command unchanged."
+            --title "Claw Metrics v0.2.4-test.72 – Short Home Launcher" \
+            --notes "Activation now offers ~/claw-metrics %command% using a create-only home-directory alias to the existing launcher. Existing launch options keep working. Existing user files or foreign links are preserved and the UI falls back to the full path if the alias is unavailable. Includes test.71 diagnostics. Native renderer and injection environment unchanged."

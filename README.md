@@ -829,3 +829,8 @@ exporting. Recording, retention and report contents are unchanged.
 Crash reports now query GPU, Decky/Steam helper and warning logs independently within the recorded boot and session window. Each query has its own 2500-line / 512 KiB output bound and collection status. General RGB floods no longer displace the dedicated query results. Logs remain bounded and may be incomplete.
 
 `compatibility.json` records read-only device model, OS, architecture, DRM driver, named hwmon channels and battery-node availability at session start. It excludes serial numbers and does not modify hardware, TDP, OS or renderer settings. Missing nodes are unavailable, not zero. Discovery does not certify sensor accuracy or support. Old sessions explicitly report missing inventory. Legion Go 1 / Bazzite 44 is a test target, not yet device-verified.
+
+
+### test.72: shorter Steam launch option
+
+Activation now copies `~/claw-metrics %command%`. A create-only symlink in the detected user's home points to the existing persistent launcher, preserving its environment, argument forwarding and missing-assets fallback. No PATH or fixed username is required. Steam must expand `~` to the same user's home; verify this on each OS. Existing launch options remain valid. Existing files and foreign symlinks at that name are never replaced; Activation falls back to the old absolute path when the alias is unavailable.
