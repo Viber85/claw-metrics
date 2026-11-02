@@ -1,0 +1,317 @@
+"""Opt-in, bounded session evidence; never changes hardware or OS configuration."""
+import asyncio
+import csv
+import json
+import os
+import pathlib
+import platform
+import re
+import subprocess
+import time
+import uuid
+import zipfile
+
+MAX_BYTES = 8 * 1024 * 1024
+
+
+def read_text(path, limit=65536):
+    try:
+        with pathlib.Path(path).open(encoding='utf-8', errors='replace') as stream:
+            return stream.read(limit)
+    except OSError:
+        return ''
+
+
+def atomic_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    temp = path.with_suffix('.tmp')
+    with temp.open('w', encoding='utf-8') as stream:
+        os.chmod(temp, 0o600)
+        json.dump(value, stream, indent=2)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temp, path)
+    # Persist the directory entry too, so a reboot can recover the marker.
+    fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def redact(text):
+    text = re.sub(r'/home/[^/\s]+', '/home/USER', text)
+    text = re.sub(r'(?i)\b(token|password|authorization|secret|api_key)\s*[:=]\s*\S+', r'\1=[REDACTED]', text)
+    text = re.sub(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', '[IP]', text)
+    return text
+
+
+def command(args):
+    """Bound memory, wall time and output, including when journald is absent."""
+    try:
+        import tempfile
+        with tempfile.TemporaryFile() as output:
+            process = subprocess.Popen(args, stdout=output, stderr=subprocess.STDOUT)
+            try:
+                process.wait(timeout=8)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                return 'Unavailable: command timed out\n'
+            output.seek(0)
+            return redact(output.read(512 * 1024).decode('utf-8', 'replace'))
+    except OSError as error:
+        return 'Unavailable: ' + type(error).__name__ + '\n'
+
+
+def telemetry():
+    values = {'load_1m': None, 'mem_available_kib': None, 'gpu_busy_percent': None,
+              'gpu_temp_c': None, 'gpu_power_w': None, 'battery_percent': None,
+              'battery_power_w': None}
+    try:
+        values['load_1m'] = os.getloadavg()[0]
+    except OSError:
+        pass
+    for line in read_text('/proc/meminfo').splitlines():
+        if line.startswith('MemAvailable:'):
+            values['mem_available_kib'] = int(line.split()[1])
+    # Discover AMD DRM and battery nodes instead of assuming card0/BAT0.
+    for card in sorted(pathlib.Path('/sys/class/drm').glob('card[0-9]*')):
+        if not card.name[4:].isdigit():
+            continue
+        if read_text(card / 'device/vendor').strip() != '0x1002':
+            continue
+        probes = [('gpu_busy_percent', card / 'device/gpu_busy_percent', 1)]
+        for hw in sorted((card / 'device/hwmon').glob('hwmon*')):
+            probes += [('gpu_temp_c', hw / 'temp1_input', 1000),
+                       ('gpu_power_w', hw / 'power1_average', 1000000)]
+        for key, path, divisor in probes:
+            try:
+                values[key] = float(read_text(path).strip()) / divisor
+            except ValueError:
+                pass
+        break
+    for battery in sorted(pathlib.Path('/sys/class/power_supply').glob('*')):
+        if read_text(battery / 'type').strip() != 'Battery':
+            continue
+        for key, filename, divisor in [('battery_percent', 'capacity', 1),
+                                        ('battery_power_w', 'power_now', 1000000)]:
+            try:
+                values[key] = float(read_text(battery / filename).strip()) / divisor
+            except ValueError:
+                pass
+        break
+    return values
+
+
+class SessionRecorder:
+    def __init__(self, base, version, settings, context):
+        self.root = pathlib.Path(base) / 'diagnostics'
+        self.version = version
+        self.settings = settings
+        self.context = context
+        self.task = None
+        self.current = None
+        self.error = ''
+        self.lock = asyncio.Lock()
+        self.boot_id = read_text('/proc/sys/kernel/random/boot_id').strip()
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for directory in self.root.glob('session-*'):
+            try:
+                meta = json.loads((directory / 'session.json').read_text())
+                if meta.get('state') == 'recording':
+                    meta['state'] = 'interrupted'
+                    meta['recovery_note'] = 'Unclean end; may be reboot, Decky crash, kill or power loss. Cause unknown.'
+                    atomic_json(directory / 'session.json', meta)
+            except (OSError, ValueError):
+                pass
+
+    def status(self):
+        sessions = []
+        for directory in sorted(self.root.glob('session-*'), reverse=True):
+            try:
+                meta = json.loads((directory / 'session.json').read_text())
+                sessions.append({key: meta.get(key) for key in ('id', 'state', 'started_at', 'last_sample_at', 'samples')})
+            except (OSError, ValueError):
+                pass
+        return {'recording': self.task is not None and not self.task.done(),
+                'sessions': sessions, 'error': self.error}
+
+    async def start(self):
+        async with self.lock:
+            if self.task is not None and not self.task.done():
+                return self.status()
+            # Retain at most five bounded sessions. Reports can be copied before rotation.
+            previous = sorted((p for p in self.root.glob('session-*') if p.is_dir()), reverse=True)
+            import shutil
+            for directory in previous[4:]:
+                shutil.rmtree(directory)
+                (self.root / (directory.name + "-CrashReport.zip")).unlink(missing_ok=True)
+            sid = 'session-' + time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + uuid.uuid4().hex[:8]
+            self.current = self.root / sid
+            self.current.mkdir(mode=0o700)
+            self.meta = {'id': sid, 'state': 'recording', 'version': self.version,
+                         'boot_id': self.boot_id, 'started_at': time.time(), 'samples': 0,
+                         'limitations': '5 second sampling; final seconds may be lost. Interruption does not identify a cause. FPS is unavailable to this sampler.',
+                         'os_release': read_text('/etc/os-release'), 'kernel': platform.release(),
+                         'machine': platform.machine(), 'settings': self.settings()}
+            self.error = ''
+            await asyncio.to_thread(self._sample)
+            self.stop_event = asyncio.Event()
+            self.task = asyncio.create_task(self._loop())
+            return self.status()
+
+    def _sample(self):
+        row = {'timestamp': time.time(), 'game_id': self.context(), **telemetry()}
+        path = self.current / 'telemetry.csv'
+        if path.exists() and path.stat().st_size >= MAX_BYTES:
+            self.meta['state'] = 'size_limit'
+            self.meta['ended_at'] = time.time()
+            atomic_json(self.current / 'session.json', self.meta)
+            return False
+        new = not path.exists()
+        with path.open('a', newline='', encoding='utf-8') as stream:
+            os.chmod(path, 0o600)
+            writer = csv.DictWriter(stream, fieldnames=list(row))
+            if new:
+                writer.writeheader()
+            writer.writerow(row)
+            stream.flush()
+            os.fsync(stream.fileno())
+        self.meta['samples'] += 1
+        self.meta['last_sample_at'] = row['timestamp']
+        self.meta['last_settings'] = self.settings()
+        atomic_json(self.current / 'session.json', self.meta)
+        return True
+
+    async def _loop(self):
+        try:
+            while True:
+                try:
+                    await asyncio.wait_for(self.stop_event.wait(), timeout=5)
+                    break
+                except asyncio.TimeoutError:
+                    pass
+                if not await asyncio.to_thread(self._sample):
+                    break
+        except Exception as error:
+            self.error = type(error).__name__ + ': ' + str(error)[:160]
+            # Keep the last durable marker; recovery will identify the interruption.
+
+    async def stop(self, reason='stopped'):
+        async with self.lock:
+            if self.task:
+                # Wake the loop and wait for any in-flight fsync before changing metadata.
+                self.stop_event.set()
+                await self.task
+                self.task = None
+                if self.meta.get('state') == 'recording' and not self.error:
+                    self.meta['state'] = reason
+                    self.meta['ended_at'] = time.time()
+                    await asyncio.to_thread(atomic_json, self.current / 'session.json', self.meta)
+            return self.status()
+
+    def export(self, session_id):
+        if not isinstance(session_id, str) or not re.fullmatch(r'session-\d{8}T\d{6}Z-[a-f0-9]{8}', session_id):
+            raise ValueError('Invalid session ID')
+        directory = self.root / session_id
+        meta = json.loads((directory / 'session.json').read_text())
+        boot = meta.get('boot_id', '')
+        valid_boot = bool(re.fullmatch(r'[a-f0-9-]{36}', boot))
+        journal = command(['journalctl', '--no-pager', '-o', 'short-iso', '-n', '2500',
+                           '--since', '@' + str(int(meta['started_at'])),
+                           '--until', '@' + str(int(meta.get('ended_at', meta.get('last_sample_at', meta['started_at']))) + 15),
+                           *(['-b', boot] if valid_boot else ['-b', '0'])])
+        gpu = '\n'.join(line for line in journal.splitlines() if re.search(r'amdgpu|gpu|drm|ring.*timeout|reset|oom|out of memory', line, re.I))
+        decky = '\n'.join(line for line in journal.splitlines() if re.search(r'decky|plugin_loader|claw.?metrics', line, re.I))
+        details = {'format_version': 1, 'exported_at': time.time(), 'session_boot_id': boot,
+                   'current_boot_id': self.boot_id, 'journal_scope': 'Recorded boot and session time window; may be unavailable without persistent journal.',
+                   'privacy': 'Home usernames, common credentials and IPv4 redacted. Review logs before sharing. No automatic upload.',
+                   'cause': 'Undetermined; compare sessions with and without the overlay.'}
+        target = self.root / (session_id + '-CrashReport.zip')
+        temp = target.with_suffix('.tmp')
+        try:
+            with temp.open('wb') as raw:
+                os.chmod(temp, 0o600)
+                with zipfile.ZipFile(raw, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    archive.writestr('session.json', redact(json.dumps(meta, indent=2)))
+                    archive.writestr('telemetry.csv', redact(read_text(directory / 'telemetry.csv', MAX_BYTES + 4096)))
+                    archive.writestr('system-journal.log', journal)
+                    archive.writestr('gpu-errors.log', gpu or 'No matching entries in the available journal.\n')
+                    archive.writestr('decky.log', decky or 'No Decky entries in the available journal.\n')
+                    archive.writestr('diagnostics.json', json.dumps(details, indent=2))
+                raw.flush()
+                os.fsync(raw.fileno())
+            os.replace(temp, target)
+        finally:
+            temp.unlink(missing_ok=True)
+        # Backend is root; make the report readable by the desktop owner only.
+        owner = self.root.parent.parent.parent.stat()
+        if os.geteuid() == 0:
+            for path in (self.root, target):
+                os.chown(path, owner.st_uid, owner.st_gid)
+        return {'path': str(target), 'bytes': target.stat().st_size}
+
+
+def overlay_loaded(library, proc=pathlib.Path('/proc')):
+    """Evidence of our exact mapped library; a launch request alone is insufficient.
+
+    None means inspection is restricted, so it must not end a recording.
+    """
+    expected = str(pathlib.Path(library).resolve())
+    restricted = False
+    try:
+        processes = list(proc.iterdir())
+    except OSError:
+        return None
+    for process in processes:
+        if not process.name.isdecimal():
+            continue
+        try:
+            with (process / 'maps').open(encoding='utf-8', errors='replace') as stream:
+                for line in stream:
+                    fields = line.rstrip('\n').split(None, 5)
+                    if len(fields) == 6 and fields[5].removesuffix(' (deleted)') == expected:
+                        return True
+        except PermissionError:
+            restricted = True
+        except OSError:
+            pass  # Process exited during the scan.
+    return None if restricted else False
+
+
+class OverlayRecording:
+    """Debounced lifecycle independent of QAM and frontend game reporting."""
+    def __init__(self, recorder):
+        self.recorder = recorder
+        self.lock = asyncio.Lock()
+        self.paused = False
+        self.auto_session = False
+        self.absent = 0
+
+    async def update(self, loaded):
+        async with self.lock:
+            if loaded is None:
+                self.absent = 0
+                return
+            if loaded:
+                self.absent = 0
+                if not self.paused and not self.recorder.status()['recording']:
+                    # Do not create repeated sessions after disk errors or size limit.
+                    if not self.auto_session:
+                        await self.recorder.start()
+                        self.auto_session = True
+                return
+            self.absent += 1
+            if self.absent < 3:
+                return
+            if self.auto_session:
+                await self.recorder.stop('overlay_unloaded')
+            self.auto_session = False
+            self.paused = False
+
+    async def manual(self, start):
+        async with self.lock:
+            self.paused = not start
+            self.auto_session = False
+            return await (self.recorder.start() if start else self.recorder.stop())

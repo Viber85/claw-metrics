@@ -973,6 +973,30 @@ class Plugin:
         write_atomic(tdp_path(), tdp_text(settings, None) + "\n")
         self._draw_task = asyncio.create_task(self._draw_loop())
         self._tdp_task = asyncio.create_task(self._tdp_loop())
+        # Optional diagnostics must never prevent the overlay settings from loading.
+        self._recorder = None
+        self._diagnostics_error = ""
+        try:
+            from diagnostics import SessionRecorder, OverlayRecording
+            self._recorder = SessionRecorder(
+                BASE, (await self.get_installed_version())["version"],
+                lambda: copy.deepcopy(getattr(self, "_current_settings", DEFAULTS)),
+                lambda: getattr(self, "_tdp_context_game", None))
+            self._overlay_recording = OverlayRecording(self._recorder)
+            self._diagnostics_task = asyncio.create_task(self._diagnostics_loop())
+        except Exception as error:
+            self._diagnostics_error = str(error)[:200]
+
+    async def _diagnostics_loop(self):
+        from diagnostics import overlay_loaded
+        while not getattr(self, "_diagnostics_stopping", False):
+            try:
+                loaded = await asyncio.to_thread(overlay_loaded, experimental_library())
+                await self._overlay_recording.update(loaded)
+                self._diagnostics_error = ""
+            except Exception as error:
+                self._diagnostics_error = str(error)[:200]
+            await asyncio.sleep(5)
 
     async def _draw_loop(self):
         while True:
@@ -1014,6 +1038,13 @@ class Plugin:
             await asyncio.sleep(5)
 
     async def _unload(self):
+        self._diagnostics_stopping = True
+        monitor = getattr(self, "_diagnostics_task", None)
+        if monitor:
+            await monitor
+        recorder = getattr(self, "_recorder", None)
+        if recorder:
+            await recorder.stop("plugin_unloaded")
         for key in ("_draw_task", "_tdp_task"):
             task = getattr(self, key, None)
             if task is not None:
@@ -1022,6 +1053,29 @@ class Plugin:
                     await task
                 except asyncio.CancelledError:
                     pass
+
+    async def get_session_status(self):
+        recorder = getattr(self, "_recorder", None)
+        if not recorder:
+            return {"recording": False, "sessions": [], "error": getattr(self, "_diagnostics_error", "Diagnostics unavailable")}
+        return {**recorder.status(), "automatic": True,
+                "paused": self._overlay_recording.paused,
+                "detection_error": getattr(self, "_diagnostics_error", "")}
+
+    async def start_session_recording(self):
+        if not getattr(self, "_recorder", None):
+            raise RuntimeError("Diagnostics unavailable; restart Decky after updating.")
+        return await self._overlay_recording.manual(True)
+
+    async def stop_session_recording(self):
+        if not getattr(self, "_recorder", None):
+            raise RuntimeError("Diagnostics unavailable")
+        return await self._overlay_recording.manual(False)
+
+    async def export_crash_report(self, session_id: str):
+        if not getattr(self, "_recorder", None):
+            raise RuntimeError("Diagnostics unavailable")
+        return await asyncio.to_thread(self._recorder.export, session_id)
 
     async def get_settings(self):
         try:

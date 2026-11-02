@@ -709,3 +709,37 @@ CI runs Python regressions (migration, order sanitization/persistence, submetric
 CI also compiles a headless ImGui 1.89.9 probe, the ImGui version pinned by MangoHud v0.8.1. It uses the same window positioning, table-sizing, text-drawing, rounding and battery-column traversal with fixture metrics. Manual coordinates must match the configured X/Y, increasing padding must increase the background height, labels must fit, and the installed font must have proportional glyph advances. Downloaded source files are hash-verified. Locally run: python tools/check_native_layout.py, or supply --imgui-dir with the pinned sources.
 
 The fixture covers default and reduced rows, explicit X/Y movement, zero/default/maximum vertical padding and a compact preset at 1280 px. A manual-position reset restores X=8/Y=8 without changing other options. The compact-preset button is explicitly labeled Uži red: manji font i bez MHz. It uses a 12 px font, X=8/Y=8, 4 px extra vertical padding, and disables CPU/GPU clock submetrics to retain headroom at 1280 px. Other submetric preferences are preserved. This is a local renderer check, not a Vulkan injection or device screenshot. Native controller focus, actual game sandbox access, exact SteamOS MangoHud version and device visual appearance still require the Claw. Different metric values, lower game resolutions, larger fonts or excessive sensors can exceed screen width; reduce text size/options in that case. No automatic font shrinking is claimed. Moving a row cannot make a row that is wider than the game fit; use the compact preset or disable optional sensors in that case. Independent FPS size would require changes to the native renderer, not another config slider.
+
+### Crash Session Recorder (test.61)
+
+Recording starts automatically when the backend detects the exact Claw Metrics
+native library mapped in a process. Detection runs every five seconds, even
+with QAM closed. Three consecutive checks without the library finish the
+session as `overlay_unloaded`; restricted process inspection does not end it.
+A launch command or installed library alone does not trigger recording.
+After reboot, the old interrupted session is retained; a new session starts
+when the overlay loads again. This detects library loading, not proof that a
+frame was drawn, and cannot record freezes occurring before that detection.
+
+**Advanced → Diagnostics** still offers manual start/stop and ZIP export.
+Manual stop pauses auto recording until the overlay has closed. A normal
+plugin unload (including Decky restart/update) is labelled `plugin_unloaded`.
+
+The ZIP is saved under `~/.config/ClawMetrics/diagnostics/`; its full path appears
+in Diagnostics. Open Desktop Mode, copy that ZIP and attach it for analysis.
+No report is uploaded automatically. Reports include the recorded OS/kernel,
+overlay settings at start and last sample, game IDs, available AMD GPU/battery
+readings, memory, system load and bounded journal extracts. FPS is not sampled.
+Missing sensors are empty values; CPU/GPU power are not interchangeable with
+battery draw. Logs are filtered to the session's boot and time window. Previous
+boot logs may be missing if the OS does not persist its journal; this feature
+does not change journald configuration. Common credentials, IPv4 addresses and
+home usernames are redacted, but review the report before sharing it.
+
+Telemetry is flushed and fsynced every five seconds. A hard freeze can lose the
+last samples. Up to five sessions are retained with an 8 MiB telemetry limit per
+session; starting a sixth deletes the oldest session and its exported ZIP.
+`interrupted` means an unclean end (power loss, killed backend or reboot), not
+proof of an overlay crash. Compare otherwise similar sessions with the overlay
+enabled and disabled. SteamOS, Bazzite and other systemd Linux variants use the
+same recorder; sensor and journal availability still need device testing.

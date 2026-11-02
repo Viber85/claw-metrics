@@ -43,6 +43,7 @@ class DeckySandboxImportTests(unittest.TestCase):
             p = folder / "py_modules"
             p.mkdir()
             shutil.copyfile(ROOT / "updates.py", p / "updates.py")
+            shutil.copyfile(ROOT / "diagnostics.py", p / "diagnostics.py")
 
     def decky_import(self, folder):
         return subprocess.run(
@@ -59,6 +60,15 @@ class DeckySandboxImportTests(unittest.TestCase):
             result = self.decky_import(folder)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DECKY_SANDBOX_IMPORT_OK", result.stdout)
+
+    def test_recorder_module_imports_in_decky_sandbox(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            self.setup_fake_install(folder, include_py_modules=True)
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", IMPORT_SCRIPT + "\nfrom diagnostics import SessionRecorder\n", str(folder)],
+                cwd="/", capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_optional_updater_does_not_disable_all_controls(self):
         # Regress test.40: optional update code must not break Decky backend
@@ -94,7 +104,9 @@ print("OPTIONAL_UPDATER_ERROR_OK")
         self.assertIn("'py_modules/updates.py'", workflow)
         self.assertNotIn("cp plugin.json package.json main.py sensors.py updates.py", workflow)
         version = json.loads((ROOT / "package.json").read_text())["version"]
-        self.assertEqual(version, "0.2.4-test.60")
+        self.assertIn("v" + version, workflow)
+        self.assertIn("cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py", workflow)
+        self.assertIn("\'py_modules/diagnostics.py\'", workflow)
 
 
 if __name__ == "__main__":

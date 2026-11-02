@@ -39,7 +39,9 @@ jobs:
       - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py sensors.py README.md artifact/ClawMetrics/
+          cp plugin.json package.json main.py sensors.py diagnostics.py README.md artifact/ClawMetrics/
+          mkdir -p artifact/ClawMetrics/py_modules
+          cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp -r dist assets artifact/ClawMetrics/
           (cd artifact && zip -r "../ClawMetrics-v${{ steps.version.outputs.number }}.zip" ClawMetrics)
       - name: Validate installation ZIP
@@ -49,7 +51,7 @@ jobs:
           version = json.loads(pathlib.Path('package.json').read_text())['version']
           with zipfile.ZipFile(f'ClawMetrics-v{version}.zip') as package:
               assert package.testzip() is None
-              for name in ('main.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt'):
+              for name in ('main.py', 'diagnostics.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt'):
                   assert f'ClawMetrics/{name}' in package.namelist(), name
               assert json.loads(package.read('ClawMetrics/package.json'))['version'] == version
               assert f'v{version}' in package.read('ClawMetrics/dist/index.js').decode()

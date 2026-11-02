@@ -1,3 +1,4 @@
+import {SessionDiagnostics} from "./SessionDiagnostics";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
@@ -47,8 +48,9 @@ export function AdvancedCard({vm}:{vm:Core.ClawController}) {
           description={updateFallback} /></PanelSectionRow>}
 
           </ControlGroup>
-          <ControlGroup title="Diagnostics" summary="TDP sensor · renderer · configuration"
+          <ControlGroup title="Diagnostics" summary="Session recorder · TDP · renderer"
             open={advancedPanel==="diagnostics"} onToggle={()=>toggleAdvancedPanel("diagnostics")}>
+        <SessionDiagnostics ready={ready}/>
         <PanelSectionRow><Field label="TDP limit (read-only)" description="Read-only TDP limit from the active profile. Panel de Control still manages TDP." /></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below" onClick={() => { void verifyTdp(); }}>
           Check TDP sensor

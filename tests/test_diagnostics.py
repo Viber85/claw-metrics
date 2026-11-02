@@ -1,0 +1,128 @@
+import asyncio
+import json
+import pathlib
+import tempfile
+import unittest
+import zipfile
+from unittest.mock import patch
+
+from diagnostics import SessionRecorder, redact, MAX_BYTES
+
+
+class RecorderTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.base = pathlib.Path(self.temp.name) / '.config' / 'ClawMetrics'
+        self.recorder = SessionRecorder(self.base, 'test', lambda: {'enabled': True}, lambda: '123')
+
+    async def asyncTearDown(self):
+        await self.recorder.stop()
+        self.temp.cleanup()
+
+    async def test_start_stop_and_durable_first_sample(self):
+        status = await self.recorder.start()
+        self.assertTrue(status['recording'])
+        await self.recorder.start()  # idempotent
+        self.assertEqual(len(self.recorder.status()['sessions']), 1)
+        meta = json.loads((self.recorder.current / 'session.json').read_text())
+        self.assertEqual(meta['samples'], 1)
+        self.assertIn('game_id', (self.recorder.current / 'telemetry.csv').read_text())
+        await self.recorder.stop()
+        self.assertEqual(self.recorder.status()['sessions'][0]['state'], 'stopped')
+        recovered = SessionRecorder(self.base, 'test', lambda: {}, lambda: None)
+        self.assertEqual(recovered.status()['sessions'][0]['state'], 'stopped')
+
+    async def test_recovery_only_marks_unclean_end(self):
+        await self.recorder.start()
+        await self.recorder.stop()
+        path = self.recorder.current / 'session.json'
+        meta = json.loads(path.read_text())
+        meta['state'] = 'recording'  # persisted state left by a killed process
+        path.write_text(json.dumps(meta))
+        recovered = SessionRecorder(self.base, 'test', lambda: {}, lambda: None)
+        self.assertEqual(recovered.status()['sessions'][0]['state'], 'interrupted')
+        self.assertIn('Cause unknown', json.loads(path.read_text())['recovery_note'])
+
+    async def test_report_uses_session_boot_and_time_window(self):
+        await self.recorder.start()
+        await self.recorder.stop()
+        with patch('diagnostics.command', return_value='amdgpu timeout\ndecky error\n') as cmd:
+            result = self.recorder.export(self.recorder.current.name)
+        args = cmd.call_args.args[0]
+        self.assertIn(self.recorder.boot_id, args)
+        self.assertIn('--since', args)
+        self.assertIn('--until', args)
+        with zipfile.ZipFile(result['path']) as report:
+            self.assertIsNone(report.testzip())
+            self.assertEqual(len(report.namelist()), 6)
+            self.assertIn(b'amdgpu timeout', report.read('gpu-errors.log'))
+            self.assertIn(b'decky error', report.read('decky.log'))
+        self.assertEqual(pathlib.Path(result['path']).stat().st_mode & 0o777, 0o600)
+        with self.assertRaises(ValueError):
+            self.recorder.export('../../settings.json')
+
+    async def test_limit_preserves_evidence_and_retention(self):
+        # Exported ZIPs share the session prefix but must not count as directories.
+        (self.recorder.root / 'session-20000101T000000Z-aaaaaaaa-CrashReport.zip').write_bytes(b'zip')
+        for _ in range(6):
+            await self.recorder.start()
+            await self.recorder.stop()
+        self.assertEqual(len(self.recorder.status()['sessions']), 5)
+        with (self.recorder.current / 'telemetry.csv').open('ab') as stream:
+            stream.truncate(MAX_BYTES)
+        self.assertFalse(self.recorder._sample())
+        self.assertEqual(self.recorder.meta['state'], 'size_limit')
+
+    def test_redaction(self):
+        value = redact('/home/ivo/game token=abc password:xyz 192.168.1.1')
+        self.assertNotIn('ivo', value)
+        self.assertNotIn('abc', value)
+        self.assertNotIn('xyz', value)
+        self.assertNotIn('192.168.1.1', value)
+
+
+class OverlayDetectionTests(unittest.TestCase):
+    def test_exact_library_only_and_deleted_mapping(self):
+        from diagnostics import overlay_loaded
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            process = root / '123'
+            process.mkdir()
+            maps = process / 'maps'
+            maps.write_text('100-200 r-xp 0 00:00 0 /plugin/native64/libMangoHud.so.other\n')
+            self.assertFalse(overlay_loaded('/plugin/native64/libMangoHud.so', root))
+            maps.write_text('100-200 r-xp 0 00:00 0 /plugin/native64/libMangoHud.so (deleted)\n')
+            self.assertTrue(overlay_loaded('/plugin/native64/libMangoHud.so', root))
+
+
+class AutomaticLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_detection_debounce_manual_pause_and_reload(self):
+        from diagnostics import OverlayRecording
+        from unittest.mock import AsyncMock, Mock
+        recorder = Mock()
+        recorder.status.return_value = {'recording': False}
+        recorder.start = AsyncMock()
+        recorder.stop = AsyncMock()
+        control = OverlayRecording(recorder)
+        await control.update(False)
+        recorder.start.assert_not_awaited()
+        await control.update(True)
+        recorder.start.assert_awaited_once()
+        await control.update(True)  # no repeated starts even after limit/error
+        recorder.start.assert_awaited_once()
+        await control.update(False)
+        await control.update(False)
+        await control.update(None)  # inaccessible /proc must not close a session
+        recorder.stop.assert_not_awaited()
+        for _ in range(3):
+            await control.update(False)
+        recorder.stop.assert_awaited_once_with('overlay_unloaded')
+        await control.update(True)
+        self.assertEqual(recorder.start.await_count, 2)
+        await control.manual(False)
+        await control.update(True)
+        self.assertEqual(recorder.start.await_count, 2)
+        for _ in range(3):
+            await control.update(False)
+        await control.update(True)
+        self.assertEqual(recorder.start.await_count, 3)
