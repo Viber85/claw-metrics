@@ -57,46 +57,48 @@ function Content(){
           min-width: 0 !important; max-width: 100%; box-sizing: border-box;
         }
         .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
-         /* Steam SliderField may reserve full-screen track width even in an inset card.
-           Limit the actual native slider and all of its flex ancestors, not just
-           a decorative wrapper. Preserve the full interactive range. */
+         /* Each Layout slider uses exactly the available inset card width.
+            Separate value/label columns prevent SteamOS showValue ellipses. */
          [data-section="layout"] .claw-control-group,
          [data-section="layout"] .claw-control-group > div:last-child {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
          }
          [data-section="layout"] .claw-layout-slider {
-           display: block;
-           width: min(330px, calc(100% - 18px)) !important;
-           max-width: calc(100% - 18px) !important;
+           display: block; width: 100% !important; max-width: 100% !important;
            min-width: 0 !important; box-sizing: border-box !important;
-           margin: 2px 9px 9px !important;
-           padding: 0 20px 0 0 !important;
+           margin: 2px 0 8px !important; padding: 0 10px 0 2px !important;
          }
-         [data-section="layout"] .claw-layout-slider *,
-         [data-section="layout"] .claw-layout-slider *::before,
-         [data-section="layout"] .claw-layout-slider *::after {
-           box-sizing: border-box !important;
+         [data-section="layout"] .claw-slider-control,
+         [data-section="layout"] .claw-slider-native {
+           display: block; width: 100%; max-width: 100%;
+           min-width: 0; box-sizing: border-box;
          }
-         [data-section="layout"] .claw-layout-slider *,
-         [data-section="layout"] .claw-layout-slider > * {
-           min-width: 0 !important; max-width: 100% !important;
+         [data-section="layout"] .claw-slider-heading {
+           display: grid; width: 100%; max-width: 100%; min-width: 0;
+           grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);
+           column-gap: 10px; align-items: start; box-sizing: border-box;
+           padding: 0 2px 3px 0;
          }
-         [data-section="layout"] .claw-layout-slider > * {
-           width: 100% !important; flex: 1 1 auto !important;
+         [data-section="layout"] .claw-slider-label {
+           min-width: 0; overflow-wrap: anywhere;
+           white-space: normal; line-height: 1.25;
          }
-         [data-section="layout"] .claw-layout-slider :is(
-           [class*="DialogSlider"], [class*="SliderRoot"],
-           [class*="SliderTrack"], [class*="sliderTrack"],
-           [class*="SliderField"], input[type="range"]
+         [data-section="layout"] .claw-slider-number {
+           min-width: 48px; text-align: right; white-space: nowrap;
+           overflow: visible; text-overflow: clip;
+           font-variant-numeric: tabular-nums;
+         }
+         [data-section="layout"] .claw-slider-native > *,
+         [data-section="layout"] .claw-slider-native :is(
+           [class*="DialogSlider"], [class*="SliderControl"],
+           [class*="SliderRoot"], [class*="SliderTrack"],
+           [class*="sliderTrack"], [class*="SliderField"], input[type="range"]
          ) {
            min-width: 0 !important; max-width: 100% !important;
-           width: 100% !important; flex-shrink: 1 !important;
+           box-sizing: border-box !important; flex-shrink: 1 !important;
          }
-         [data-section="layout"] .claw-layout-slider :is(
-           [class*="Label"], [class*="label"]
-         ) { overflow-wrap: anywhere; }
-         [data-section="layout"] .claw-layout-slider input {
-           min-width: 0 !important; max-width: 100% !important;
+         [data-section="layout"] .claw-slider-native > * {
+           width: 100% !important;
          }
 
          .claw-style-tiles .style-group-icon {
@@ -255,7 +257,7 @@ function Content(){
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.58">
+      <PanelSection title="Claw Metrics · v0.2.4-test.59">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",

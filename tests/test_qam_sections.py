@@ -719,20 +719,22 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("connectionAttempt.current", SOURCE)
         self.assertIn("Do not delete saved Claw Metrics settings.", SOURCE)
 
-    def test_layout_nested_sliders_are_bounded_inside_cards(self):
-        self.assertIn('className="claw-layout-slider"', SOURCE)
-        self.assertEqual(SOURCE.count('className="claw-layout-slider"'), 15)
-        self.assertIn('width: min(330px, calc(100% - 18px)) !important;', SOURCE)
-        self.assertIn('max-width: calc(100% - 18px) !important;', SOURCE)
-        self.assertIn('padding: 0 20px 0 0 !important;', SOURCE)
-        self.assertIn('class*="SliderTrack"', SOURCE)
-        self.assertIn('width: 100% !important;', SOURCE)
-        self.assertIn('[data-section="layout"] .claw-layout-slider', SOURCE)
-        self.assertIn('[class*="DialogSlider"]', SOURCE)
-        self.assertIn('max-width: 100% !important;', SOURCE)
-        # Still use SteamOS native SliderField for D-pad and numeric editing.
-        self.assertIn('<SliderField label="Frametime graph width (px)"', SOURCE)
-        self.assertIn('<SliderField label="Vertical padding (px)"', SOURCE)
+    def test_layout_sliders_fit_panel_and_never_ellipsize_values(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        component = (root / "src/components/LayoutSliderField.tsx").read_text()
+        layout = (root / "src/pages/LayoutCard.tsx").read_text()
+        self.assertEqual(layout.count('className="claw-layout-slider"'), 15)
+        self.assertEqual(layout.count('<LayoutSliderField'), 15)
+        self.assertNotIn('<SliderField', layout)
+        self.assertIn('<SliderField {...props} label="" showValue={false}/>', component)
+        self.assertIn('<output className="claw-slider-number">{String(props.value)}</output>', component)
+        self.assertIn('grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);', SOURCE)
+        self.assertIn('text-overflow: clip;', SOURCE)
+        self.assertIn('padding: 0 10px 0 2px !important;', SOURCE)
+        self.assertIn('width: 100% !important; max-width: 100% !important;', SOURCE)
+        self.assertNotIn('width: min(330px, calc(100% - 18px))', SOURCE)
+        self.assertIn('<LayoutSliderField label="Frametime graph width (px)"', SOURCE)
+        self.assertIn('<LayoutSliderField label="Vertical padding (px)"', SOURCE)
 
     def test_appearance_editor_token_rows_are_compact_and_accessible(self):
         self.assertIn('className="claw-token-card"', SOURCE)

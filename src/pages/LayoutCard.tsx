@@ -9,7 +9,6 @@ import {
   Field,
   PanelSection,
   PanelSectionRow,
-  SliderField,
   TextField,
   Router,
   ToggleField,
@@ -19,6 +18,7 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
+import {LayoutSliderField} from "../components/LayoutSliderField";
 
 
 const { hudPositions, GraphStyleIcon, graphStyleChoices, GamepadGrid, defaults, AccordionCard, ControlGroup } = Core;
@@ -86,11 +86,11 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             </Focusable>
           )}
         </Focusable>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="X offset (px)"
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="X offset (px)"
           value={settings.offset_x} min={-1920} max={1920} step={1} showValue
           disabled={!ready || settings.hud_position.endsWith("center")}
           onChange={(value:number)=>update({offset_x:value})}/></div></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Y offset (px)" value={settings.offset_y}
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Y offset (px)" value={settings.offset_y}
            min={-1200} max={1200} step={1} showValue disabled={!ready}
            onChange={value=>update({offset_y:value})}/></div></PanelSectionRow>
         <PanelSectionRow><ButtonItem disabled={!ready} layout="below"
@@ -101,7 +101,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             open={layoutPanel==="size"} onToggle={()=>toggleLayoutPanel("size")}>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
           ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
-          <PanelSectionRow key={key}><div className="claw-layout-slider"><SliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
+          <PanelSectionRow key={key}><div className="claw-layout-slider"><LayoutSliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></div></PanelSectionRow>)}
 
         {settings.hud_orientation==="vertical" && <>
@@ -109,7 +109,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             checked={settings.vertical_width===0} disabled={!ready}
             onChange={(enabled:boolean)=>update({vertical_width:enabled?0:240})}/></PanelSectionRow>
           {settings.vertical_width>0 && <PanelSectionRow>
-            <div className="claw-layout-slider"><SliderField label="Vertical HUD width (px)"
+            <div className="claw-layout-slider"><LayoutSliderField label="Vertical HUD width (px)"
               value={settings.vertical_width} min={160} max={420} step={10} showValue disabled={!ready}
               onChange={(value:number)=>update({vertical_width:value})}/></div>
           </PanelSectionRow>}
@@ -118,7 +118,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         </>}
         <PanelSectionRow><Field label="FPS value scale"
           description="Scales the FPS number only. In Vertical, the FPS header expands without changing CPU/GPU text size." /></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label={"FPS scale · "+settings.fps_scale+"%"}
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label={"FPS scale · "+settings.fps_scale+"%"}
           value={settings.fps_scale} min={100} max={200} step={10} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value:number)=>update({fps_scale:value})}/></div></PanelSectionRow>
@@ -139,31 +139,31 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           </ControlGroup>
           <ControlGroup title="Spacing" summary="Padding · element and column gaps"
             open={layoutPanel==="spacing"} onToggle={()=>toggleLayoutPanel("spacing")}>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical padding (px)"
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical padding (px)"
           value={settings.padding_y} min={0} max={24} step={1} showValue disabled={!ready}
           onChange={v=>update({padding_y:v})}/></div></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Horizontal padding (px)"
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Horizontal padding (px)"
           value={settings.padding_x} min={0} max={24} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={v=>update({padding_x:v})}/></div></PanelSectionRow>
         <PanelSectionRow><Field label="Element spacing" description={info?.layout_spacing_supported
           ? "Custom Claw renderer is available. Restart the game to apply spacing changes."
           : "The custom renderer is unavailable. Spacing controls are disabled."} /></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Element gap (px)" value={settings.element_gap} min={0} max={20} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({element_gap: value})} /></div></PanelSectionRow>
-        <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
+        <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Column padding (px)" value={settings.table_gap} min={0} max={12} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({table_gap: value})} /></div></PanelSectionRow>
         <PanelSectionRow><ToggleField label="Even spacing across inline metrics"
           checked={settings.inline_metrics} disabled={!ready || !info?.layout_spacing_supported || settings.hud_orientation==="vertical"}
           onChange={(v: boolean) => update({inline_metrics: v})} /></PanelSectionRow>
-        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
+        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Within-group gap (px)" value={settings.inner_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported || !settings.inline_metrics}
           onChange={(value: number) => update({inner_gap: value})} /></div></PanelSectionRow>
-        : <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Metric value gap (px)" value={settings.vertical_value_gap} min={0} max={16} step={1} showValue
+        : <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Metric value gap (px)" value={settings.vertical_value_gap} min={0} max={16} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value: number) => update({vertical_value_gap: value})} /></div></PanelSectionRow>}
         {settings.hud_orientation==="vertical" && <>
-          <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical category gap (px)"
+          <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical category gap (px)"
             value={settings.vertical_category_gap} min={0} max={20} step={1} showValue
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_category_gap:value})}/></div></PanelSectionRow>
@@ -199,17 +199,17 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
               </span>
             </DialogButton>;
           }}/>
-        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
+        {settings.hud_orientation==="horizontal" ? <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Frametime graph width (px)" value={settings.graph_width} min={80} max={200} step={5} showValue
           disabled={!ready || !info?.layout_spacing_supported} onChange={(value: number) => update({graph_width: value})} /></div></PanelSectionRow>
         : <>
           <PanelSectionRow><ToggleField label="Automatic graph width"
             checked={settings.vertical_graph_width===0} disabled={!ready || !info?.layout_spacing_supported}
             onChange={(enabled:boolean)=>update({vertical_graph_width:enabled?0:200})}/></PanelSectionRow>
-          {settings.vertical_graph_width>0 && <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical graph width (px)"
+          {settings.vertical_graph_width>0 && <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical graph width (px)"
             value={settings.vertical_graph_width} min={80} max={420} step={5} showValue
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_graph_width:value})}/></div></PanelSectionRow>}
-          <PanelSectionRow><div className="claw-layout-slider"><SliderField label="Vertical graph height (px)"
+          <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical graph height (px)"
             value={settings.vertical_graph_height} min={16} max={120} step={2} showValue
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_graph_height:value})}/></div></PanelSectionRow>

@@ -1,3 +1,25 @@
+# Claw Metrics v0.2.4-test.59 — QAM slider width fix
+
+Fixes the truncated numeric values and labels in Layout's Size & appearance,
+Spacing, Position and Frametime graph cards. All 15 sliders have a shared
+reusable, responsive wrapper with a dedicated label/value heading.
+
+- Current numeric values always render in a 48px-minimum column instead of
+  SteamOS's ellipsized inline label/value layout.
+- Long titles wrap inside their own flexible column.
+- The slider track uses the actual width of the inset card. The previous
+  arbitrary 330px cap and overlapping margin are removed.
+- Native SteamOS SliderField remains for D-pad focus, value adjustment,
+  min/max and disabled states. Thumbs are not hidden or clipped.
+- No changes to MangoHud, overlay rendering, graph styles or stored settings.
+
+On-device test: open Layout > Size & appearance / Spacing, confirm full
+numbers at minimum and maximum on Text size, Background opacity,
+Vertical HUD width, Metric value gap and Vertical category gap. Verify
+D-pad adjustment and maximum thumb position without clipping.
+
+---
+
 # Claw Metrics v0.2.4-test.58 — Smooth Curve & Dual Layer (native Vertical)
 
 Adds two true native frametime renderer styles with their own icons and
