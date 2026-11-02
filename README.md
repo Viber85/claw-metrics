@@ -812,3 +812,13 @@ fixed inline control column wider than a nested card. Control-group widths and
 box sizing are constrained consistently. The frontend test checks that API
 contract and endpoint callbacks; actual SteamOS control geometry/navigation
 still requires device verification.
+
+### test.70: one report export action
+
+Diagnostics shows a single **Export Crash Report** button plus the date, state
+and sample count of the latest ended session. A currently recording session is
+excluded; the prior ended session can still be exported while a new game runs.
+The status list is refreshed immediately before export to pick the latest
+available session. Older sessions remain retained on disk without repeating
+export buttons. If only the first active recording exists, stop it before
+exporting. Recording, retention and report contents are unchanged.
