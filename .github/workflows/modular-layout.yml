@@ -5,10 +5,11 @@ on:
   pull_request:
     paths:
       - 'experiments/modular/**'
-      - 'experiments/native/claw_modular_layout.h'
+      - 'experiments/native/claw_modular*.h'
       - 'tests/test_modular_schema.py'
       - 'tests/native_modular_layout.cpp'
-      - 'tools/check_modular_layout.py'
+      - 'tools/check_modular*.py'
+      - 'tools/modular_imgui_probe.cpp'
       - '.github/workflows/modular-layout.yml'
 jobs:
   geometry:
@@ -20,3 +21,9 @@ jobs:
           python-version: '3.12'
       - run: python -m unittest discover -s tests
       - run: python tools/check_modular_layout.py
+      - run: pip install numpy pillow
+      - run: python tools/check_modular_imgui.py --render-dir modular-fixtures
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modular-imgui-fixtures
+          path: modular-fixtures/
