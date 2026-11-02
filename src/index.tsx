@@ -58,7 +58,8 @@ function Content(){
         }
         .claw-tiles button { white-space: normal !important; overflow-wrap: anywhere; }
          /* Each Layout slider uses exactly the available inset card width.
-            Separate value/label columns prevent SteamOS showValue ellipses. */
+            A safe inset keeps headings, values and both thumb endpoints away
+            from Decky's card edges. No clipping or fixed pixel track width. */
          [data-section="layout"] .claw-control-group,
          [data-section="layout"] .claw-control-group > div:last-child {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
@@ -66,7 +67,7 @@ function Content(){
          [data-section="layout"] .claw-layout-slider {
            display: block; width: 100% !important; max-width: 100% !important;
            min-width: 0 !important; box-sizing: border-box !important;
-           margin: 2px 0 8px !important; padding: 0 10px 0 2px !important;
+           margin: 2px 0 8px !important; padding: 0 14px 0 10px !important;
          }
          [data-section="layout"] .claw-slider-control,
          [data-section="layout"] .claw-slider-native {
@@ -76,8 +77,8 @@ function Content(){
          [data-section="layout"] .claw-slider-heading {
            display: grid; width: 100%; max-width: 100%; min-width: 0;
            grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);
-           column-gap: 10px; align-items: start; box-sizing: border-box;
-           padding: 0 2px 3px 0;
+           column-gap: 10px; align-items: baseline; box-sizing: border-box;
+           padding: 0 0 4px 0;
          }
          [data-section="layout"] .claw-slider-label {
            min-width: 0; overflow-wrap: anywhere;
@@ -257,7 +258,7 @@ function Content(){
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.59">
+      <PanelSection title="Claw Metrics · v0.2.4-test.60">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",

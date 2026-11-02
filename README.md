@@ -1,3 +1,25 @@
+# Claw Metrics v0.2.4-test.60 — Layout slider safe margins
+
+Finishes the sizing improvement from test.59 for Decky's narrow Quick Access
+Menu. Every Layout slider now has **10px internal left padding and 14px
+internal right padding**, measured inside a responsive border-box wrapper.
+The slider width automatically shrinks to the remaining inner space. No
+fixed track width, negative margins or clipping are added.
+
+The label and value align on their first text baseline; long labels still
+wrap and numeric values remain fully visible. The native SteamOS SliderField
+keeps its normal thumb range, controller focus and stepping behavior.
+
+Changes are confined to Layout's UI CSS. No changes to MangoHud, Horizontal
+or Vertical rendering, metric settings, graphs or stored styles.
+
+Verify Layout → Size & appearance and Layout → Spacing on MSI Claw,
+especially the leftmost and rightmost thumb position at the extremes.
+The label, entire track, slider thumb and value should stay inside the
+rounded card and have a comfortable visual gap from each side.
+
+---
+
 # Claw Metrics v0.2.4-test.59 — QAM slider width fix
 
 Fixes the truncated numeric values and labels in Layout's Size & appearance,

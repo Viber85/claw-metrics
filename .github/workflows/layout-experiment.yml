@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/qam-slider-width-59]
+    branches: [test/qam-slider-padding-60]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.59
+  group: claw-metrics-v0.2.4-test.60
   cancel-in-progress: true
 
 jobs:
@@ -187,7 +187,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.59.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.60.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -203,19 +203,19 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.59', package['version']
+              assert package['version'] == '0.2.4-test.60', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.59
-          path: ClawMetrics-v0.2.4-test.59.zip
+          name: ClawMetrics-v0.2.4-test.60
+          path: ClawMetrics-v0.2.4-test.60.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.4-test.59 --yes --cleanup-tag || true
-          gh release create v0.2.4-test.59 ClawMetrics-v0.2.4-test.59.zip \
+          gh release delete v0.2.4-test.60 --yes --cleanup-tag || true
+          gh release create v0.2.4-test.60 ClawMetrics-v0.2.4-test.60.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.59 – QAM Slider Width & Value Visibility" \
-            --notes "All 15 Layout sliders fit actual inset Decky card width with independent, never-truncated numeric labels. Native SliderField remains controller-accessible. No MangoHud behavior change."
+            --title "Claw Metrics v0.2.4-test.60 – QAM Slider Safe Insets" \
+            --notes "UI-only: 10px left and 14px right safe padding inside each of the 15 responsive Layout slider wrappers. Full numeric value stays visible, no clipping of SteamOS slider thumbs. Native MangoHud and saved settings untouched."
