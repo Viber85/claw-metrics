@@ -194,9 +194,9 @@ class TdpReadOnlyTests(unittest.TestCase):
                 self.assertEqual(main.tdp_text(d, 25), "LIMIT 25W")
                 self.assertEqual(main.tdp_text(d, None), "LIMIT --")
                 options = dict(x.split("=", 1) for x in cfg.splitlines() if "=" in x)
-                self.assertEqual(len(options["claw_weight_map"]), 28)
-                self.assertEqual(options["claw_weight_map"][-1], "3")
-                self.assertEqual(options["claw_color_map"].split(":")[-1], "ABCD12")
+                self.assertEqual(len(options["claw_weight_map"]), 32)
+                self.assertEqual(options["claw_weight_map"][main.TOKEN_SLOTS.index("tdp.value")], "3")
+                self.assertEqual(options["claw_color_map"].split(":")[main.TOKEN_SLOTS.index("tdp.value")], "ABCD12")
                 self.assertEqual(options["claw_color_map"].split(":")[25], "112233")
 
     def test_old_settings_migrate_tdp_near_draw_without_enabling(self):

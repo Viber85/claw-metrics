@@ -25,7 +25,7 @@ const { GamepadGrid, groupIcons, order, groups, AccordionCard } = Core;
 
 /** Standalone metrics presentation; all mutable state is owned by the Decky controller. */
 export function MetricsCard({vm}:{vm:Core.ClawController}) {
-  const { settings, expanded, openSection, toggleSection, expandMetric, ready, update, renameMetric, named, related, move, metric, visible, hidden, smallButton } = vm;
+  const { info, settings, expanded, openSection, toggleSection, expandMetric, ready, update, renameMetric, named, related, move, metric, visible, hidden, smallButton } = vm;
   return (
 <AccordionCard id="metrics" title="Metrics" subtitle="Displayed metrics and their order"
           icon={<FaChartBar />} open={openSection === "metrics"} onToggle={() => toggleSection("metrics")}>
@@ -82,7 +82,7 @@ export function MetricsCard({vm}:{vm:Core.ClawController}) {
               <span style={{fontSize:11,color:"#4acbff"}}>Always on</span>
             </Field>}
             {group.metrics.map(([id,label])=><ToggleField key={id} label={related(label)}
-              checked={settings.metrics[id]} disabled={!ready}
+              checked={settings.metrics[id]} disabled={!ready || (["fps_average","fps_low1","ram_game","ram_swap"].includes(id) && !info?.layout_spacing_supported)}
               onChange={(checked:boolean)=>metric(id,checked)}/>)}
             {group.note && <div style={{fontSize:11,lineHeight:1.4,color:"#a6b6c6",marginTop:8}}>
               {related(group.note)}

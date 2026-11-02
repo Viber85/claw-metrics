@@ -81,13 +81,13 @@ export {GamepadGrid} from "./components/GamepadGrid";
 
 export type WeightSelection = "inherit" | FontWeight;
 export type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
-export type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value";
+export type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value" | "fps.average" | "fps.low1" | "ram.game" | "ram.swap";
 export type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
 export const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
-  fps: [{key:"fps.label", label:"FPS label", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS value", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}],
+  fps: [{key:"fps.label", label:"FPS label", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS value", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}, {key:"fps.average",label:"Average FPS",defaultColor:"text"}, {key:"fps.low1",label:"1% low FPS",defaultColor:"text"}],
   cpu: [{key:"cpu.label", label:"CPU label", defaultColor:"cpu"}, {key:"cpu.load", label:"Load (%)", defaultColor:"text"}, {key:"cpu.temp", label:"Temperature (°C)", defaultColor:"text"}, {key:"cpu.clock", label:"Clock (MHz)", defaultColor:"text"}, {key:"cpu.power", label:"Power (W)", defaultColor:"text"}],
   gpu: [{key:"gpu.label", label:"GPU label", defaultColor:"gpu"}, {key:"gpu.load", label:"Load (%)", defaultColor:"text"}, {key:"gpu.temp", label:"Temperature (°C)", defaultColor:"text"}, {key:"gpu.clock", label:"Clock (MHz)", defaultColor:"text"}, {key:"gpu.power", label:"Power (W)", defaultColor:"text"}, {key:"gpu.junction", label:"Junction temperature", defaultColor:"text"}, {key:"gpu.fan", label:"Fan speed", defaultColor:"text"}, {key:"gpu.voltage", label:"Voltage", defaultColor:"text"}],
-  ram: [{key:"ram.label", label:"RAM label", defaultColor:"ram"}, {key:"ram.value", label:"Usage (GiB)", defaultColor:"text"}],
+  ram: [{key:"ram.label", label:"RAM label", defaultColor:"ram"}, {key:"ram.value", label:"Usage (GiB)", defaultColor:"text"}, {key:"ram.game",label:"Game RAM (GiB)",defaultColor:"text"}, {key:"ram.swap",label:"SWAP (GiB)",defaultColor:"text"}],
   vram: [{key:"vram.label", label:"VRAM label", defaultColor:"vram"}, {key:"vram.value", label:"Usage (GiB)", defaultColor:"text"}, {key:"vram.temp", label:"Memory temperature", defaultColor:"text"}, {key:"vram.clock", label:"Memory clock", defaultColor:"text"}],
   battery: [{key:"battery.label", label:"Battery label", defaultColor:"battery"}, {key:"battery.value", label:"Battery (%) / icon", defaultColor:"text"}, {key:"battery.time", label:"Remaining time", defaultColor:"text"}],
   time: [{key:"time.value", label:"Clock", defaultColor:"time"}],
@@ -247,11 +247,11 @@ export type Settings = Record<Group, boolean> & {
 };
 export const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"];
 export const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
-  fps: {label: "FPS", color: "#30e5a0", metrics: [], always: "FPS", note: "The base font size is shared by the FPS label and other values."},
+  fps: {label: "FPS", color: "#30e5a0", metrics: [["fps_average","Average FPS"],["fps_low1","1% low FPS"]], always: "FPS", note: "Average and 1% low use the last 60 seconds (up to 30,000 frames). 1% low is based on the mean frametime of the slowest 1%; needs 100 samples. Native Claw renderer required."},
   frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "The ms value follows the FPS block. Enable FPS to display milliseconds."},
   gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock and temperature appear in the VRAM block. Other sensors depend on Z2 Extreme hardware support."},
   cpu: {label: "CPU", color: "#37c9ef", always: "CPU load", metrics: [["cpu_temp", "CPU temp"], ["cpu_mhz", "CPU clock"], ["cpu_power", "CPU watts"]]},
-  ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: []},
+  ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: [["ram_game","Game RAM"],["ram_swap","SWAP"]], note: "Game RAM is the resident memory of the game process, not all Proton processes. SWAP is system-wide. Native Claw renderer required."},
   vram: {label: "VRAM", color: "#d76ab8", always: "VRAM usage", metrics: [], note: "VRAM readings use the GPU data source. Enable GPU as well."},
   battery: {label: "Battery", color: "#30e5a0", always: "Battery level", metrics: [["battery_icon", "Battery icon (replaces %)"], ["battery_time", "Remaining time"]], note: "Battery icon and percentage are alternative display formats."},
   tdp: {label: "TDP", color: "#ffbd69", metrics: [], always: "Configured TDP limit", note: "Read-only: RyzenAdj STAPM or MSI firmware PL1. Displays TDP -- when unavailable; does not control power."},
@@ -283,7 +283,7 @@ export const defaults: Settings = {
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
   inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
-  metrics: {fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
+  metrics: {fps_average:false, fps_low1:false, ram_game:false, ram_swap:false, fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
     battery_icon: false, battery_time: true},

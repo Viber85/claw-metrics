@@ -37,13 +37,14 @@ COLORS = {
 
 METRICS = {
     "fps_ms": True, "graph": True,
+    "fps_average": False, "fps_low1": False, "ram_game": False, "ram_swap": False,
     "cpu_temp": True, "cpu_mhz": True, "cpu_power": True,
     "gpu_temp": True, "gpu_junction_temp": False, "gpu_core_clock": True,
     "gpu_mem_clock": False, "gpu_mem_temp": False, "gpu_power": True,
     "gpu_fan": False, "gpu_voltage": False,
     "battery_icon": False, "battery_time": True,
 }
-TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value"]
+TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value","fps.average","fps.low1","ram.game","ram.swap"]
 FONT_WEIGHTS = ("inherit", "light", "regular", "semibold", "bold")
 FONT_DIGITS = {name: str(index) for index, name in enumerate(FONT_WEIGHTS)}
 
@@ -891,6 +892,10 @@ def mango_config(settings, native_spacing=False):
             "claw_vertical_graph_width=" + str(d["vertical_graph_width"]),
             "claw_vertical_graph_height=" + str(d["vertical_graph_height"]),
             "claw_inline_metrics=" + str(int(d["inline_metrics"] if is_horizontal else True)),
+            flag("claw_fps_average", active("fps") and m["fps_average"]),
+            flag("claw_fps_low1", active("fps") and m["fps_low1"]),
+            flag("claw_ram_game", active("ram") and m["ram_game"]),
+            flag("swap", active("ram") and m["ram_swap"]),
             "claw_vertical_stack=" + str(int(not is_horizontal)),
             "claw_fps_bold=" + str(int(d["fps_bold"])),
             "claw_fps_scale=" + str(d["fps_scale"]),

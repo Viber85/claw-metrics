@@ -20,7 +20,7 @@ export function styleLayoutFrom(value:any){
  return result;
 }
 export const styleGroupKeys = ['fps','frametime','cpu','gpu','ram','vram','battery','tdp','draw','time'] as const;
-export const styleMetricKeys = ['fps_ms','graph','cpu_temp','cpu_mhz','cpu_power','gpu_temp','gpu_junction_temp','gpu_core_clock','gpu_mem_clock','gpu_mem_temp','gpu_power','gpu_fan','gpu_voltage','battery_icon','battery_time'] as const;
+export const styleMetricKeys = ['fps_average','fps_low1','ram_game','ram_swap','fps_ms','graph','cpu_temp','cpu_mhz','cpu_power','gpu_temp','gpu_junction_temp','gpu_core_clock','gpu_mem_clock','gpu_mem_temp','gpu_power','gpu_fan','gpu_voltage','battery_icon','battery_time'] as const;
 
 // Only boolean values and known IDs are restored. An older style that has no
 // groups/metrics fields must NOT unexpectedly reset a user's metric choices.

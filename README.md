@@ -760,3 +760,24 @@ or prove the cause of the reported game crash. Device confirmation remains neede
 Journal export normalizes stored UUID boot IDs to 32 hexadecimal characters.
 Reports now include journal success/exit status and mark filtered logs unavailable
 when collection fails, rather than incorrectly suggesting there were no errors.
+
+### test.64: additional FPS and memory readings
+
+In **Metrics → FPS**, enable **Average FPS** and **1% low FPS**. Statistics use
+presented frame times in a rolling 60-second window, capped at 30,000 frames per
+swapchain. Average FPS is frame count divided by total frame time; 1% low is the
+reciprocal of the mean duration of the slowest ceil(1% × frame count) frames.
+The low value shows `--` until 100 samples exist and recalculates at most twice
+per second. Long stalls remain included. Counters restart with a new swapchain
+or after both FPS statistics are disabled. These are presented-frame statistics,
+not a measurement of input latency or a separate count of generated frames.
+
+In **Metrics → RAM**, enable **Game RAM** and **SWAP**. GAME is the resident
+memory of the process hosting the injected overlay (GiB), not the total memory
+of every Wine/Proton process. SWAP is the system-wide used swap amount; zero is
+valid. A failed process-memory read shows `--`.
+
+All four are off by default, saved per style, and available in horizontal and
+vertical Claw layouts. Individual colors and font weights are under Colors &
+Font → FPS/RAM. The options require the bundled native renderer; the stock
+fallback stays unchanged. The primary FPS number alone retains FPS scaling.

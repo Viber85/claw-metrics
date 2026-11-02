@@ -93,3 +93,13 @@ assert.equal(styleModified({...legacy,vertical_value_gap:12},{...live,vertical_v
 assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:280}),false);
 assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:300}),true);
 console.log("Style metric snapshots: save, restore, old styles, dirty state and invalid toggles passed");
+
+// New optional metrics must survive both style slots without affecting legacy slots.
+const extraKeys=['fps_average','fps_low1','ram_game','ram_swap'];
+const extraLive={...current,metrics:{...current.metrics,...Object.fromEntries(extraKeys.map(k=>[k,true]))}};
+const extraStyle=plain(styleMetricSnapshotFrom(extraLive));
+for(const key of extraKeys)assert.equal(extraStyle.metrics[key],true);
+const extraRestore=plain(styleMetricUpdatesFrom(extraStyle,{...extraLive,metrics:{}}));
+for(const key of extraKeys)assert.equal(extraRestore.metrics[key],true);
+const legacyRestore=plain(styleMetricUpdatesFrom(slot1,extraLive));
+for(const key of extraKeys)assert.equal(legacyRestore.metrics[key],true);
