@@ -1,0 +1,195 @@
+name: Modular Vulkan integration
+on:
+  push:
+    branches: [feature/modular-layout-v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Multiple rapid pushes must not race to overwrite the same test Release.
+concurrency:
+  group: claw-modular-native-integration
+  cancel-in-progress: true
+
+jobs:
+  layout-experiment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Bundle four licensed Barlow font weights in build artifact
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import urllib.request
+
+          revision = "89f5431ff0db41bd2fe3f7ba21a723a01622428b"
+          prefix = "https://raw.githubusercontent.com/google/fonts/" + revision + "/ofl/barlowsemicondensed/"
+          expected = {
+              "Light": "f7e0277904b0d7e560d5b178e0ad680d9a096cfd",
+              "Regular": "473604976bc07e69c0a8e6dca63e159fac54f5fe",
+              "SemiBold": "082c76327d21d663948c8ccd2271fa527bd0c145",
+              "Bold": "ee04b09e31e98d2509354d7003797ec6540e796f",
+          }
+          target = pathlib.Path("assets/fonts")
+          target.mkdir(parents=True, exist_ok=True)
+          for weight, digest in expected.items():
+              name = f"BarlowSemiCondensed-{weight}.ttf"
+              with urllib.request.urlopen(prefix + name, timeout=30) as r:
+                  data = r.read(220000)
+              actual = hashlib.sha1(b"blob " + str(len(data)).encode() + bytes([0]) + data).hexdigest()
+              assert actual == digest, f"Unexpected contents for {name}"
+              (target / name).write_bytes(data)
+              print("Verified", name, len(data), "bytes")
+          with urllib.request.urlopen(prefix + "OFL.txt", timeout=30) as r:
+              license_text = r.read(20000)
+          assert b"SIL OPEN FONT LICENSE" in license_text.upper()
+          (target / "OFL.txt").write_bytes(license_text)
+          print("Four font weights and OFL license bundled successfully")
+          PY
+      - name: Python tests
+        env:
+          CLAW_METRICS_SKIP_FONT_DOWNLOAD: "1"
+        run: python3 -m unittest discover -s tests
+      - name: Install Decky dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test frontend style persistence and responsive slider contract
+        run: |
+          node tests/style_presets.test.mjs
+          node tests/slider_field.test.mjs
+          node tests/session_reports.test.mjs
+      - name: Verify isolated Decky backend import
+        run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
+      - name: Type-check QAM
+        run: npm run typecheck
+      - name: Build QAM
+        run: npm run build
+      - name: Check original ImGui geometry
+        run: python3 tools/check_native_layout.py
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git g++ pkg-config meson ninja-build python3-mako \
+            libvulkan-dev glslang-tools libgl-dev libegl-dev \
+            libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
+            libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
+            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools xvfb xauth
+      - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan)
+        run: |
+          git clone --depth 1 --recurse-submodules --branch v0.8.1 \
+            https://github.com/flightlessmango/MangoHud.git native-source
+          cd native-source
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
+          grep -q 'IM_COL32' src/overlay.cpp
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
+          grep -q 'params.horizontal_separator_color' src/overlay.cpp
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
+          patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          patch -p1 < ../experiments/mangohud-v0.8.1-real-bold-fps.patch
+          python3 ../experiments/enable_apu_v3_metrics.py src
+          python3 ../experiments/apply_token_styles.py src
+          python3 ../experiments/enable_fps_size_center.py src
+          python3 ../experiments/enable_exact_edge_anchors.py src
+          python3 ../experiments/enable_frametime_graph_styles.py src
+          python3 ../experiments/enable_zero_vertical_padding.py src
+          python3 ../experiments/center_hud_vertically.py src
+          python3 ../experiments/enhance_native_frametime_graph.py src
+          python3 ../experiments/enable_fixed_numeric_slots.py src
+          python3 ../experiments/trim_native_ink_padding.py src
+          python3 ../experiments/enable_vertical_stacked.py src
+          python3 ../experiments/enable_vertical_value_wrap.py src
+          python3 ../experiments/enable_vertical_category_gap.py src
+          python3 ../experiments/enable_vertical_graph_modes.py src
+          python3 ../experiments/enable_horizontal_graph_modes.py src
+          python3 ../experiments/enable_safe_live_reload.py src
+          python3 ../tools/check_live_reload.py src
+          python3 ../experiments/enable_extra_metrics.py src
+          python3 ../experiments/verify_graph_fill_alpha.py src
+          python3 ../experiments/enable_overlay_background.py src
+          python3 ../experiments/enable_background_outline.py src
+          python3 ../tools/check_background.py src
+          python3 ../tools/check_extra_metrics.py src
+          python3 ../experiments/enable_modular_renderer.py src
+          grep -q 'ClawText(3' src/hud_elements.cpp
+          grep -q 'claw_metric_semibold' src/font.cpp
+          grep -q 'claw_weight_map' src/overlay_params.cpp
+          grep -q 'claw_bold_fps_font' src/font.cpp
+          grep -q 'ClawMetricGap' src/hud_elements.cpp
+          grep -q 'ClawFpsFontForToken' src/hud_elements.cpp
+          grep -q 'claw_center_horizontal' src/overlay.cpp
+          grep -q 'params.position == LAYER_POSITION_BOTTOM_LEFT' src/overlay.cpp
+          grep -q 'const float margin = 0.0f;' src/overlay.cpp
+          ! grep -q 'float margin = 10.0f;' src/overlay.cpp
+          grep -q 'claw_align_right' src/overlay.cpp
+          grep -q 'claw_vertex_start' src/overlay.cpp
+          grep -q 'claw_draw->VtxBuffer' src/overlay.cpp
+          grep -q 'ClawStableText' src/hud_elements.cpp
+          grep -q 'claw_fixed_slot_right' src/overlay.cpp
+          grep -q 'ImGui::ItemSize(ImVec2(stable_width, textSize.y), style.FramePadding.y)' src/overlay.cpp
+          ! grep -q 'ImGui::BeginGroup()' src/hud_elements.cpp
+          grep -q 'claw_graph_style' src/hud_elements.cpp
+          grep -q 'claw_frametime_columns' src/hud_elements.cpp
+          grep -q 'const float bar_width = ImMax(2.0f, slot - 1.4f)' src/hud_elements.cpp
+          grep -q 'height = ImClamp(HUDElements.params->font_size \* 1.40f' src/hud_elements.cpp
+          grep -q 'get_time_stat(HUDElements.sw_stats, idx)' src/hud_elements.cpp
+          grep -q 'ClawFpsVerticalCenterOffset' src/hud_elements.cpp
+          grep -q 'style.CellPadding.y = 0.0f;' src/hud_elements.cpp
+          grep -q 'claw_bottom_padding' src/overlay.cpp
+          grep -q 'claw_ink_trim_top' src/overlay.cpp
+          grep -q 'claw_ink_start = claw_ink_draw->VtxBuffer.Size' src/overlay.cpp
+          grep -q 'window_size.y = ImClamp(claw_ink_bottom' src/overlay.cpp
+          grep -q 'std::isfinite(raw_value)' src/hud_elements.cpp
+          grep -q 'chosen->Scale = ImClamp' src/hud_elements.cpp
+          grep -q 'fps_font->FontSize \* fps_font->Scale' src/hud_elements.cpp
+          grep -q 'claw_fps_row_top' src/hud_elements.cpp
+          grep -q 'position.x + 1.8f' src/hud_elements.cpp
+          grep -q 'claw_vertical_stack' src/overlay_params.cpp
+          grep -q 'ClawVerticalGraph' src/hud_elements.cpp
+          grep -q 'constexpr int subdivisions=4' src/hud_elements.cpp
+          grep -q 'if(style==4 || style==5)' src/hud_elements.cpp
+          grep -q '##claw_frametime_smooth' src/hud_elements.cpp
+          grep -q 'claw_style == 4 || claw_style == 5' src/hud_elements.cpp
+          grep -q 'const ImU32 trendColor' src/hud_elements.cpp
+          grep -q 'claw_vertical_values_x' src/hud_elements.cpp
+          grep -q 'claw_vertical_category_gap' src/overlay_params.cpp
+          grep -q 'ImGuiStyleVar_CellPadding' src/overlay.cpp
+          grep -q 'ImClamp(params.claw_vertical_category_gap' src/overlay.cpp
+          grep -q 'std::snprintf(displayed, sizeof(displayed), fmt, args...)' src/hud_elements.cpp
+          grep -q 'ImGui::NewLine()' src/hud_elements.cpp
+          grep -q 'ClawStackedFpsCenterOffset' src/hud_elements.cpp
+          grep -q 'claw_vertical_graph_width' src/overlay_params.cpp
+          grep -q 'claw_vertical_graph_height' src/overlay_params.cpp
+          grep -q 'claw_vertical_value_gap' src/hud_elements.cpp
+          grep -q 'const std::string label = has_value' src/hud_elements.cpp
+          grep -q 'const int token = item.value.find("tdp.txt")' src/hud_elements.cpp
+          grep -q 'Adaptive, padded graph scale' src/hud_elements.cpp
+          grep -q 'ImGuiCol_TableBorderLight' src/overlay.cpp
+          grep -q 'ImGuiTableFlags_BordersInnerH' src/overlay.cpp
+          meson setup build --prefix=/usr --buildtype=release \
+            -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
+            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
+            -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
+          ninja -C build -j 2
+          mkdir -p ../native64
+          file=$(find build -type f -name 'libMangoHud.so' -size +100k | head -1)
+          test -n "$file"
+          cp "$file" ../native64/libMangoHud.so
+          file ../native64/libMangoHud.so
+          readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
+          test -s ../native64/libMangoHud.so
+      - name: Exercise new metrics and live style changes through Vulkan
+        run: python3 tools/test_extra_metrics_vulkan.py
+      - name: Exercise modular renderer through Vulkan
+        run: python3 tools/test_modular_vulkan.py

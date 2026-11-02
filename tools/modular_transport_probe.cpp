@@ -1,4 +1,5 @@
 #include "claw_modular_transport.h"
+#include "claw_modular_loader.h"
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -24,5 +25,17 @@ int main(int argc,char**argv){
  while(!done.load()){auto next=exchange.take();if(next)assert(next->nodes.size()==first->nodes.size());}
  loader.join();assert(first->nodes[0].id==doc.nodes[0].id);
  exchange.publish(bytes);exchange.publish(bytes);assert(exchange.take()&&!exchange.take());
+ const std::string live=std::string(argv[1])+".live";
+ auto write=[&](const std::string& value){std::ofstream output(live);output<<value;};
+ write(bytes);
+ {
+  FileLoader loader(live);std::shared_ptr<const Document> loaded;
+  for(int i=0;i<100&&!loaded;++i){std::this_thread::sleep_for(std::chrono::milliseconds(10));loaded=loader.take();}
+  assert(loaded);write("invalid");std::this_thread::sleep_for(std::chrono::milliseconds(300));assert(!loader.take());
+ }
+ std::remove(live.c_str());
+ ::mkfifo(live.c_str(),0600);
+ {FileLoader loader(live);std::this_thread::sleep_for(std::chrono::milliseconds(20));assert(!loader.take());}
+ std::remove(live.c_str()); // Non-regular paths cannot block loader shutdown.
  std::cout<<"PASS: bounded decode, rejected/truncated imports, retained immutable snapshot, coalescing and concurrent publication\n";
 }
