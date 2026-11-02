@@ -265,7 +265,7 @@ function Content(){
         .claw-theme .claw-background-slider .claw-slider-label { min-width:0; }
         .claw-theme .claw-background-slider .claw-slider-number { min-width:36px;text-align:right; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.67">
+      <PanelSection title="Claw Metrics · v0.2.4-test.68">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#1c2c40", border: "1px solid #315476", color: "#dbe3ee",
