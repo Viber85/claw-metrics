@@ -66,13 +66,14 @@ with tempfile.TemporaryDirectory() as directory:
     print(log[-18000:])
     assert not errors,errors
     assert result.returncode==0,('Vulkan process failed',result.returncode)
-    readings=re.findall(r'CLAW_EXTRA mode=(\d+) token=(\d+) value=([\d.]+) x=([\d.-]+) y=([\d.-]+)',log)
+    readings=re.findall(r'CLAW_EXTRA mode=(\d+) token=(\d+) value=([\d.]+) x=([\d.-]+) y=([\d.-]+) right=([\d.-]+) bottom=([\d.-]+) vertices=(\d+)',log)
     for mode in range(3):
         for token in range(28,32):
             matches=[r for r in readings if int(r[0])==mode and int(r[1])==token]
             assert matches,('Missing native reading',mode,token)
-            for _,_,value,x,y in matches:
+            for _,_,value,x,y,right,bottom,vertices in matches:
                 assert float(value)>=0
-                assert 0<=float(x)<1280 and 0<=float(y)<720,('Out-of-bounds reading',matches)
+                assert int(vertices)>0,('Reading produced no glyph vertices',matches)
+                assert 0<=float(x)<float(right)<=1280 and 0<=float(y)<float(bottom)<=720,('Out-of-bounds reading',matches)
                 if token in (28,29,30): assert float(value)>0
     print('PASS actual Vulkan: all 4 readings drawn in horizontal, vertical and non-inline layouts; atomic live transitions and clean process exit.')

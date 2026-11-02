@@ -36,6 +36,8 @@ helper=r'''
 static void ClawSupplementalReading(const char* label, int token, ImVec4 label_color,
                                     double value, bool ready, const char* unit) {
     ImguiNextColumnFirstItem();
+    const auto* draw = ImGui::GetWindowDrawList();
+    const int first_vertex = draw->VtxBuffer.Size;
     ClawText(token, label_color, "%s", label);
     ClawMetricGap();
     if (ready && std::isfinite(value))
@@ -53,8 +55,13 @@ static void ClawSupplementalReading(const char* label, int token, ImVec4 label_c
                          (HUDElements.params->claw_inline_metrics ? 0 : 2);
         if (!seen[mode][token-28]) {
             seen[mode][token-28] = true;
-            std::fprintf(stderr,"CLAW_EXTRA mode=%d token=%d value=%.4f x=%.1f y=%.1f\n",
-                         mode,token,value,ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y);
+            float left=100000.0f,top=100000.0f,right=0.0f,bottom=0.0f;
+            for (int i=first_vertex;i<draw->VtxBuffer.Size;++i) {
+                left=ImMin(left,draw->VtxBuffer[i].pos.x); top=ImMin(top,draw->VtxBuffer[i].pos.y);
+                right=ImMax(right,draw->VtxBuffer[i].pos.x); bottom=ImMax(bottom,draw->VtxBuffer[i].pos.y);
+            }
+            std::fprintf(stderr,"CLAW_EXTRA mode=%d token=%d value=%.4f x=%.1f y=%.1f right=%.1f bottom=%.1f vertices=%d\n",
+                         mode,token,value,left,top,right,bottom,draw->VtxBuffer.Size-first_vertex);
         }
     }
 }
@@ -92,7 +99,8 @@ chunk=chunk[:a]+'''    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_ram
             ClawSupplementalReading("SWAP",31,HUDElements.colors.ram,swapused,true,"GiB");
     }'''+chunk[b:]
 # The helper must be defined before ram(), not only before fps().
-s=s[:a]+chunk+s[b:];s=s.replace(helper+'\n','',1);s=s.replace('void HudElements::ram(){',helper+'\nvoid HudElements::ram(){',1)
+ram_start=s.index('void HudElements::ram(){');ram_end=s.index('\nvoid HudElements::procmem()',ram_start)
+s=s[:ram_start]+chunk+s[ram_end:];s=s.replace(helper+'\n','',1);s=s.replace('void HudElements::ram(){',helper+'\nvoid HudElements::ram(){',1)
 # Stable numeric widths and correct unit-aware wrapping for the four appended tokens.
 s=s.replace('        case 1:  return "888";', '        case 28: case 29: return numeric ? "8888.8" : "";\n        case 30: case 31: return numeric ? "88.8" : "";\n        case 1:  return "888";',1)
 s=s.replace('if (token==6 || token==11 || token==21) suffix = "MHz";', 'if (token==28 || token==29) suffix = "FPS";\n            else if (token==30 || token==31) suffix = "GiB";\n            else if (token==6 || token==11 || token==21) suffix = "MHz";',1)

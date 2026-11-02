@@ -47,6 +47,8 @@ with tempfile.TemporaryDirectory() as directory:
                     '-I',str(source),str(root/'test.cpp'),'-o',str(binary)],check=True)
     subprocess.run([str(binary)],check=True,timeout=30,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
 hud=(source/'hud_elements.cpp').read_text()
+assert hud.index('static void ClawSupplementalReading(') > hud.index('static void ClawText(')
+assert hud.count('void HudElements::ram(){')==1
 assert 'ClawSupplementalReading("AVG",28' in hud
 assert 'ClawSupplementalReading("1% LOW",29' in hud
 assert hud.count('ClawSupplementalReading("GAME",30')==2  # compact and non-inline
