@@ -46,10 +46,11 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
     async def test_report_uses_session_boot_and_time_window(self):
         await self.recorder.start()
         await self.recorder.stop()
-        with patch('diagnostics.command', return_value='amdgpu timeout\ndecky error\n') as cmd:
+        with patch('diagnostics.command_result', return_value={'ok': True, 'returncode': 0, 'text': 'amdgpu timeout\ndecky error\n'}) as cmd:
             result = self.recorder.export(self.recorder.current.name)
         args = cmd.call_args.args[0]
-        self.assertIn(self.recorder.boot_id, args)
+        self.assertIn(self.recorder.boot_id.replace('-', ''), args)
+        self.assertNotIn(self.recorder.boot_id, args)
         self.assertIn('--since', args)
         self.assertIn('--until', args)
         with zipfile.ZipFile(result['path']) as report:
@@ -60,6 +61,33 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(pathlib.Path(result['path']).stat().st_mode & 0o777, 0o600)
         with self.assertRaises(ValueError):
             self.recorder.export('../../settings.json')
+
+    async def test_journal_failure_is_not_reported_as_no_errors(self):
+        await self.recorder.start()
+        await self.recorder.stop()
+        with patch('diagnostics.command_result', return_value={
+                'ok': False, 'returncode': 1, 'text': 'Failed to add match: Invalid argument'}):
+            result = self.recorder.export(self.recorder.current.name)
+        with zipfile.ZipFile(result['path']) as report:
+            details = json.loads(report.read('diagnostics.json'))
+            self.assertFalse(details['journal_ok'])
+            self.assertEqual(details['journal_returncode'], 1)
+            self.assertIn(b'collection failed', report.read('gpu-errors.log'))
+            self.assertIn(b'collection failed', report.read('decky.log'))
+
+    async def test_invalid_boot_does_not_query_unrelated_current_boot(self):
+        await self.recorder.start()
+        await self.recorder.stop()
+        path = self.recorder.current / 'session.json'
+        meta = json.loads(path.read_text())
+        meta['boot_id'] = 'invalid'
+        path.write_text(json.dumps(meta))
+        with patch('diagnostics.command_result') as command:
+            result = self.recorder.export(self.recorder.current.name)
+        command.assert_not_called()
+        with zipfile.ZipFile(result['path']) as report:
+            self.assertFalse(json.loads(report.read('diagnostics.json'))['journal_ok'])
+            self.assertIn(b'invalid session boot ID', report.read('system-journal.log'))
 
     async def test_limit_preserves_evidence_and_retention(self):
         # Exported ZIPs share the session prefix but must not count as directories.

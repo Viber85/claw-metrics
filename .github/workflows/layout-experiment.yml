@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/universal-diagnostics-61]
+    branches: [test/style-switch-reload-62]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.61
+  group: claw-metrics-v0.2.4-test.62
   cancel-in-progress: true
 
 jobs:
@@ -110,6 +110,8 @@ jobs:
           python3 ../experiments/enable_vertical_category_gap.py src
           python3 ../experiments/enable_vertical_graph_modes.py src
           python3 ../experiments/enable_horizontal_graph_modes.py src
+          python3 ../experiments/enable_safe_live_reload.py src
+          python3 ../tools/check_live_reload.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -188,7 +190,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.61.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.62.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -204,18 +206,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.61', package['version']
+              assert package['version'] == '0.2.4-test.62', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.61
-          path: ClawMetrics-v0.2.4-test.61.zip
+          name: ClawMetrics-v0.2.4-test.62
+          path: ClawMetrics-v0.2.4-test.62.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.61 ClawMetrics-v0.2.4-test.61.zip \
+          gh release create v0.2.4-test.62 ClawMetrics-v0.2.4-test.62.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.61 – Automatic Session Diagnostics" \
-            --notes "Crash Session Recorder in Advanced → Diagnostics. Automatically records when the exact Claw overlay library loads; checks every 5 seconds and ends after 3 checks without the overlay. Recovers interrupted sessions after reboot. Export ZIP includes telemetry and available session-scoped system, GPU and Decky logs. Keeps 5 bounded sessions. No automatic upload. Existing launch command and overlay settings preserved. Automated checks do not replace on-device testing."
+            --title "Claw Metrics v0.2.4-test.62 – Safe Style Reload and Journal Export" \
+            --notes "Defer configuration reload to a render-thread frame boundary and rebuild Vulkan fonts before NewFrame. Fix journal boot IDs and explicitly report collection failures. Native notifier regression exercises 24 atomic config replacements with AddressSanitizer/UBSan. This identifies a real reload race; confirmation of the reported game crash fix still requires device testing. Existing settings and launch command preserved."

@@ -46,7 +46,7 @@ def redact(text):
     return text
 
 
-def command(args):
+def command_result(args):
     """Bound memory, wall time and output, including when journald is absent."""
     try:
         import tempfile
@@ -57,11 +57,13 @@ def command(args):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
-                return 'Unavailable: command timed out\n'
+                return {'ok': False, 'returncode': None, 'text': 'Unavailable: command timed out\n'}
             output.seek(0)
-            return redact(output.read(512 * 1024).decode('utf-8', 'replace'))
+            return {'ok': process.returncode == 0, 'returncode': process.returncode,
+                    'text': redact(output.read(512 * 1024).decode('utf-8', 'replace'))}
     except OSError as error:
-        return 'Unavailable: ' + type(error).__name__ + '\n'
+        return {'ok': False, 'returncode': None,
+                'text': 'Unavailable: ' + type(error).__name__ + '\n'}
 
 
 def telemetry():
@@ -217,14 +219,22 @@ class SessionRecorder:
         directory = self.root / session_id
         meta = json.loads((directory / 'session.json').read_text())
         boot = meta.get('boot_id', '')
-        valid_boot = bool(re.fullmatch(r'[a-f0-9-]{36}', boot))
-        journal = command(['journalctl', '--no-pager', '-o', 'short-iso', '-n', '2500',
+        try:
+            journal_boot = uuid.UUID(boot).hex
+        except (ValueError, TypeError, AttributeError):
+            journal_boot = None
+        journal_result = command_result(['journalctl', '--no-pager', '-o', 'short-iso', '-n', '2500',
                            '--since', '@' + str(int(meta['started_at'])),
                            '--until', '@' + str(int(meta.get('ended_at', meta.get('last_sample_at', meta['started_at']))) + 15),
-                           *(['-b', boot] if valid_boot else ['-b', '0'])])
+                           '-b', journal_boot]) if journal_boot else {
+                               'ok': False, 'returncode': None,
+                               'text': 'Unavailable: invalid session boot ID; no unrelated boot queried.\n'}
+        journal = journal_result['text']
         gpu = '\n'.join(line for line in journal.splitlines() if re.search(r'amdgpu|gpu|drm|ring.*timeout|reset|oom|out of memory', line, re.I))
         decky = '\n'.join(line for line in journal.splitlines() if re.search(r'decky|plugin_loader|claw.?metrics', line, re.I))
-        details = {'format_version': 1, 'exported_at': time.time(), 'session_boot_id': boot,
+        details = {'format_version': 2, 'journal_ok': journal_result['ok'],
+                   'journal_returncode': journal_result['returncode'],
+                   'journal_boot_id': journal_boot, 'exported_at': time.time(), 'session_boot_id': boot,
                    'current_boot_id': self.boot_id, 'journal_scope': 'Recorded boot and session time window; may be unavailable without persistent journal.',
                    'privacy': 'Home usernames, common credentials and IPv4 redacted. Review logs before sharing. No automatic upload.',
                    'cause': 'Undetermined; compare sessions with and without the overlay.'}
@@ -237,8 +247,8 @@ class SessionRecorder:
                     archive.writestr('session.json', redact(json.dumps(meta, indent=2)))
                     archive.writestr('telemetry.csv', redact(read_text(directory / 'telemetry.csv', MAX_BYTES + 4096)))
                     archive.writestr('system-journal.log', journal)
-                    archive.writestr('gpu-errors.log', gpu or 'No matching entries in the available journal.\n')
-                    archive.writestr('decky.log', decky or 'No Decky entries in the available journal.\n')
+                    archive.writestr('gpu-errors.log', gpu if journal_result['ok'] and gpu else ('No matching entries in the available journal.\n' if journal_result['ok'] else 'Unavailable: system journal collection failed; see system-journal.log.\n'))
+                    archive.writestr('decky.log', decky if journal_result['ok'] and decky else ('No Decky entries in the available journal.\n' if journal_result['ok'] else 'Unavailable: system journal collection failed; see system-journal.log.\n'))
                     archive.writestr('diagnostics.json', json.dumps(details, indent=2))
                 raw.flush()
                 os.fsync(raw.fileno())

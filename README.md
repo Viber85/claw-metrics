@@ -743,3 +743,20 @@ session; starting a sixth deletes the oldest session and its exported ZIP.
 proof of an overlay crash. Compare otherwise similar sessions with the overlay
 enabled and disabled. SteamOS, Bazzite and other systemd Linux variants use the
 same recorder; sensor and journal availability still need device testing.
+
+### Pending test.62: live style reload and journal export
+
+The file watcher now signals a pending reload; configuration parsing runs at a
+render-thread frame boundary. Upstream parsing changes global HUD element lists,
+so locking only the final parameter assignment allowed those lists to change
+while they were being drawn. Vulkan font refresh now runs before ImGui NewFrame,
+rather than first rebuilding the atlas after that frame's draw data was created.
+The original notifier fails the thread-boundary regression; the corrected watcher
+passes 24 atomic file replacements with AddressSanitizer/UBSan (leak detection is
+disabled in the restricted test process). This test uses real inotify and native
+notifier code with a stub parser. It does not execute the game's Vulkan rendering
+or prove the cause of the reported game crash. Device confirmation remains needed.
+
+Journal export normalizes stored UUID boot IDs to 32 hexadecimal characters.
+Reports now include journal success/exit status and mark filtered logs unavailable
+when collection fails, rather than incorrectly suggesting there were no errors.
