@@ -66,6 +66,39 @@ def command_result(args):
                 'text': 'Unavailable: ' + type(error).__name__ + '\n'}
 
 
+def compatibility_snapshot(sys_root=pathlib.Path('/sys'), os_release=pathlib.Path('/etc/os-release')):
+    """Read-only discovery; available nodes do not prove in-game compatibility."""
+    def value(path):
+        return read_text(path, 4096).strip() or None
+    sensors = []
+    for hw in sorted((sys_root / 'class/hwmon').glob('hwmon*')):
+        channels = []
+        for pattern in ('temp*_input', 'power*_average', 'power*_input', 'power*_cap', 'fan*_input'):
+            for node in sorted(hw.glob(pattern)):
+                channels.append({'node': str(node), 'label': value(node.with_name(node.name.rsplit('_', 1)[0] + '_label')),
+                                 'readable': value(node) is not None})
+        sensors.append({'name': value(hw / 'name'), 'channels': channels})
+    cards = []
+    for card in sorted((sys_root / 'class/drm').glob('card*')):
+        if not re.fullmatch(r'card\d+', card.name):
+            continue
+        cards.append({'card': card.name, 'vendor': value(card / 'device/vendor'),
+                      'device': value(card / 'device/device'),
+                      'driver': (card / 'device/driver').resolve().name if (card / 'device/driver').exists() else None,
+                      'gpu_busy_readable': value(card / 'device/gpu_busy_percent') is not None})
+    return {'schema_version': 1, 'captured_at': time.time(), 'os_release': value(os_release),
+            'kernel': platform.release(), 'architecture': platform.machine(),
+            'device': {key: value(sys_root / 'class/dmi/id' / key) for key in
+                       ('sys_vendor', 'product_name', 'product_version', 'board_name')},
+            'drm': cards, 'hwmon': sensors,
+            'batteries': [{'name': battery.name, 'capacity_readable': value(battery / 'capacity') is not None,
+                           'power_readable': value(battery / 'power_now') is not None,
+                           'current_readable': value(battery / 'current_now') is not None}
+                          for battery in sorted((sys_root / 'class/power_supply').glob('*'))
+                          if value(battery / 'type') == 'Battery'],
+            'support_status': 'Unverified: sensor discovery is not validation of readings, TDP control or Vulkan injection.'}
+
+
 def telemetry():
     values = {'load_1m': None, 'mem_available_kib': None, 'gpu_busy_percent': None,
               'gpu_temp_c': None, 'gpu_power_w': None, 'battery_percent': None,
@@ -156,7 +189,8 @@ class SessionRecorder:
                          'boot_id': self.boot_id, 'started_at': time.time(), 'samples': 0,
                          'limitations': '5 second sampling; final seconds may be lost. Interruption does not identify a cause. FPS is unavailable to this sampler.',
                          'os_release': read_text('/etc/os-release'), 'kernel': platform.release(),
-                         'machine': platform.machine(), 'settings': self.settings()}
+                         'machine': platform.machine(), 'settings': self.settings(),
+                         'compatibility': await asyncio.to_thread(compatibility_snapshot)}
             self.error = ''
             await asyncio.to_thread(self._sample)
             self.stop_event = asyncio.Event()
@@ -230,12 +264,31 @@ class SessionRecorder:
                                'ok': False, 'returncode': None,
                                'text': 'Unavailable: invalid session boot ID; no unrelated boot queried.\n'}
         journal = journal_result['text']
-        gpu = '\n'.join(line for line in journal.splitlines() if re.search(r'amdgpu|gpu|drm|ring.*timeout|reset|oom|out of memory', line, re.I))
-        decky = '\n'.join(line for line in journal.splitlines() if re.search(r'decky|plugin_loader|claw.?metrics', line, re.I))
-        details = {'format_version': 2, 'journal_ok': journal_result['ok'],
+        # Filter inside journald, BEFORE its line limit. RGB floods in the general
+        # log must never displace independent GPU, Decky and warning evidence.
+        common = ['journalctl', '--no-pager', '-o', 'short-iso', '-n', '2500',
+                  '--since', '@' + str(int(meta['started_at'])),
+                  '--until', '@' + str(int(meta.get('ended_at', meta.get('last_sample_at', meta['started_at']))) + 15),
+                  '-b', journal_boot]
+        queries = {
+            'gpu-errors.log': ['--case-sensitive=no', '--grep', r'amdgpu|gpu|drm|ring.*timeout|reset|oom|out of memory'],
+            'decky.log': ['--case-sensitive=no', '--grep', r'decky|pluginloader|plugin_loader|claw.?metrics|steamwebhelper|segfault|coredump'],
+            'system-warnings.log': ['--priority', 'warning'],
+        }
+        results = {}
+        for name, filters in queries.items():
+            result = command_result(common + filters) if journal_boot else dict(journal_result)
+            # journalctl returns 1 for a successful grep with no matches.
+            if result['returncode'] == 1 and result['text'].strip() == '-- No entries --':
+                result = {**result, 'ok': True}
+            results[name] = result
+        details = {'format_version': 3, 'journal_ok': journal_result['ok'],
                    'journal_returncode': journal_result['returncode'],
+                   'log_queries': {name: {'ok': result['ok'], 'returncode': result['returncode'],
+                                         'line_limit': 2500, 'byte_limit': 512 * 1024}
+                                   for name, result in results.items()},
                    'journal_boot_id': journal_boot, 'exported_at': time.time(), 'session_boot_id': boot,
-                   'current_boot_id': self.boot_id, 'journal_scope': 'Recorded boot and session time window; may be unavailable without persistent journal.',
+                   'current_boot_id': self.boot_id, 'journal_scope': 'Recorded boot and session time window. Each log is independently queried and bounded; logs may be incomplete or unavailable.',
                    'privacy': 'Home usernames, common credentials and IPv4 redacted. Review logs before sharing. No automatic upload.',
                    'cause': 'Undetermined; compare sessions with and without the overlay.'}
         target = self.root / (session_id + '-CrashReport.zip')
@@ -247,8 +300,11 @@ class SessionRecorder:
                     archive.writestr('session.json', redact(json.dumps(meta, indent=2)))
                     archive.writestr('telemetry.csv', redact(read_text(directory / 'telemetry.csv', MAX_BYTES + 4096)))
                     archive.writestr('system-journal.log', journal)
-                    archive.writestr('gpu-errors.log', gpu if journal_result['ok'] and gpu else ('No matching entries in the available journal.\n' if journal_result['ok'] else 'Unavailable: system journal collection failed; see system-journal.log.\n'))
-                    archive.writestr('decky.log', decky if journal_result['ok'] and decky else ('No Decky entries in the available journal.\n' if journal_result['ok'] else 'Unavailable: system journal collection failed; see system-journal.log.\n'))
+                    for name, result in results.items():
+                        archive.writestr(name, result['text'] if result['ok'] else
+                                         'Unavailable: log collection failed.\n' + result['text'])
+                    archive.writestr('compatibility.json', redact(json.dumps(meta.get('compatibility',
+                                     {'support_status': 'Unavailable: session predates capability discovery.'}), indent=2)))
                     archive.writestr('diagnostics.json', json.dumps(details, indent=2))
                 raw.flush()
                 os.fsync(raw.fileno())

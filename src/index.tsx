@@ -262,7 +262,7 @@ function Content(){
         .claw-theme .claw-control-button svg { color:#d5dce6; }
 
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.70">
+      <PanelSection title="Claw Metrics · v0.2.4-test.71">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
             <div style={{background: "#1c2c40", border: "1px solid #315476", color: "#dbe3ee",

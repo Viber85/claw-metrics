@@ -822,3 +822,10 @@ The status list is refreshed immediately before export to pick the latest
 available session. Older sessions remain retained on disk without repeating
 export buttons. If only the first active recording exists, stop it before
 exporting. Recording, retention and report contents are unchanged.
+
+
+### test.71: compatibility evidence and independent logs
+
+Crash reports now query GPU, Decky/Steam helper and warning logs independently within the recorded boot and session window. Each query has its own 2500-line / 512 KiB output bound and collection status. General RGB floods no longer displace the dedicated query results. Logs remain bounded and may be incomplete.
+
+`compatibility.json` records read-only device model, OS, architecture, DRM driver, named hwmon channels and battery-node availability at session start. It excludes serial numbers and does not modify hardware, TDP, OS or renderer settings. Missing nodes are unavailable, not zero. Discovery does not certify sensor accuracy or support. Old sessions explicitly report missing inventory. Legion Go 1 / Bazzite 44 is a test target, not yet device-verified.

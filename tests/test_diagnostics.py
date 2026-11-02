@@ -55,12 +55,33 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('--until', args)
         with zipfile.ZipFile(result['path']) as report:
             self.assertIsNone(report.testzip())
-            self.assertEqual(len(report.namelist()), 6)
+            self.assertEqual(len(report.namelist()), 8)
             self.assertIn(b'amdgpu timeout', report.read('gpu-errors.log'))
             self.assertIn(b'decky error', report.read('decky.log'))
         self.assertEqual(pathlib.Path(result['path']).stat().st_mode & 0o777, 0o600)
         with self.assertRaises(ValueError):
             self.recorder.export('../../settings.json')
+
+    async def test_filtered_logs_survive_general_log_flood(self):
+        await self.recorder.start()
+        await self.recorder.stop()
+        def query(args):
+            text = 'RGB config\n' * 2500
+            if '--grep' in args:
+                text = 'amdgpu ring timeout\n' if 'amdgpu' in args[-1] else 'PluginLoader failure\n'
+            if '--priority' in args:
+                text = 'kernel warning\n'
+            return {'ok': True, 'returncode': 0, 'text': text}
+        with patch('diagnostics.command_result', side_effect=query) as commands:
+            result = self.recorder.export(self.recorder.current.name)
+        self.assertEqual(commands.call_count, 4)
+        for call in commands.call_args_list:
+            self.assertIn(self.recorder.boot_id.replace('-', ''), call.args[0])
+        with zipfile.ZipFile(result['path']) as report:
+            self.assertIn(b'ring timeout', report.read('gpu-errors.log'))
+            self.assertIn(b'PluginLoader failure', report.read('decky.log'))
+            self.assertIn(b'kernel warning', report.read('system-warnings.log'))
+            self.assertIn('compatibility.json', report.namelist())
 
     async def test_journal_failure_is_not_reported_as_no_errors(self):
         await self.recorder.start()
@@ -154,3 +175,24 @@ class AutomaticLifecycleTests(unittest.IsolatedAsyncioTestCase):
             await control.update(False)
         await control.update(True)
         self.assertEqual(recorder.start.await_count, 3)
+
+
+class CompatibilityTests(unittest.TestCase):
+    def test_discovery_missing_nodes_and_named_sensors(self):
+        from diagnostics import compatibility_snapshot
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            empty = compatibility_snapshot(root, root / 'os-release')
+            self.assertEqual(empty['hwmon'], [])
+            self.assertIsNone(empty['device']['product_name'])
+            hw = root / 'class/hwmon/hwmon7'
+            hw.mkdir(parents=True)
+            (hw / 'name').write_text('k10temp')
+            (hw / 'temp1_input').write_text('42000')
+            (hw / 'temp1_label').write_text('Tctl')
+            (root / 'os-release').write_text('ID=bazzite\nVERSION_ID=44')
+            found = compatibility_snapshot(root, root / 'os-release')
+            self.assertIn('bazzite', found['os_release'])
+            self.assertEqual(found['hwmon'][0]['channels'][0]['label'], 'Tctl')
+            self.assertTrue(found['hwmon'][0]['channels'][0]['readable'])
+            self.assertIn('Unverified', found['support_status'])
