@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/extra-metrics-64]
+    branches: [test/extra-metrics-fit-65]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.64
+  group: claw-metrics-v0.2.4-test.65
   cancel-in-progress: true
 
 jobs:
@@ -194,7 +194,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.64.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.65.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -210,18 +210,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.64', package['version']
+              assert package['version'] == '0.2.4-test.65', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.64
-          path: ClawMetrics-v0.2.4-test.64.zip
+          name: ClawMetrics-v0.2.4-test.65
+          path: ClawMetrics-v0.2.4-test.65.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.64 ClawMetrics-v0.2.4-test.64.zip \
+          gh release create v0.2.4-test.65 ClawMetrics-v0.2.4-test.65.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.64 – Average FPS, 1% Low and Memory Metrics" \
+            --title "Claw Metrics v0.2.4-test.65 – Average FPS, 1% Low and Memory Metrics" \
             --notes "Adds Average FPS and 1% low under Metrics → FPS, plus Game RAM and system SWAP under Metrics → RAM. New readings are opt-in, preserved per style, work in both layouts and have individual color/font tokens. FPS summaries use a rolling 60-second window capped at 30,000 presented frames; 1% low is the reciprocal of the mean slowest-1% frametime and needs 100 samples. Game RAM is process RSS, not all Proton processes. Includes prior reload, journal and updater fixes. Launch command unchanged. Automated native checks do not replace device testing."

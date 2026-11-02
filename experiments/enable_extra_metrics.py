@@ -49,6 +49,20 @@ static void ClawSupplementalReading(const char* label, int token, ImVec4 label_c
     }
     const auto* draw = ImGui::GetWindowDrawList();
     const int first_vertex = draw->VtxBuffer.Size;
+    if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
+        // Ink-only width cannot grow a window when the final reading is
+        // already clipped. Reserve the complete label/value/unit extent.
+        char number[48];
+        if (ready && std::isfinite(value)) std::snprintf(number,sizeof(number),"%.1f",value);
+        else std::snprintf(number,sizeof(number),"--");
+        ImFont* font = ClawFontForToken(token);
+        if (font) ImGui::PushFont(font);
+        const float width = ImGui::CalcTextSize(label).x + HUDElements.params->claw_inner_gap
+            + ImGui::CalcTextSize(number).x
+            + ((unit && *unit) ? 1.0f + ImGui::CalcTextSize(unit).x : 0.0f);
+        if (font) ImGui::PopFont();
+        claw_fixed_slot_right = ImMax(claw_fixed_slot_right,ImGui::GetCursorScreenPos().x + width);
+    }
     ClawText(token, label_color, "%s", label);
     ClawMetricGap();
     if (ready && std::isfinite(value))

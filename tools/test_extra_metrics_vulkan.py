@@ -73,7 +73,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert matches,('Missing native reading',mode,token)
             for _,_,value,x,y,right,bottom,vertices in matches:
                 assert float(value)>=0
-                assert int(vertices)>0,('Reading produced no glyph vertices',matches)
+                assert int(vertices)>=36,('Reading has clipped or missing glyphs',matches)
                 assert 0<=float(x)<float(right)<=1280 and 0<=float(y)<float(bottom)<=720,('Out-of-bounds reading',matches)
                 if token in (28,29,30): assert float(value)>0
     print('PASS actual Vulkan: all 4 readings drawn in horizontal, vertical and non-inline layouts; atomic live transitions and clean process exit.')
