@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory() as directory:
     def switch():
         try:
             # Warm up >100 frames in each initial layout before switching.
-            for mode in (1,2,3):
+            for mode in (1,2,3,0):
                 if stop.wait(3): return
                 write(mode)
         except Exception as error:
