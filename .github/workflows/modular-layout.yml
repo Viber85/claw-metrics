@@ -1,0 +1,22 @@
+name: Experimental modular layout
+on:
+  push:
+    branches: [feature/modular-layout-v1]
+  pull_request:
+    paths:
+      - 'experiments/modular/**'
+      - 'experiments/native/claw_modular_layout.h'
+      - 'tests/test_modular_schema.py'
+      - 'tests/native_modular_layout.cpp'
+      - 'tools/check_modular_layout.py'
+      - '.github/workflows/modular-layout.yml'
+jobs:
+  geometry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests
+      - run: python tools/check_modular_layout.py
