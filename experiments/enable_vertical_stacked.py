@@ -198,9 +198,9 @@ static void ClawVerticalGraph() {
     const ImVec4 col=HUDElements.colors.frametime;
     const int style=ImClamp(p->claw_graph_style,0,3);
     const ImU32 line=ImGui::ColorConvertFloat4ToU32(col);
-    const float opacity=style==1 ? 0.20f : (style==3 ? 0.07f : 0.0f);
+    const float opacity=style==1 ? 1.0f : (style==3 ? 0.07f : 0.0f);
     const ImU32 fill=ImGui::ColorConvertFloat4ToU32(
-        ImVec4(col.x,col.y,col.z,col.w*opacity));
+        ImVec4(col.x,col.y,col.z,style==1 ? 1.0f : col.w*opacity));
     const float bottom=origin.y+h-2.0f;
     draw->PushClipRect(origin,ImVec2(origin.x+w,origin.y+h),true);
     if(style==2) {

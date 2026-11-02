@@ -44,7 +44,7 @@ change("hud_elements.cpp",
                 const float bottom = origin.y + h;
                 const ImVec4 clr = HUDElements.colors.frametime;
                 const ImU32 fill = ImGui::ColorConvertFloat4ToU32(ImVec4(
-                    clr.x, clr.y, clr.z, clr.w * (claw_style == 1 ? 0.75f : 0.22f)));
+                    clr.x, clr.y, clr.z, (claw_style == 1 ? 1.0f : clr.w * 0.22f)));
                 const ImU32 stroke = ImGui::ColorConvertFloat4ToU32(clr);
                 const int count = ARRAY_SIZE(HUDElements.sw_stats->frames_stats);
                 const int n = ImMin(count, ImMax(2, int(w / 2.0f)));

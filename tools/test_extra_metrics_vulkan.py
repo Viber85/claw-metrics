@@ -30,13 +30,15 @@ with tempfile.TemporaryDirectory() as directory:
     (tmp/'ClawMetrics.json').write_text(json.dumps(manifest))
     def write(mode):
         settings=main.normalize({
-            'fps':True,'frametime':False,'cpu':False,'gpu':False,'ram':True,'vram':False,
+            'fps':True,'frametime':True,'cpu':False,'gpu':False,'ram':True,'vram':False,
             'battery':False,'time':False,'draw':False,'tdp':False,
-            'hud_orientation':'vertical' if mode==1 else 'horizontal',
+            'hud_orientation':'vertical' if mode in (1,3) else 'horizontal',
             'hud_position':'top-center' if mode==2 else 'top-left',
             'inline_metrics':mode!=2,'fontsize':26 if mode==1 else 18,
             'fps_scale':200 if mode==1 else 100,
-            'metrics':{'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
+            'graph_style':'area' if mode in (0,1) else 'dual',
+            'vertical_graph_style':'area' if mode in (0,1) else 'dual',
+            'metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         staging=config.with_suffix('.tmp')
         staging.write_text(main.mango_config(settings,native_spacing=True)+'fps_limit=60\n')
         os.replace(staging,config)
@@ -46,7 +48,7 @@ with tempfile.TemporaryDirectory() as directory:
     def switch():
         try:
             # Warm up >100 frames in each initial layout before switching.
-            for mode in (1,2,0):
+            for mode in (1,2,3):
                 if stop.wait(3): return
                 write(mode)
         except Exception as error:
@@ -77,3 +79,11 @@ with tempfile.TemporaryDirectory() as directory:
                 assert 0<=float(x)<float(right)<=1280 and 0<=float(y)<float(bottom)<=720,('Out-of-bounds reading',matches)
                 if token in (28,29,30): assert float(value)>0
     print('PASS actual Vulkan: all 4 readings drawn in horizontal, vertical and non-inline layouts; atomic live transitions and clean process exit.')
+
+    graphs=re.findall(r'CLAW_GRAPH layout=(horizontal|vertical) style=(\d+) fill_alpha=(\d+)',log)
+    for layout in ('horizontal','vertical'):
+        filled=[int(alpha) for orient,style,alpha in graphs if orient==layout and style=='1']
+        translucent=[int(alpha) for orient,style,alpha in graphs if orient==layout and style=='3']
+        assert filled and all(alpha==255 for alpha in filled),(layout,'Filled area alpha',graphs)
+        assert translucent and all(0<alpha<255 for alpha in translucent),(layout,'Line + fill alpha',graphs)
+    print('PASS actual Vulkan graph vertices: Filled area alpha=255; Line + fill remains translucent in both layouts.')
