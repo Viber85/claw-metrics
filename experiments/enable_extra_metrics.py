@@ -35,7 +35,18 @@ replace('memory.cpp','    proc_mem_shared = meminfo[2];','    proc_mem_shared = 
 helper=r'''
 static void ClawSupplementalReading(const char* label, int token, ImVec4 label_color,
                                     double value, bool ready, const char* unit) {
-    ImguiNextColumnFirstItem();
+    if (HUDElements.params->claw_vertical_stack &&
+        !HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_horizontal]) {
+        // FPS owns an early-return path in ImguiNextColumnFirstItem. Extra
+        // readings need an explicit complete label/value row after its header.
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        claw_vertical_first_value = true;
+        claw_vertical_pending = false;
+        claw_vertical_pending_first = false;
+    } else {
+        ImguiNextColumnFirstItem();
+    }
     const auto* draw = ImGui::GetWindowDrawList();
     const int first_vertex = draw->VtxBuffer.Size;
     ClawText(token, label_color, "%s", label);
@@ -53,7 +64,14 @@ static void ClawSupplementalReading(const char* label, int token, ImVec4 label_c
         static bool seen[4][4] = {};
         const int mode = HUDElements.params->claw_vertical_stack ? 1 :
                          (HUDElements.params->claw_inline_metrics ? 0 : 2);
-        if (!seen[mode][token-28]) {
+        static int previous_mode = -1;
+        static uint64_t mode_start = 0;
+        if (mode != previous_mode) {
+            previous_mode = mode;
+            mode_start = HUDElements.sw_stats->n_frames;
+        }
+        // ImGui settles table widths/window size after a layout change.
+        if (HUDElements.sw_stats->n_frames >= mode_start + 30 && !seen[mode][token-28]) {
             seen[mode][token-28] = true;
             float left=100000.0f,top=100000.0f,right=0.0f,bottom=0.0f;
             for (int i=first_vertex;i<draw->VtxBuffer.Size;++i) {
