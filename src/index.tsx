@@ -32,7 +32,7 @@ function Content(){
   const {settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton}=vm;
 
   return (
-    <>
+    <div className="claw-theme" style={{background:"#0b1016",color:"#edf0f5",minHeight:"100%"}}>
       <style>{`
         [data-section="metrics"] .metric-card:focus-within {
           border-color: #ffffff !important; box-shadow: 0 0 0 1px #ffffff;
@@ -60,37 +60,37 @@ function Content(){
          /* Each Layout slider uses exactly the available inset card width.
             A safe inset keeps headings, values and both thumb endpoints away
             from Decky's card edges. No clipping or fixed pixel track width. */
-         [data-section="layout"] .claw-control-group,
-         [data-section="layout"] .claw-control-group > div:last-child {
+         :is([data-section="layout"],.claw-background-slider) .claw-control-group,
+         :is([data-section="layout"],.claw-background-slider) .claw-control-group > div:last-child {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
          }
-         [data-section="layout"] .claw-layout-slider {
+         :is([data-section="layout"],.claw-background-slider) .claw-layout-slider {
            display: block; width: 100% !important; max-width: 100% !important;
            min-width: 0 !important; box-sizing: border-box !important;
            margin: 2px 0 8px !important; padding: 0 14px 0 10px !important;
          }
-         [data-section="layout"] .claw-slider-control,
-         [data-section="layout"] .claw-slider-native {
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-control,
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-native {
            display: block; width: 100%; max-width: 100%;
            min-width: 0; box-sizing: border-box;
          }
-         [data-section="layout"] .claw-slider-heading {
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-heading {
            display: grid; width: 100%; max-width: 100%; min-width: 0;
            grid-template-columns: minmax(0, 1fr) minmax(48px, max-content);
            column-gap: 10px; align-items: baseline; box-sizing: border-box;
            padding: 0 0 4px 0;
          }
-         [data-section="layout"] .claw-slider-label {
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-label {
            min-width: 0; overflow-wrap: anywhere;
            white-space: normal; line-height: 1.25;
          }
-         [data-section="layout"] .claw-slider-number {
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-number {
            min-width: 48px; text-align: right; white-space: nowrap;
            overflow: visible; text-overflow: clip;
            font-variant-numeric: tabular-nums;
          }
-         [data-section="layout"] .claw-slider-native > *,
-         [data-section="layout"] .claw-slider-native :is(
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-native > *,
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-native :is(
            [class*="DialogSlider"], [class*="SliderControl"],
            [class*="SliderRoot"], [class*="SliderTrack"],
            [class*="sliderTrack"], [class*="SliderField"], input[type="range"]
@@ -98,13 +98,13 @@ function Content(){
            min-width: 0 !important; max-width: 100% !important;
            box-sizing: border-box !important; flex-shrink: 1 !important;
          }
-         [data-section="layout"] .claw-slider-native > * {
+         :is([data-section="layout"],.claw-background-slider) .claw-slider-native > * {
            width: 100% !important;
          }
 
          .claw-style-tiles .style-group-icon {
           display: inline-flex; align-items: center; justify-content: center;
-          margin: 0 !important; color: #bceaff; font-size: 13px; line-height: 1;
+          margin: 0 !important; color: #d5dce6; font-size: 13px; line-height: 1;
         }
         .claw-metric-row { margin-bottom: 7px; width: 100%; min-width: 0; }
          .claw-style-row { margin-bottom: 7px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
@@ -112,8 +112,8 @@ function Content(){
          .claw-style-detail {
            margin: 8px 0 10px; padding: 9px 7px; width: 100%;
            min-width: 0; max-width: 100%; box-sizing: border-box;
-           background: #102236; border: 1px solid #365d7c;
-           border-left: 3px solid #29dcff; border-radius: 8px;
+           background: #111820; border: 1px solid #303b48;
+           border-left: 3px solid #3186f5; border-radius: 8px;
          }
         /* One accessible controller row per style token. */
          [data-section="colors"] .claw-style-detail {
@@ -122,7 +122,7 @@ function Content(){
          [data-section="colors"] .claw-token-card {
            width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
            padding: 6px 6px 7px; margin: 0 0 5px;
-           background: #1a2c43; border: 1px solid #375878; border-radius: 7px;
+           background: #18222e; border: 1px solid #303b48; border-radius: 7px;
          }
          [data-section="colors"] .claw-token-title {
            font-size: 12px; line-height: 1.2; font-weight: 700;
@@ -140,13 +140,13 @@ function Content(){
           outline: 2px solid #ffffff; outline-offset: -2px; border-radius: 8px;
         }
         .claw-metric-tiles button[aria-pressed="true"] {
-          box-shadow: 0 0 0 1px #29dcff inset;
+          box-shadow: 0 0 0 1px #3186f5 inset;
         }
         .claw-weight-tiles .claw-grid-row { min-height: 39px; }
         [data-section="colors"] .loaded-style-status {
-          padding: 8px 9px; margin: 0 0 10px; background: #0b263b;
-          border: 1px solid #306689; border-radius: 7px;
-          font-size: 12px; color: #d8edff;
+          padding: 8px 9px; margin: 0 0 10px; background: #172738;
+          border: 1px solid #354b68; border-radius: 7px;
+          font-size: 12px; color: #e0e7ef;
           width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
           overflow-wrap: anywhere;
         }
@@ -159,10 +159,10 @@ function Content(){
         .claw-preset-card {
           min-width: 0; max-width: 100%; box-sizing: border-box;
           border-radius: 9px; padding: 9px;
-          background: #142840; border: 1px solid #365b7b;
+          background: #141e29; border: 1px solid #354252;
         }
         .claw-preset-card[data-loaded="true"] {
-          background: #093454; border-color: #26d6fa;
+          background: #19375c; border-color: #3186f5;
         }
         .claw-preset-actions {
           display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -201,21 +201,21 @@ function Content(){
         [data-section] .claw-accordion-header:has([class*="gpfocus"]) > button,
         [data-section][data-focused="true"] .claw-accordion-header > button,
         [data-section][data-selected="true"] .claw-accordion-header > button {
-          background: #073858 !important;
+          background: #1b2c43 !important;
         }
         [data-section] .claw-accordion-header:focus-within .claw-accordion-icon,
         [data-section] .claw-accordion-header:has(.gpfocus) .claw-accordion-icon,
         [data-section] .claw-accordion-header:has([class*="gpfocus"]) .claw-accordion-icon,
         [data-section][data-focused="true"] .claw-accordion-icon,
         [data-section][data-selected="true"] .claw-accordion-icon {
-          background: #075b83 !important;
-          color: #42e0ff !important;
+          background: #243449 !important;
+          color: #e1e6ed !important;
         }
         [data-section]:has(> .claw-accordion-header:focus-within),
         [data-section]:has(> .claw-accordion-header .gpfocus),
         [data-section]:has(> .claw-accordion-header [class*="gpfocus"]) {
-          border-color: #2c709d !important;
-          border-left-color: #08d3fa !important;
+          border-color: #3b5678 !important;
+          border-left-color: #2684ff !important;
           box-shadow: 0 0 12px rgba(0,153,237,0.13) !important;
         }
         /* SteamOS controller focus can come from DOM :focus or Decky's
@@ -227,12 +227,12 @@ function Content(){
         .claw-hud-anchor:focus-within,
         .claw-hud-anchor:has(.gpfocus),
         .claw-hud-anchor:has([class*="gpfocus"]) {
-          background: #0874a9 !important;
+          background: #1f65b5 !important;
           border: 2px solid #ffffff !important;
-          outline: 2px solid #31deff !important;
+          outline: 2px solid #4694ff !important;
           outline-offset: -5px !important;
           color: #ffffff !important;
-          box-shadow: 0 0 0 2px #31deff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
+          box-shadow: 0 0 0 2px #4694ff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
         }
         .claw-hud-anchor:focus span,
         .claw-hud-anchor.gpfocus span,
@@ -245,28 +245,35 @@ function Content(){
         .claw-control-button:focus-within,
         .claw-control-button:has(.gpfocus),
         .claw-control-button:has([class*="gpfocus"]) {
-          background: #0874a9 !important;
+          background: #1f65b5 !important;
           border: 2px solid #ffffff !important;
-          outline: 2px solid #31deff !important;
+          outline: 2px solid #4694ff !important;
           outline-offset: -5px !important;
           color: #ffffff !important;
-          box-shadow: 0 0 0 2px #31deff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
+          box-shadow: 0 0 0 2px #4694ff, 0 0 11px 2px rgba(0,200,255,0.58) !important;
         }
         .claw-control-button:focus span,
         .claw-control-button.gpfocus span,
         .claw-control-button[class*="gpfocus"] span { color: inherit; }
         .claw-rename-modal { max-width: 100%; overflow-wrap: anywhere; }
         .claw-rename-modal input { max-width: 100%; box-sizing: border-box; }
+        .claw-theme [data-section] .claw-accordion-icon { color:#d5dce6 !important; }
+        .claw-theme [data-section] .claw-accordion-header:focus-within .claw-accordion-icon { color:#ffffff !important; }
+        .claw-theme .claw-control-button svg { color:#d5dce6; }
+        .claw-theme .claw-background-slider { padding:6px 12px 10px 8px; min-width:0; max-width:100%; box-sizing:border-box; }
+        .claw-theme .claw-background-slider .claw-slider-heading { display:flex;justify-content:space-between;gap:8px; }
+        .claw-theme .claw-background-slider .claw-slider-label { min-width:0; }
+        .claw-theme .claw-background-slider .claw-slider-number { min-width:36px;text-align:right; }
       `}</style>
-      <PanelSection title="Claw Metrics · v0.2.4-test.66">
+      <PanelSection title="Claw Metrics · v0.2.4-test.67">
         <PanelSectionRow>
           <div style={{display: "flex", alignItems: "center", gap: 12, padding: "6px 2px 10px"}}>
-            <div style={{background: "#084f75", border: "1px solid #14bcf9", color: "#3bdcff",
+            <div style={{background: "#1c2c40", border: "1px solid #315476", color: "#dbe3ee",
               width: 38, height: 38, borderRadius: 10, display: "flex", alignItems: "center",
               justifyContent: "center", fontSize: 22}}><FaChartBar /></div>
             <div style={{minWidth: 0}}>
               <div style={{fontSize: 18, fontWeight: 700, lineHeight: 1.2}}>Claw Metrics</div>
-              <div style={{fontSize: 12, color: "#a7c4dd", marginTop: 3}}>Performance overlay · MSI Claw</div>
+              <div style={{fontSize: 12, color: "#aab4c1", marginTop: 3}}>Performance overlay · MSI Claw</div>
             </div>
           </div>
         </PanelSectionRow>
@@ -292,7 +299,7 @@ function Content(){
         <ActivationCard vm={vm}/>
         <AdvancedCard vm={vm}/>
       </div>
-    </>
+    </div>
   );
 }
 

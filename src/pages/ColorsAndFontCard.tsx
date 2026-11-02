@@ -1,3 +1,4 @@
+import {BackgroundEditor} from "./BackgroundEditor";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
@@ -45,7 +46,7 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                   gap:6,minWidth:0,flexWrap:"wrap"}}>
                   <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>{styleTitle(slot)}</span>
-                  <span style={{fontSize:11,color:active?"#61e4ff":"#a6bdd2"}}>
+                  <span style={{fontSize:11,color:active?"#63b3ff":"#aab4c1"}}>
                     {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
                     {stored && <span style={{display:"block",marginTop:3,fontSize:10}}>
                       {settings.style_presets[slot]?.groups
@@ -57,9 +58,9 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                 <Focusable flow-children="row" className="claw-preset-actions">
                   <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
                     onClick={()=>loadPreset(slot)}
-                    style={{background:active?"#e0f7ff":"#0874a5",
-                      color:active?"#083957":"#ffffff",
-                      border:"1px solid #3c91c0",borderRadius:7}}>
+                    style={{background:active?"#dceaff":"#196bd4",
+                      color:active?"#12325c":"#ffffff",
+                      border:"1px solid #3b78ba",borderRadius:7}}>
                     <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
                   </DialogButton>
                   <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>{
@@ -68,7 +69,7 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                         ()=>savePreset(slot));
                       else savePreset(slot);
                     }}
-                    style={{background:"#294968",border:"1px solid #507394",
+                    style={{background:"#243344",border:"1px solid #43546a",
                       borderRadius:7,color:"#ffffff"}}>
                     <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
                   </DialogButton>
@@ -76,12 +77,13 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                 <DialogButton className="claw-control-button" disabled={!ready}
                   onClick={()=>renameStyle(slot)} aria-label={"Rename "+styleTitle(slot)}
                   style={{margin:"7px 0 0",width:"100%",minWidth:0,minHeight:38,
-                    background:"#203b58",border:"1px solid #466681",fontSize:12}}>
+                    background:"#1b2838",border:"1px solid #37485c",fontSize:12}}>
                   <FaPen style={{marginRight:6}}/> Rename
                 </DialogButton>
               </div>;
             })}
           </Focusable>
+          <BackgroundEditor vm={vm}/>
           <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>
           <Focusable flow-children="column" className="claw-style-rows">
             {Array.from({length:Math.ceil(styleTabs.length/3)},(_,rowIndex)=>{
@@ -92,8 +94,8 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
               aria-pressed={styleCategory===key} aria-label={"Style: "+(key==="global"?name:named(key))}
               onClick={()=>chooseStyleCategory(key)}
               style={{minWidth:0,width:"100%",minHeight:49,margin:0,padding:"6px 3px",
-                background:styleCategory===key?"#087daf":"#263d5b",
-                border:styleCategory===key?"2px solid #29dcff":"1px solid #476687",
+                background:styleCategory===key?"#185fae":"#1d2835",
+                border:styleCategory===key?"2px solid #3186f5":"1px solid #476687",
                 borderRadius:8,color:"#eef5ff"}}>
               <span style={{display:"flex",flexDirection:"column",alignItems:"center",
                 justifyContent:"center",gap:4,minWidth:0,width:"100%"}}>

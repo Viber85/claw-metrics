@@ -103,3 +103,14 @@ const extraRestore=plain(styleMetricUpdatesFrom(extraStyle,{...extraLive,metrics
 for(const key of extraKeys)assert.equal(extraRestore.metrics[key],true);
 const legacyRestore=plain(styleMetricUpdatesFrom(slot1,extraLive));
 for(const key of extraKeys)assert.equal(legacyRestore.metrics[key],true);
+
+const background={mode:'linear',color:'161820',angle:45,center_x:50,center_y:50,radius:70,stops:[{position:0,color:'000000'},{position:100,color:'0000FF'}]};
+const bgCurrent={...current,background};
+const bgPreset={...slot1,...module.exports.styleLayoutFrom(bgCurrent)};
+const bgRestored=plain(styleMetricUpdatesFrom(bgPreset,bgCurrent));
+const layout=plain(module.exports.styleLayoutFrom(bgPreset));
+assert.deepEqual(layout.background,background);
+layout.background.stops[0].color='FFFFFF';
+assert.equal(bgPreset.background.stops[0].color,'000000');
+assert.equal(module.exports.styleLayoutFrom(slot1).background,undefined);
+assert.equal(styleModified(bgPreset,{...bgCurrent,background:{...background,angle:90}}),true);

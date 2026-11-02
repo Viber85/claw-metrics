@@ -136,6 +136,8 @@ def normalize_style_presets(payload):
             "token_weights": normalize_token_weights(item.get("token_weights")),
             "token_colors": normalize_token_colors(item.get("token_colors")),
         }
+        if isinstance(item.get("background"), dict):
+            preset["background"] = normalize_background(item["background"])
         if item.get("version") in (2, 3):
             preset["version"] = item["version"]
         # New styles carry per-group visibility and per-sensor toggles. Reject
@@ -193,7 +195,41 @@ def normalize_color_overrides(payload):
     return out
 
 
+BACKGROUND_DEFAULT = {
+    "mode": "solid", "color": "161820", "angle": 0,
+    "center_x": 50, "center_y": 50, "radius": 70,
+    "stops": [{"position": 0, "color": "101A2C"}, {"position": 100, "color": "30204D"}],
+}
+
+def normalize_background(value):
+    out = copy.deepcopy(BACKGROUND_DEFAULT)
+    if not isinstance(value, dict):
+        return out
+    if value.get("mode") in ("solid", "linear", "radial"):
+        out["mode"] = value["mode"]
+    color = value.get("color")
+    if isinstance(color, str) and re.fullmatch(r"#?[0-9A-Fa-f]{6}", color):
+        out["color"] = color.lstrip("#").upper()
+    for key, low, high in (("angle", 0, 360), ("center_x", 0, 100),
+                           ("center_y", 0, 100), ("radius", 1, 200)):
+        if type(value.get(key)) is int:
+            out[key] = min(high, max(low, value[key]))
+    stops = []
+    if isinstance(value.get("stops"), list):
+        for stop in value["stops"][:8]:
+            if not isinstance(stop, dict):
+                continue
+            color = stop.get("color")
+            position = stop.get("position")
+            if (type(position) is int and isinstance(color, str)
+                    and re.fullmatch(r"#?[0-9A-Fa-f]{6}", color)):
+                stops.append({"position": min(100, max(0, position)), "color": color.lstrip("#").upper()})
+    if len(stops) >= 2:
+        out["stops"] = sorted(stops, key=lambda item: item["position"])
+    return out
+
 DEFAULTS = {
+    "background": BACKGROUND_DEFAULT,
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
     "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0,
     "vertical_value_gap": 8, "vertical_category_gap": 6, "vertical_graph_width": 0, "vertical_graph_height": 44, "opacity": 80,
@@ -630,6 +666,7 @@ def normalize(payload):
     d = copy.deepcopy(DEFAULTS)
     if not isinstance(payload, dict):
         return d
+    d["background"] = normalize_background(payload.get("background"))
     for key, default in DEFAULTS.items():
         v = payload.get(key)
         if type(default) is bool and type(v) is bool:
@@ -825,7 +862,7 @@ def mango_config(settings, native_spacing=False):
         # MangoHud multiplies this factor by real_font_size.y = font_size/2.
         "cellpadding_y=" + format(d["padding_y"] / (d["fontsize"] / 2), ".6f"),
         "round_corners=" + str(d["rounding"]),
-        "background_color=161820",
+        "background_color=" + d["background"]["color"],
         "text_color=" + c["text"],
         "cpu_color=" + c["cpu"], "gpu_color=" + c["gpu"],
         "ram_color=" + c["ram"], "vram_color=" + c["vram"],
@@ -881,6 +918,12 @@ def mango_config(settings, native_spacing=False):
             "claw_ram_label=" + d["custom_labels"].get("ram", "RAM"),
             "claw_vram_label=" + d["custom_labels"].get("vram", "VRAM"),
             "claw_battery_label=" + d["custom_labels"].get("battery", "BATT"),
+            "claw_background_mode=" + str(("solid", "linear", "radial").index(d["background"]["mode"])),
+            "claw_background_stops=" + "/".join(str(stop["position"]) + ":" + stop["color"] for stop in d["background"]["stops"]),
+            "claw_background_angle=" + str(d["background"]["angle"]),
+            "claw_background_center_x=" + str(d["background"]["center_x"]),
+            "claw_background_center_y=" + str(d["background"]["center_y"]),
+            "claw_background_radius=" + str(d["background"]["radius"]),
             "claw_padding_x=" + str(d["padding_x"]),
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),

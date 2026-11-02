@@ -105,7 +105,7 @@ export const styleTabs: [StyleCategory,string][] = [
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
 export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
-  sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; vertical_graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
+  background?:OverlayBackground; sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; vertical_graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
   groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
@@ -232,7 +232,10 @@ export function RenameMetricModal({name,original,onConfirm,onCancel}:any){
  </ConfirmModal>;
 }
 
+export type OverlayBackground = {mode:"solid"|"linear"|"radial";color:string;angle:number;center_x:number;center_y:number;radius:number;stops:{position:number;color:string}[]};
+export const defaultBackground:OverlayBackground = {mode:"solid",color:"161820",angle:0,center_x:50,center_y:50,radius:70,stops:[{position:0,color:"101A2C"},{position:100,color:"30204D"}]};
 export type Settings = Record<Group, boolean> & {
+  background:OverlayBackground;
   active_style: string|null; style_names: Record<string,string>;
   custom_labels: Record<string,string>;
   enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; vertical_width: number; vertical_value_gap: number; vertical_category_gap: number; vertical_graph_width: number; vertical_graph_height: number; vertical_graph_style: GraphStyle; opacity: number; power: boolean; tdp: boolean;
@@ -277,6 +280,7 @@ export type Info = {
 };
 
 export const defaults: Settings = {
+  background:defaultBackground,
   active_style:null, style_names:{}, custom_labels: {},
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", vertical_width:0, vertical_value_gap:8, vertical_category_gap:6, vertical_graph_width:0, vertical_graph_height:44, vertical_graph_style:"smooth", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,

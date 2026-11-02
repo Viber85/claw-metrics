@@ -47,15 +47,15 @@ export function MetricsCard({vm}:{vm:Core.ClawController}) {
                 aria-label={"Metric settings: " + named(key)}
                 onClick={() => expandMetric(open ? null : key)}
                 style={{width:"100%",minWidth:0,minHeight:62,margin:0,padding:"7px 3px",
-                  background:open?"#075783":"#172d44",
-                  border:open?"2px solid #32d7ff":"1px solid #406586",
+                  background:open?"#183c6b":"#18222e",
+                  border:open?"2px solid #3b8cff":"1px solid #354252",
                   borderRadius:8,color:"#f2f7fc"}}>
                 <span style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
                   gap:4,width:"100%",minWidth:0}}>
                   <span aria-hidden="true" style={{fontSize:15,color:group.color,lineHeight:1}}>{groupIcons[key]}</span>
                   <span style={{fontSize:12,fontWeight:600,lineHeight:1.15,overflowWrap:"anywhere",
                     textAlign:"center",width:"100%",minWidth:0}}>{named(key)}</span>
-                  {total>1 && <span style={{fontSize:10,color:"#a8c6d9",lineHeight:1}}>{count}/{total}</span>}
+                  {total>1 && <span style={{fontSize:10,color:"#aab4c1",lineHeight:1}}>{count}/{total}</span>}
                 </span>
               </DialogButton>;
           }}/>
@@ -63,8 +63,8 @@ export function MetricsCard({vm}:{vm:Core.ClawController}) {
           const key=expanded;
           const group=groups[key];
           const index=visible.indexOf(key);
-          return <div className="metric-detail" style={{border:"1px solid #365d7c",
-            borderLeft:"3px solid "+group.color,borderRadius:8,background:"#102236",
+          return <div className="metric-detail" style={{border:"1px solid #303b48",
+            borderLeft:"3px solid "+group.color,borderRadius:8,background:"#111820",
             padding:"9px 7px",marginTop:9,minWidth:0}}>
             <div style={{fontWeight:700,fontSize:13,marginBottom:7,color:"#f1f7fc"}}>{named(key)} · Settings</div>
             <Focusable style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}} flow-children="row">
@@ -99,7 +99,7 @@ export function MetricsCard({vm}:{vm:Core.ClawController}) {
               aria-label={"Show metric: "+named(key)}
               onClick={()=>update({[key]:true})}
               style={{minWidth:0,width:"100%",minHeight:52,margin:0,padding:"6px 3px",
-                background:"#162b3f",border:"1px dashed #50708e",borderRadius:8}}>
+                background:"#16202c",border:"1px dashed #42536a",borderRadius:8}}>
               <span style={{display:"flex",alignItems:"center",justifyContent:"center",
                 flexDirection:"column",gap:4,minWidth:0}}>
                 <span aria-hidden="true" style={{fontSize:14,color:groups[key].color}}>{groupIcons[key]}</span>

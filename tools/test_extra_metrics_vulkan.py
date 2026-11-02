@@ -36,6 +36,8 @@ with tempfile.TemporaryDirectory() as directory:
             'hud_position':'top-center' if mode==2 else 'top-left',
             'inline_metrics':mode!=2,'fontsize':26 if mode==1 else 18,
             'fps_scale':200 if mode==1 else 100,
+            'background':{'mode':'linear' if mode in (0,3) else 'radial', 'angle':45,
+                'stops':[{'position':0,'color':'FF0000'},{'position':50,'color':'00FF00'},{'position':100,'color':'0000FF'}]},
             'graph_style':'area' if mode in (0,1) else 'dual',
             'vertical_graph_style':'area' if mode in (0,1) else 'dual',
             'metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
@@ -87,3 +89,13 @@ with tempfile.TemporaryDirectory() as directory:
         assert filled and all(alpha==255 for alpha in filled),(layout,'Filled area alpha',graphs)
         assert translucent and all(0<alpha<255 for alpha in translucent),(layout,'Line + fill alpha',graphs)
     print('PASS actual Vulkan graph vertices: Filled area alpha=255; Line + fill remains translucent in both layouts.')
+
+    backgrounds=re.findall(r'CLAW_BACKGROUND mode=(\d+) vertical=(\d+) stops=(\d+) alpha=([\d.]+) vertices=(\d+) max_alpha=(\d+) colors=(\d+)',log)
+    for mode in (1,2):
+        for vertical in (0,1):
+            matches=[item for item in backgrounds if int(item[0])==mode and int(item[1])==vertical]
+            assert matches,('Missing gradient rendering evidence',mode,vertical)
+            for _,_,stops,alpha,vertices,max_alpha,colors in matches:
+                assert int(stops)==3 and abs(float(alpha)-.8)<.01
+                assert int(vertices)>1000 and int(max_alpha)==204 and int(colors)>3
+    print('PASS native multistop backgrounds: linear and radial gradients in both layouts, rounded mesh, shared 80% opacity and clean Vulkan exit.')

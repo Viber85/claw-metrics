@@ -781,3 +781,19 @@ All four are off by default, saved per style, and available in horizontal and
 vertical Claw layouts. Individual colors and font weights are under Colors &
 Font → FPS/RAM. The options require the bundled native renderer; the stock
 fallback stays unchanged. The primary FPS number alone retains FPS scaling.
+
+### test.67: overlay backgrounds and charcoal plugin theme
+
+**Colors & Font → Background** provides a solid RGB color or a linear/radial
+multistop gradient, with 2–8 editable colors and stop positions. Linear mode has
+an angle control; radial mode has center X/Y and spread controls. Background
+opacity uses the same existing opacity setting. New styles store background
+settings; legacy styles without a background leave the current choice intact.
+Solid mode remains available in stock MangoHud; gradients require the bundled
+Claw renderer. Rounded corners follow Layout and gradient sampling uses pixel
+space, keeping radial gradients circular on wide HUDs.
+
+The plugin UI uses charcoal surfaces, subtle borders, light icons and blue
+active controls. Existing HUD metric colors are preserved. Software Vulkan
+validation covers gradient vertex colors, opacity and live layout changes;
+physical-device visuals and controller navigation remain separate checks.

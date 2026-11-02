@@ -175,7 +175,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('.claw-control-button.gpfocus', SOURCE)
         self.assertIn('.claw-control-button:focus-visible', SOURCE)
         self.assertIn('border: 2px solid #ffffff !important;', SOURCE)
-        self.assertIn('box-shadow: 0 0 0 2px #31deff', SOURCE)
+        self.assertIn('box-shadow: 0 0 0 2px #4694ff', SOURCE)
         for name in ("claw-style-tiles", "claw-color-tiles",
                      "claw-metric-tiles", "claw-hidden-metric-tiles",
                      "claw-weight-tiles"):
@@ -226,10 +226,10 @@ class GroupedQamTests(unittest.TestCase):
 
     def test_expanded_card_uses_blue_surface_without_white_outline(self):
         self.assertIn("const active = open || focused;", SOURCE)
-        self.assertIn('border: active ? "1px solid #2c709d"', SOURCE)
-        self.assertIn('borderLeft: active ? "4px solid #08d3fa"', SOURCE)
-        self.assertIn('background: active ? "#073858" : "#14243b"', SOURCE)
-        self.assertIn('background: active ? "#075b83" : "#203551"', SOURCE)
+        self.assertIn('border: active ? "1px solid #3b5678"', SOURCE)
+        self.assertIn('borderLeft: active ? "1px solid #3b5678"', SOURCE)
+        self.assertIn('background: active ? "#1b2c43" : "#121a23"', SOURCE)
+        self.assertIn('background: active ? "#243449" : "#1c2632"', SOURCE)
         self.assertIn('open={openSection === "layout"}', SOURCE)
         self.assertIn('open={openSection === "colors"}', SOURCE)
         self.assertNotIn('claw-accordion-selection-ring', SOURCE)
@@ -240,8 +240,8 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('.claw-accordion-header:focus-within > button', SOURCE)
         self.assertIn('.claw-accordion-header:has(.gpfocus) > button', SOURCE)
         self.assertIn('[data-section][data-focused="true"] .claw-accordion-header > button', SOURCE)
-        self.assertIn('background: #073858 !important;', SOURCE)
-        self.assertIn('background: #075b83 !important;', SOURCE)
+        self.assertIn('background: #1b2c43 !important;', SOURCE)
+        self.assertIn('background: #243449 !important;', SOURCE)
         self.assertIn('outline: none !important;', SOURCE)
         component = SOURCE[SOURCE.index("function AccordionCard"):SOURCE.index("// Decky can remount")]
         self.assertNotIn('outline: 2px solid #ffffff', component)
@@ -394,8 +394,8 @@ class GroupedQamTests(unittest.TestCase):
                          '.claw-hud-anchor:focus-within'):
             self.assertIn(selector, SOURCE)
         self.assertIn('border: 2px solid #ffffff !important;', SOURCE)
-        self.assertIn('outline: 2px solid #31deff !important;', SOURCE)
-        self.assertIn('box-shadow: 0 0 0 2px #31deff', SOURCE)
+        self.assertIn('outline: 2px solid #4694ff !important;', SOURCE)
+        self.assertIn('box-shadow: 0 0 0 2px #4694ff', SOURCE)
         self.assertIn('offset_x: 8, offset_y: 0, padding_y: 0,', SOURCE)
 
     def test_fps_scale_ink_bounds_replace_font_linebox_padding(self):
