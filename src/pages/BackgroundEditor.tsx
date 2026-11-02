@@ -18,7 +18,7 @@ export function BackgroundEditor({vm}:{vm:ClawController}) {
  const preview=b.mode==="solid"?"#"+b.color:b.mode==="linear"
   ?`linear-gradient(${90+b.angle}deg,${b.stops.map(s=>`#${s.color} ${s.position}%`).join(",")})`
   :`radial-gradient(circle ${Math.hypot(260,64)*.5*b.radius/100}px at ${b.center_x}% ${b.center_y}%,${b.stops.map(s=>`#${s.color} ${s.position}%`).join(",")})`;
- const slider=(label:string,value:number,min:number,max:number,onChange:(n:number)=>void)=><div className="claw-background-slider"><LayoutSliderField label={label} value={value} min={min} max={max} step={1} onChange={onChange} disabled={!vm.ready}/></div>;
+ const slider=(label:string,value:number,min:number,max:number,onChange:(n:number)=>void)=>min>=max?<Field label={label} description={String(value)}/>:<div className="claw-background-slider"><LayoutSliderField label={label} value={value} min={min} max={max} step={1} onChange={onChange} disabled={!vm.ready}/></div>;
  return <ControlGroup title="Background" summary="Solid color · linear or radial gradient" open={open} onToggle={()=>setOpen(!open)}>
   <div aria-label="Background preview" style={{height:64,borderRadius:10,overflow:"hidden",border:"1px solid #37414d",marginBottom:10,
    background:"repeating-conic-gradient(#202832 0% 25%,#10161e 0% 50%) 0 0 / 16px 16px"}}>

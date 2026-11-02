@@ -48,7 +48,13 @@ static void ClawDrawBackground(const overlay_params& params) {
             params.claw_background_mode,params.claw_background_angle,
             params.claw_background_center_x,params.claw_background_center_y,
             params.claw_background_radius));
-        return ImGui::ColorConvertFloat4ToU32(ImVec4(rgb.r,rgb.g,rgb.b,a));
+        auto linear=[](float value) {
+            return value<=.04045f ? value/12.92f : std::pow((value+.055f)/1.055f,2.4f);
+        };
+        // Match the stock solid-background conversion for sRGB swapchains.
+        return ImGui::ColorConvertFloat4ToU32(HUDElements.colors.convert
+            ? ImVec4(linear(rgb.r),linear(rgb.g),linear(rgb.b),a)
+            : ImVec4(rgb.r,rgb.g,rgb.b,a));
     };
     auto quad=[&](ImVec2 a,ImVec2 b,ImVec2 c,ImVec2 d,ImU32 ca,ImU32 cb,ImU32 cc,ImU32 cd) {
         draw->PrimReserve(6,4);
