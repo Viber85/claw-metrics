@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/horizontal-vertical-builder-75]
+    branches: [test/apply-modal-order-76]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.75
+  group: claw-metrics-v0.2.4-test.76
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.75.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.76.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.75', package['version']
+              assert package['version'] == '0.2.4-test.76', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.75
-          path: ClawMetrics-v0.2.4-test.75.zip
+          name: ClawMetrics-v0.2.4-test.76
+          path: ClawMetrics-v0.2.4-test.76.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.75 ClawMetrics-v0.2.4-test.75.zip \
+          gh release create v0.2.4-test.76 ClawMetrics-v0.2.4-test.76.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.75 – Horizontal and Vertical Layout Builder" \
-            --notes "Experimental test.75 based on test.74: Horizontal and Vertical are the two starting templates for the same editable Layout Builder. Template replacement asks for confirmation; users can modify groups and readings, then apply or cancel the draft. Both classic renderer and existing settings remain available. The package includes the private native renderer and font assets. Python, TypeScript, frontend, ImGui, software Vulkan and ZIP checks pass before publication. Handheld controller behavior still needs device testing."
+            --title "Claw Metrics v0.2.4-test.76 – Horizontal and Vertical Layout Builder" \
+            --notes "Experimental test.76: Apply layout now closes the Decky Builder modal and waits for its ClosedPromise before updating and saving settings. This addresses a reported QAM input freeze during Apply on MSI Claw A8. Horizontal and Vertical templates, classic fallback, native renderer and launch command are retained. CI verifies Python, frontend, native ImGui, software Vulkan and package contents. The fix still needs on-device confirmation."

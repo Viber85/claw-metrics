@@ -32,6 +32,6 @@ control('DialogButton','Move earlier').onClick();assert.equal(draft().root.child
 control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);
 const cyclic=model.move(draft(),draft().root.id,newGroup.id);assert.deepEqual(cyclic,draft());
 render().find(n=>n.type==='ConfirmModal').props.onCancel();assert(closed);assert.equal(applied,undefined);
-render().find(n=>n.type==='ConfirmModal').props.onOK();assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
+closed=false;render().find(n=>n.type==='ConfirmModal').props.onOK();assert.equal(closed,false);assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
 assert.throws(()=>model.validate({...initial,x:NaN}));
 console.log('PASS builder: draft isolation, undo/redo, add, move, reorder, delete, cycle protection, cancel and apply. Mock UI only.');
