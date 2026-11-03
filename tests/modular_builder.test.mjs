@@ -24,6 +24,11 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[2];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+assert(render().some(n=>n.props?.['data-orientation']==='horizontal'));
+section('Selected element');control('DropdownItem','Direction').onChange({data:'column'});
+assert(render().some(n=>n.props?.['data-orientation']==='vertical'));
+assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+control('DropdownItem','Direction').onChange({data:'row'});
 section('Appearance');
 assert(render().some(n=>n.props?.className==='claw-builder-stage'),'preview remains mounted while editing');
 control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);

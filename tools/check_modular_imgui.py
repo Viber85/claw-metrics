@@ -103,8 +103,9 @@ def run(args):
             font=tmp/'ClawSans.ttf';font.write_bytes(gzip.decompress(base64.b64decode((ROOT/'assets/ClawSans.ttf.gz.b64').read_bytes())))
             import main
             assert hashlib.sha256(font.read_bytes()).hexdigest()==main.FONT_SHA256
-        for name in ('two-rows','graph-focus'):
-            document=schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text())
+        for name in ('two-rows','graph-focus','horizontal','vertical'):
+            preset=ROOT/('assets/modular' if name in ('horizontal','vertical') else 'experiments/modular')/(name+'.json')
+            document=schema.load_layout(preset.read_text())
             (tmp/'modular_fixture.h').write_text(fixture(document))
             transport=tmp/'input.layout';transport.write_text(schema.encode_native(document))
             binary=tmp/'probe'

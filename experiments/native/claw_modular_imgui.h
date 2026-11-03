@@ -48,10 +48,13 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
     });
     return frame;
 }
+inline float text_offset(Align alignment,float available) {
+    return alignment==Align::End?available:alignment==Align::Center?available/2:0;
+}
 inline void paint(const Frame& frame,ImDrawList* draw) {
     if(!draw)throw std::invalid_argument("Missing draw list");
     draw->PushClipRect(ImVec2(0,0),ImVec2(frame.screen.w,frame.screen.h),true);
-    std::function<void(size_t,float)> visit=[&](size_t i,float inherited){
+    std::function<void(size_t,float,Align)> visit=[&](size_t i,float inherited,Align horizontal_alignment){
         const auto& box=frame.geometry.boxes[i];if(!box.visible)return;
         const auto& n=frame.nodes[i];const auto& style=frame.styles[i];
         const float scale=inherited*n.scale;
@@ -61,7 +64,7 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float inset=style.outline_width/2;
             if(box.w>2*inset&&box.h>2*inset)draw->AddRect(ImVec2(lo.x+inset,lo.y+inset),ImVec2(hi.x-inset,hi.y-inset),style.outline,std::max(0.f,style.rounding-inset),0,style.outline_width);
         }
-        if(n.group){for(auto child:n.children)visit(child,scale);return;}
+        if(n.group){for(auto child:n.children)visit(child,scale,n.axis==Axis::Column?n.align:Align::Start);return;}
         if(n.token=="graph"){
             if(frame.graph.size()<2)return;
             // Bound each primitive reservation below 16-bit index limits;
@@ -105,11 +108,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
         }else{
             const auto& text=frame.readings.at(n.token);
             const float width=text.font->CalcTextSizeA(frame.font_size*scale,std::numeric_limits<float>::max(),0,text.value.c_str()).x;
-            const float offset=text.slot.empty()?0:std::max(0.f,box.w-2*n.padding-width);
+            const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
             draw->AddText(text.font,frame.font_size*scale,ImVec2(lo.x+n.padding+offset,lo.y+n.padding),style.text?style.text:text.color,text.value.c_str());
         }
     };
-    visit(frame.root,1);
+    visit(frame.root,1,Align::Start);
     draw->PopClipRect();
 }
 } // namespace claw_modular

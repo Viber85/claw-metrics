@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-78]
+    branches: [test/builder-ui-79]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.78
+  group: claw-metrics-v0.2.4-test.79
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.78.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.79.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.78', package['version']
+              assert package['version'] == '0.2.4-test.79', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.78
-          path: ClawMetrics-v0.2.4-test.78.zip
+          name: ClawMetrics-v0.2.4-test.79
+          path: ClawMetrics-v0.2.4-test.79.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.78 ClawMetrics-v0.2.4-test.78.zip \
+          gh release create v0.2.4-test.79 ClawMetrics-v0.2.4-test.79.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.78 – Fullscreen Layout Builder" \
-            --notes "Experimental test.78: reorganizes Layout Builder into Preview, Elements and Edit views for handheld readability. Preview starts at 80 percent zoom and scrolls to show the overlay at a legible size, with a fit-screen option; slider labels and values are spaced correctly inside the modal. Retains test.76 modal-close-before-save fix, Horizontal/Vertical templates and native renderer. CI covers Python, frontend, ImGui, Vulkan and ZIP checks. On-device focus and layout still require confirmation."
+            --title "Claw Metrics v0.2.4-test.79 – Alignment and adaptive Builder" \
+            --notes "Experimental test.79: the native modular renderer now aligns reserved reading text according to the selected column alignment, matching the preview. Horizontal and Vertical templates are stacked into readable, bounded groups at 1280 x 800. The Builder requests screen-sized popup dimensions and places horizontal preview across the full width above the controls, or vertical preview on the left at full editor height. Retains saved layouts and test.76 safe Apply behavior. CI covers frontend, native ImGui, Vulkan and ZIP checks; actual device focus and appearance require confirmation."

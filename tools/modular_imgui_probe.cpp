@@ -49,7 +49,23 @@ int main(int argc,char**argv){
  try {prepare(nodes,invalid_styles,frame.readings,{},0,{float(width),float(height)},Anchor::TopCenter,0,20,24);}
  catch(const std::invalid_argument&){rejected=true;}
  assert(rejected);
- ImGui::NewFrame();paint(frame,ImGui::GetBackgroundDrawList());ImGui::Render();
+ ImGui::NewFrame();
+ // Real glyph vertices must move with a column's start/center/end setting,
+ // while the reserved width remains stable for changing readings.
+ auto draw_alignment=[&](Align align){
+  Node root;root.id="alignment";root.axis=Axis::Column;root.align=align;root.children={1};
+  Node child;child.id="reading";child.group=false;child.token="cpu.load";
+  Text value;value.value="2%";value.slot="100%";value.font=font;
+  auto sample=prepare({root,child},std::vector<Style>(2),{{"cpu.load",value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  ImDrawList list(ImGui::GetDrawListSharedData());list._ResetForNewFrame();list.PushClipRectFullScreen();
+  const int before=list.VtxBuffer.Size;paint(sample,&list);assert(list.VtxBuffer.Size>before);
+  float first=std::numeric_limits<float>::max();
+  for(int i=before;i<list.VtxBuffer.Size;++i)first=std::min(first,list.VtxBuffer[i].pos.x);
+  return first;
+ };
+ const float left=draw_alignment(Align::Start),center=draw_alignment(Align::Center),right=draw_alignment(Align::End);
+ assert(left+1<center&&center+1<right);
+ paint(frame,ImGui::GetBackgroundDrawList());ImGui::Render();
  auto* data=ImGui::GetDrawData();assert(data->TotalVtxCount>0);
  std::ofstream out(std::string(argv[4])+".json");out<<"{\"width\":"<<width<<",\"height\":"<<height<<",\"lists\":[";
  for(int list=0;list<data->CmdListsCount;++list){if(list)out<<",";auto* d=data->CmdLists[list];out<<"{\"v\":[";
