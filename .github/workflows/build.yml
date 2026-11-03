@@ -1,7 +1,7 @@
 name: Build and release Decky plugin
 on:
   push:
-    branches: [main]
+    branches: [main, 'test/horizontal-vertical-builder-75']
   workflow_dispatch:
 
 permissions:
@@ -32,14 +32,24 @@ jobs:
           node -e 'const s=require("node:fs").readFileSync("dist/index.js","utf8");if(/\brequire\s*\(/.test(s)) { throw new Error("Decky bundle contains unsupported CommonJS require()") }'
       - name: Check Python backend
         run: |
-          python3 -m py_compile main.py
+          python3 -m py_compile main.py claw_modular.py
           python3 -m unittest discover -s tests
       - name: Check native ImGui layout and bundled font
         run: python3 tools/check_native_layout.py
+      - name: Validate starter templates
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          from claw_modular import load_layout, encode_native
+          for name,axis in [('horizontal','row'),('vertical','column')]:
+              d=load_layout(pathlib.Path(f'assets/modular/{name}.json').read_text())
+              assert d['root']['axis']==axis
+              assert encode_native(d).startswith('CLAW_MODULAR_V1')
+          PY
       - name: Package plugin ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py sensors.py diagnostics.py README.md artifact/ClawMetrics/
+          cp plugin.json package.json main.py claw_modular.py sensors.py diagnostics.py README.md artifact/ClawMetrics/
           mkdir -p artifact/ClawMetrics/py_modules
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp -r dist assets artifact/ClawMetrics/
@@ -51,7 +61,7 @@ jobs:
           version = json.loads(pathlib.Path('package.json').read_text())['version']
           with zipfile.ZipFile(f'ClawMetrics-v{version}.zip') as package:
               assert package.testzip() is None
-              for name in ('main.py', 'diagnostics.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt'):
+              for name in ('main.py', 'claw_modular.py', 'assets/modular/horizontal.json', 'assets/modular/vertical.json', 'diagnostics.py', 'plugin.json', 'package.json', 'dist/index.js', 'assets/ClawSans.ttf.gz.b64', 'assets/FONT-LICENSE.txt'):
                   assert f'ClawMetrics/{name}' in package.namelist(), name
               assert json.loads(package.read('ClawMetrics/package.json'))['version'] == version
               assert f'v{version}' in package.read('ClawMetrics/dist/index.js').decode()
@@ -71,6 +81,6 @@ jobs:
           else
             gh release create "v${VERSION}" "$PACKAGE" --target "$GITHUB_SHA" \
               --title "Claw Metrics v${VERSION} (experimental)" \
-              --notes "Claw Metrics v0.2.3: functional manual X/Y placement, extra vertical padding, position reset and compact preset. Native layout checks cover position/padding changes at 1920 and a compact 1280 preset. Horizontal padding and independent FPS size are not supported by the native MangoHud config." \
+              --notes "Experimental test.75: two editable Layout Builder starter templates (Horizontal and Vertical), template replacement confirmation, JSON import/export and unchanged classic renderer fallback. Back up custom layouts before selecting a new starter. Hardware testing remains necessary." \
               --prerelease
           fi
