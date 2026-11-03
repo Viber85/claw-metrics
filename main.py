@@ -1237,7 +1237,7 @@ class Plugin:
         return {"home": str(user_home()), "export_path": str(BASE / "modular-layout-export.json")}
 
     async def get_modular_preset(self, name: str):
-        if name not in ("two-rows", "graph-focus"):
+        if name not in ("horizontal", "vertical"):
             raise ValueError("Unknown modular preset")
         from claw_modular import load_layout
         return load_layout((pathlib.Path(__file__).resolve().parent / "assets/modular" / (name + ".json")).read_text())
