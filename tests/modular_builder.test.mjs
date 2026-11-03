@@ -24,8 +24,11 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[2];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children).includes('Guides')));
+control('slider','Zoom (%)').onChange(75);assert.equal(state[8],.75);
+control('DialogButton','Fit').onClick();assert.equal(state[1],true);
 assert(render().some(n=>n.props?.['data-orientation']==='horizontal'));
-section('Selected element');control('DropdownItem','Direction').onChange({data:'column'});
+control('DropdownItem','Direction').onChange({data:'column'});
 assert(render().some(n=>n.props?.['data-orientation']==='vertical'));
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
 control('DropdownItem','Direction').onChange({data:'row'});
@@ -34,9 +37,9 @@ assert(render().some(n=>n.props?.className==='claw-builder-stage'),'preview rema
 control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
 control('DialogButton','Undo').onClick();assert.equal(draft().root.gap,initial.root.gap);
 control('DialogButton','Redo').onClick();assert.equal(draft().root.gap,23);
-section('Elements');control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
+control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
 assert(render().some(n=>n.props?.className==='claw-builder-stage'),'preview remains mounted after adding');
-section('Elements');control('DialogButton','+ Reading').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
+assert(control('DialogButton','+ Reading'),'element list remains available while editing');control('DialogButton','+ Reading').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
 control('DropdownItem','Move to group').onChange({data:initial.root.id});assert.equal(model.find(draft().root,newGroup.id).children.length,0);
 control('DialogButton','Move earlier').onClick();assert.equal(draft().root.children.at(-1).id,newGroup.id);
 control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);
