@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
+const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,closed=false;
+const ui=Object.fromEntries(['ConfirmModal','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
+function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
+const model=load('src/modular/model.ts');
+const {Builder}=load('src/modular/Builder.tsx',name=>{
+ if(name==='react')return {useEffect:()=>{},useRef:()=>({current:null}),useState:initial=>{const i=cursor++;if(!(i in state))state[i]=typeof initial==='function'?initial():initial;return[state[i],next=>state[i]=typeof next==='function'?next(state[i]):next]}};
+ if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
+ if(name==='@decky/ui')return ui;
+ if(name==='./model')return model;
+ if(name==='./Hud')return {ModularHud:'preview',initialData:{}};
+ if(name.includes('LayoutSliderField'))return {LayoutSliderField:p=>jsx('slider',p)};
+ if(name.includes('controller'))return {OpaqueColorPicker:'color'};
+ throw Error(name);
+});
+const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
+function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
+function render(){cursor=0;return walk(Builder({initial,settings:{},onApply:d=>applied=d,closeModal:()=>closed=true}))}
+const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
+const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
+const draft=()=>render().find(n=>n.type==='preview').props.layout;
+control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
+control('DialogButton','Undo').onClick();assert.equal(draft().root.gap,initial.root.gap);
+control('DialogButton','Redo').onClick();assert.equal(draft().root.gap,23);
+control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
+control('DialogButton','+ Element').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
+control('DropdownItem','Move to group').onChange({data:initial.root.id});assert.equal(model.find(draft().root,newGroup.id).children.length,0);
+control('DialogButton','Move earlier').onClick();assert.equal(draft().root.children.at(-1).id,newGroup.id);
+control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);
+const cyclic=model.move(draft(),draft().root.id,newGroup.id);assert.deepEqual(cyclic,draft());
+render().find(n=>n.type==='ConfirmModal').props.onCancel();assert(closed);assert.equal(applied,undefined);
+render().find(n=>n.type==='ConfirmModal').props.onOK();assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
+assert.throws(()=>model.validate({...initial,x:NaN}));
+console.log('PASS builder: draft isolation, undo/redo, add, move, reorder, delete, cycle protection, cancel and apply. Mock UI only.');

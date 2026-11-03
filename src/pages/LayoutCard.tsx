@@ -31,6 +31,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 <AccordionCard id="layout" title="Layout" subtitle="Orientation, position, size and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
           <ModularEditor vm={vm}/>
+          {!settings.modular_enabled && <>
           <PanelSectionRow><Field label="HUD orientation"
             description="Choose a horizontal strip or vertical stack. Restart the running game to apply." /></PanelSectionRow>
           <GamepadGrid items={([
@@ -233,6 +234,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         }))}>
             Reset layout to defaults
           </ButtonItem></PanelSectionRow>
-        </AccordionCard>
+         </>}
+</AccordionCard>
   );
 }

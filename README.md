@@ -1,3 +1,9 @@
+## v0.2.4-test.74 — DevLab Layout Builder
+
+Open **Layout → Modular layout → Open Layout builder**. Select a group or reading in the tree (or sample preview), then edit its properties. Add, move, reorder or delete elements; Undo/Redo applies to the draft. **Apply layout** saves the complete layout; **Cancel** keeps the existing one. Preset selection and JSON import/export remain in the QAM.
+
+This is adapted to native Decky controls. The HTML preview uses sample values and is not a native renderer screenshot. Handheld navigation, keyboard behavior and modal sizing need on-device verification. The test.73 renderer and launch command are unchanged.
+
 # Claw Metrics v0.2.4-test.60 — Layout slider safe margins
 
 Finishes the sizing improvement from test.59 for Decky's narrow Quick Access

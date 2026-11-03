@@ -6,6 +6,7 @@ const doc=JSON.parse(readFileSync('assets/modular/two-rows.json','utf8'));
 const state=[],updates=[],calls=[];let cursor=0,failImport=false;
 const jsx=(type,props)=>({type,props:props||{}});
 const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
+let modal;ui.showModal=value=>{modal=value;return {Close(){}}};
 const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/import.json'}),callable:route=>async(...args)=>{
  calls.push([route,args]);
  if(route==='get_modular_preset')return structuredClone(doc);
@@ -21,6 +22,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
  if(name==='@decky/api')return api;
  if(name==='@decky/ui')return ui;
+ if(name.includes('modular/Builder'))return {Builder:'Builder'};
  if(name.includes('LayoutSliderField'))return {LayoutSliderField:p=>jsx('slider',p)};
  if(name.includes('GamepadGrid'))return {GamepadGrid:p=>jsx('grid',{children:p.items.map(p.renderItem)})};
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};
@@ -34,7 +36,10 @@ const button=label=>{const value=render().find(n=>n.type==='button'&&text(n.prop
 assert(button('Export current layout').props.disabled);
 button('Two rows').props.onClick();await new Promise(setImmediate);
 assert(vm.settings.modular_enabled);assert.equal(vm.settings.modular_layout.root.id,doc.root.id);
-const slider=render().find(n=>n.type==='slider'&&n.props.label==='Group gap (px)');assert(slider);slider.props.onChange(13);assert.equal(vm.settings.modular_layout.root.gap,13);
+button('Open Layout builder').props.onClick();assert(modal);
+const draft=structuredClone(modal.props.initial);draft.root.gap=13;
+assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
+modal.props.onApply(draft);assert.equal(vm.settings.modular_layout.root.gap,13);
 button('Export current layout').props.onClick();await new Promise(setImmediate);
 assert.equal(calls.findLast(([route])=>route==='export_modular_layout')[1][0].root.gap,13);
 const before=JSON.stringify(vm.settings.modular_layout);failImport=true;
