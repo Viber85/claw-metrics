@@ -21,12 +21,14 @@ function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return
 function render(){cursor=0;return walk(Builder({initial,settings:{},onApply:d=>applied=d,closeModal:()=>closed=true}))}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
-const draft=()=>render().find(n=>n.type==='preview').props.layout;
+const draft=()=>state[2];
+assert(render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='1 · Preview'));
+control('DialogButton','3 · Edit').onClick();
 control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
 control('DialogButton','Undo').onClick();assert.equal(draft().root.gap,initial.root.gap);
 control('DialogButton','Redo').onClick();assert.equal(draft().root.gap,23);
-control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
-control('DialogButton','+ Element').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
+control('DialogButton','2 · Elements').onClick();control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
+control('DialogButton','2 · Elements').onClick();control('DialogButton','+ Reading').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
 control('DropdownItem','Move to group').onChange({data:initial.root.id});assert.equal(model.find(draft().root,newGroup.id).children.length,0);
 control('DialogButton','Move earlier').onClick();assert.equal(draft().root.children.at(-1).id,newGroup.id);
 control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);

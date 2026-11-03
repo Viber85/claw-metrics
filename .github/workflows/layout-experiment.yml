@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/apply-modal-order-76]
+    branches: [test/builder-ui-77]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.76
+  group: claw-metrics-v0.2.4-test.77
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.76.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.77.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.76', package['version']
+              assert package['version'] == '0.2.4-test.77', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.76
-          path: ClawMetrics-v0.2.4-test.76.zip
+          name: ClawMetrics-v0.2.4-test.77
+          path: ClawMetrics-v0.2.4-test.77.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.76 ClawMetrics-v0.2.4-test.76.zip \
+          gh release create v0.2.4-test.77 ClawMetrics-v0.2.4-test.77.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.76 – Horizontal and Vertical Layout Builder" \
-            --notes "Experimental test.76: Apply layout now closes the Decky Builder modal and waits for its ClosedPromise before updating and saving settings. This addresses a reported QAM input freeze during Apply on MSI Claw A8. Horizontal and Vertical templates, classic fallback, native renderer and launch command are retained. CI verifies Python, frontend, native ImGui, software Vulkan and package contents. The fix still needs on-device confirmation."
+            --title "Claw Metrics v0.2.4-test.77 – Horizontal and Vertical Layout Builder" \
+            --notes "Experimental test.77: reorganizes Layout Builder into Preview, Elements and Edit views for handheld readability. Preview starts at 80 percent zoom and scrolls to show the overlay at a legible size, with a fit-screen option; slider labels and values are spaced correctly inside the modal. Retains test.76 modal-close-before-save fix, Horizontal/Vertical templates and native renderer. CI covers Python, frontend, ImGui, Vulkan and ZIP checks. On-device focus and layout still require confirmation."
