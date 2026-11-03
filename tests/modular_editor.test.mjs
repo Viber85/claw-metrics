@@ -2,14 +2,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-const doc=JSON.parse(readFileSync('assets/modular/two-rows.json','utf8'));
+const doc=JSON.parse(readFileSync('assets/modular/horizontal.json','utf8'));
+const vertical=JSON.parse(readFileSync('assets/modular/vertical.json','utf8'));
 const state=[],updates=[],calls=[];let cursor=0,failImport=false;
 const jsx=(type,props)=>({type,props:props||{}});
-const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
+const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField','ConfirmModal'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
 let modal;ui.showModal=value=>{modal=value;return {Close(){}}};
 const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/import.json'}),callable:route=>async(...args)=>{
  calls.push([route,args]);
- if(route==='get_modular_preset')return structuredClone(doc);
+ if(route==='get_modular_preset')return structuredClone(args[0]==='vertical'?vertical:doc);
  if(route==='get_modular_info')return {home:'/home/test'};
  if(route==='import_modular_layout'){if(failImport)throw new Error('Invalid JSON');return structuredClone(doc)}
  if(route==='export_modular_layout')return {path:'/home/test/export.json'};
@@ -34,7 +35,9 @@ function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
 const text=value=>Array.isArray(value)?value.map(text).join(''):value&&typeof value==='object'?text(value.props?.children):String(value??'');
 const button=label=>{const value=render().find(n=>n.type==='button'&&text(n.props.children)===label);assert(value,'Missing '+label);return value};
 assert(button('Export current layout').props.disabled);
-button('Two rows').props.onClick();await new Promise(setImmediate);
+button('↔ Horizontal').props.onClick();assert.equal(vm.settings.modular_layout,null);
+modal.props.onCancel();assert.equal(vm.settings.modular_layout,null);
+button('↔ Horizontal').props.onClick();modal.props.onOK();await new Promise(setImmediate);
 assert(vm.settings.modular_enabled);assert.equal(vm.settings.modular_layout.root.id,doc.root.id);
 button('Open Layout builder').props.onClick();assert(modal);
 const draft=structuredClone(modal.props.initial);draft.root.gap=13;
@@ -48,5 +51,7 @@ assert.equal(JSON.stringify(vm.settings.modular_layout),before);
 assert(render().some(n=>n.props.role==='status'&&text(n.props.children).includes('Invalid JSON')));
 failImport=false;button('Import DevLab JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
-const toggle=render().find(n=>n.type==='ToggleField'&&n.props.label==='Use modular layout');toggle.props.onChange(false);assert(!vm.settings.modular_enabled);
+button('↕ Vertical').props.onClick();modal.props.onOK();await new Promise(setImmediate);
+assert.equal(vm.settings.modular_layout.root.axis,'column');
+const toggle=render().find(n=>n.type==='ToggleField'&&n.props.label==='Use editable renderer (test)');toggle.props.onChange(false);assert(!vm.settings.modular_enabled);
 console.log('PASS modular UI: preset selection, group edit, export latest document, rejected import retention, valid import and legacy toggle. Mock controls do not establish gamepad navigation.');
