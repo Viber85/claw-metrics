@@ -65,9 +65,10 @@ def raster(path):
     h,w=data['height'],data['width']; canvas=np.empty((h,w,3),dtype=float);canvas[:]=[25,38,54]
     for draw in data['lists']:
         vertices=np.asarray(draw['v'],dtype=float);indices=draw['idx']
-        for start,count,cx,cy,cx2,cy2 in draw['cmd']:
+        for command in draw['cmd']:
+            start,count,cx,cy,cx2,cy2=command[:6];base=command[6] if len(command)>6 else 0
             for offset in range(int(start),int(start+count),3):
-                v=vertices[[indices[offset],indices[offset+1],indices[offset+2]]];xy=v[:,:2]
+                v=vertices[[indices[offset]+base,indices[offset+1]+base,indices[offset+2]+base]];xy=v[:,:2]
                 lo=np.maximum(np.floor(xy.min(0)).astype(int),[max(0,int(cx)),max(0,int(cy))]);hi=np.minimum(np.ceil(xy.max(0)).astype(int),[min(w,int(cx2)),min(h,int(cy2))])
                 if np.any(hi<=lo):continue
                 a,b,c=xy;den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1])
@@ -110,9 +111,11 @@ def run(args):
             subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(tmp),'-I',str(ROOT/'experiments/native'),
                             str(ROOT/'tools/modular_imgui_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
             for width,height in ((1280,800),(1920,1080)):
-                target=output/f'{name}-{width}x{height}'
-                subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport)],check=True)
-                raster(target.with_suffix('.json'))
+                for style in range(6):
+                    target=output/f'{name}-{width}x{height}-style{style}'
+                    subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style)],check=True)
+                    raster(target.with_suffix('.json'))
+
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--render-dir',required=True);run(parser.parse_args())

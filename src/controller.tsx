@@ -235,6 +235,7 @@ export function RenameMetricModal({name,original,onConfirm,onCancel}:any){
 export type OverlayBackground = {outline_enabled:boolean;outline_color:string;outline_width:number;outline_opacity:number;mode:"solid"|"linear"|"radial";color:string;angle:number;center_x:number;center_y:number;radius:number;stops:{position:number;color:string}[]};
 export const defaultBackground:OverlayBackground = {outline_enabled:false,outline_color:"6B7E99",outline_width:1,outline_opacity:100,mode:"solid",color:"161820",angle:0,center_x:50,center_y:50,radius:70,stops:[{position:0,color:"101A2C"},{position:100,color:"30204D"}]};
 export type Settings = Record<Group, boolean> & {
+  modular_enabled:boolean; modular_layout:any|null;
   background:OverlayBackground;
   active_style: string|null; style_names: Record<string,string>;
   custom_labels: Record<string,string>;
@@ -280,6 +281,7 @@ export type Info = {
 };
 
 export const defaults: Settings = {
+  modular_enabled:false, modular_layout:null,
   background:defaultBackground,
   active_style:null, style_names:{}, custom_labels: {},
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", vertical_width:0, vertical_value_gap:8, vertical_category_gap:6, vertical_graph_width:0, vertical_graph_height:44, vertical_graph_style:"smooth", opacity: 80, fps: true, frametime: true,

@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/short-home-launcher-72]
+    branches: [test/modular-layout-73]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.72
+  group: claw-metrics-v0.2.4-test.73
   cancel-in-progress: true
 
 jobs:
@@ -62,6 +62,7 @@ jobs:
           node tests/style_presets.test.mjs
           node tests/slider_field.test.mjs
           node tests/session_reports.test.mjs
+          node tests/modular_editor.test.mjs
       - name: Verify isolated Decky backend import
         run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
       - name: Type-check QAM
@@ -121,6 +122,7 @@ jobs:
           python3 ../experiments/enable_background_outline.py src
           python3 ../tools/check_background.py src
           python3 ../tools/check_extra_metrics.py src
+          python3 ../experiments/enable_modular_renderer.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -190,25 +192,40 @@ jobs:
           test -s ../native64/libMangoHud.so
       - name: Exercise new metrics and live style changes through Vulkan
         run: python3 tools/test_extra_metrics_vulkan.py
+      - name: Check modular geometry and document transport
+        run: |
+          python3 tools/check_modular_layout.py
+          python3 tools/check_modular_transport.py
+      - name: Render actual modular ImGui fixtures
+        run: |
+          pip install numpy pillow
+          python3 tools/check_modular_imgui.py --font assets/fonts/BarlowSemiCondensed-Regular.ttf --render-dir modular-fixtures
+      - name: Exercise modular renderer through Vulkan
+        run: python3 tools/test_modular_vulkan.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modular-render-fixtures
+          path: modular-fixtures/
       - name: Package isolated experimental Decky ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py sensors.py diagnostics.py README.md artifact/ClawMetrics/
+          cp plugin.json package.json main.py sensors.py diagnostics.py claw_modular.py README.md artifact/ClawMetrics/
           mkdir -p artifact/ClawMetrics/py_modules
           cp updates.py artifact/ClawMetrics/py_modules/updates.py
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
+          cp claw_modular.py artifact/ClawMetrics/py_modules/claw_modular.py
           cp -r dist assets native64 artifact/ClawMetrics/
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.72.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.73.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so',
+              for p in ['claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -217,18 +234,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.72', package['version']
+              assert package['version'] == '0.2.4-test.73', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.72
-          path: ClawMetrics-v0.2.4-test.72.zip
+          name: ClawMetrics-v0.2.4-test.73
+          path: ClawMetrics-v0.2.4-test.73.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.72 ClawMetrics-v0.2.4-test.72.zip \
+          gh release create v0.2.4-test.73 ClawMetrics-v0.2.4-test.73.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.72 – Short Home Launcher" \
-            --notes "Activation now offers ~/claw-metrics %command% using a create-only home-directory alias to the existing launcher. Existing launch options keep working. Existing user files or foreign links are preserved and the UI falls back to the full path if the alias is unavailable. Includes test.71 diagnostics. Native renderer and injection environment unchanged."
+            --title "Claw Metrics v0.2.4-test.73 – Modular Overlay Preview" \
+            --notes "First installable modular overlay preview. Layout now offers Two rows / Graph focus, DevLab JSON import/export, live group direction/scale/gap/padding and screen anchors. Modular documents are saved with styles; legacy styles restore legacy mode. Reuses existing sensors, token fonts/colors, solid/linear/radial backgrounds and outline. Six graph styles and stable numerical slots. Validated immutable layout exchange retains the last valid document on incomplete imports. Vulkan large-mesh offsets are supported. Default remains legacy until enabled; launch command is unchanged. Fully restart games after installing. Checked with real ImGui fixtures and software Vulkan live transitions/font reload/large-mesh tests; handheld validation is still required."

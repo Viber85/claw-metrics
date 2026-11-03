@@ -1,6 +1,7 @@
 // Included at the end of hud_elements.cpp: reuses its actual fonts/colors/sensors.
 bool ClawTryModular() {
     const char* filename=std::getenv("CLAW_MODULAR_LAYOUT_FILE");
+    if(!filename||!*filename)filename=HUDElements.params->claw_modular_file.c_str();
     if(!filename||!*filename)return false;
     static claw_modular::FileLoader loader(filename);
     static std::shared_ptr<const claw_modular::Document> active;
@@ -18,7 +19,11 @@ bool ClawTryModular() {
     for(int token=0;token<32;++token){
         ImFont* font=ClawFontForToken(token);if(!font)font=ImGui::GetFont();
         ImVec4 color=HUDElements.colors.text;
-        if(token==0||token==28||token==29)color=HUDElements.colors.engine;
+        if(token==0)color=HUDElements.colors.engine;
+        if(token==1&&p.enabled[OVERLAY_PARAM_ENABLED_fps_color_change]){
+            LOAD_DATA levels={HUDElements.colors.fps_value_low,HUDElements.colors.fps_value_med,HUDElements.colors.fps_value_high,p.fps_value[0],p.fps_value[1]};
+            color=change_on_load_temp(levels,int(data.fps));
+        }
         if(token==3)color=HUDElements.colors.cpu;
         if(token==8)color=HUDElements.colors.gpu;
         if(token==16)color=HUDElements.colors.ram;
@@ -34,7 +39,7 @@ bool ClawTryModular() {
     set("fps.low1",std::string("1% LOW ")+fmt("%.1f",data.claw_frames.low1,data.claw_frames.low1_ready));
     set("cpu.label",p.cpu_text.empty()?"CPU":p.cpu_text);
     const auto cpu=cpuStats.GetCPUDataTotal();
-    set("cpu.load",fmt("%.0f%%",cpu.percent,p.enabled[OVERLAY_PARAM_ENABLED_cpu_stats]));
+    set("cpu.load",fmt("%.0f%%",int(cpu.percent),p.enabled[OVERLAY_PARAM_ENABLED_cpu_stats]));
     auto temp=[&](double value,bool available){return fmt(p.enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]?"%.0f°F":"%.0f°C",p.enabled[OVERLAY_PARAM_ENABLED_temp_fahrenheit]?HUDElements.convert_to_fahrenheit(value):value,available);};
     set("cpu.temp",temp(cpu.temp,p.enabled[OVERLAY_PARAM_ENABLED_cpu_temp]));
     set("cpu.clock",fmt("%.0f MHz",cpu.cpu_mhz,p.enabled[OVERLAY_PARAM_ENABLED_cpu_mhz]));
@@ -70,10 +75,14 @@ bool ClawTryModular() {
         char buffer[32];std::snprintf(buffer,sizeof(buffer),"%02d:%02d",int(hours),int(minutes));set("battery.time",buffer);
     }
     set("time.value",data.time.empty()?"--":data.time);
+    set("tdp.value","TDP --");set("battery.power","DRAW --");
     for(const auto& item:HUDElements.exec_list){
         if(item.value.find("tdp.txt")!=std::string::npos)set("tdp.value",claw_modular::power_text(item.ret,"TDP"));
         if(item.value.find("draw.txt")!=std::string::npos)set("battery.power",claw_modular::power_text(item.ret,"DRAW"));
     }
+    const char* slots[]={"","888","888.8 ms","","100%","888°C","8888 MHz","88.8 W","","100%","888°C","8888 MHz","88.8 W","888°C Jnc","88888 RPM","8888 mV","","888.8 GiB","","888.8 GiB","888°C","8888 MHz","","100%","88:88","","88:88","","AVG 8888.8","1% LOW 8888.8","GAME 888.8 GiB","SWAP 888.8 GiB"};
+    for(int token=0;token<32;++token)readings[keys[token]].slot=slots[token];
+    for(int token:{25,27})readings[keys[token]].slot=ClawSlotReference(token,"%s",readings[keys[token]].value.c_str());
     data.stat_selector=OVERLAY_PLOTS_frame_timing;
     data.time_dividor=1000000.0f;
     std::vector<float> graph;
@@ -84,8 +93,7 @@ bool ClawTryModular() {
         if(std::isfinite(ms)&&ms>=0&&ms<=1000000)graph.push_back(float(ms));
     }
     std::vector<claw_modular::Style> styles(active->nodes.size());
-    ImVec4 background=HUDElements.colors.background;background.w=p.background_alpha;
-    styles[0].fill=ImGui::ColorConvertFloat4ToU32(background);styles[0].rounding=p.round_corners;
+    styles[0].rounding=p.round_corners;
     auto packed=[&](const std::string& hex,float opacity)->ImU32{
         if(hex.empty())return 0;
         const unsigned rgb=std::stoul(hex,nullptr,16);
@@ -101,14 +109,20 @@ bool ClawTryModular() {
     }
     try {
         const auto size=ImGui::GetIO().DisplaySize;
+        const ImU32 root_fill=styles[0].fill;styles[0].fill=0;
         auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale);
+        frame.graph_style=int(p.claw_graph_style);
+        const auto& box=frame.geometry.boxes[0];
+        if(!box.visible||box.w<=0||box.h<=0)return true;
+        ClawModularBackground(ImVec4(box.x,box.y,box.w,box.h),p,!active->appearance[0].background.empty(),root_fill);
         frame.graph_color=ImGui::ColorConvertFloat4ToU32(HUDElements.colors.frametime);
         auto* draw=ImGui::GetForegroundDrawList();const int before=draw->VtxBuffer.Size;
         claw_modular::paint(frame,draw);
         if(std::getenv("CLAW_METRICS_VERIFY")){
             static std::string previous;
             const auto key=active->nodes[0].id;
-            if(data.n_frames>100&&(previous!=key||data.n_frames%120==0)){previous=key;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y);}
+            const auto signature=key+std::to_string(p.claw_graph_style)+std::to_string(p.claw_background_mode);
+            if(data.n_frames>100&&(previous!=signature||data.n_frames%60==0)){previous=signature;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f style=%u background=%u\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y,unsigned(p.claw_graph_style),unsigned(p.claw_background_mode));}
         }
         return true;
     }catch(const std::exception&){return false;} // Legacy HUD remains the fallback.

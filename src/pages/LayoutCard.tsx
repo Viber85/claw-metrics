@@ -18,6 +18,7 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
+import {ModularEditor} from "./ModularEditor";
 import {LayoutSliderField} from "../components/LayoutSliderField";
 
 
@@ -29,6 +30,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
   return (
 <AccordionCard id="layout" title="Layout" subtitle="Orientation, position, size and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
+          <ModularEditor vm={vm}/>
           <PanelSectionRow><Field label="HUD orientation"
             description="Choose a horizontal strip or vertical stack. Restart the running game to apply." /></PanelSectionRow>
           <GamepadGrid items={([

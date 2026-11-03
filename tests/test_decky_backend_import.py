@@ -30,6 +30,7 @@ assert hasattr(module.Plugin, "get_settings")
 assert hasattr(module.Plugin, "save_settings")
 assert hasattr(module.Plugin, "check_updates")
 assert hasattr(module.Plugin, "validate_github_releases")
+assert hasattr(module.Plugin, "import_modular_layout")
 print("DECKY_SANDBOX_IMPORT_OK")
 """
 
@@ -44,6 +45,7 @@ class DeckySandboxImportTests(unittest.TestCase):
             p.mkdir()
             shutil.copyfile(ROOT / "updates.py", p / "updates.py")
             shutil.copyfile(ROOT / "diagnostics.py", p / "diagnostics.py")
+            shutil.copyfile(ROOT / "claw_modular.py", p / "claw_modular.py")
 
     def decky_import(self, folder):
         return subprocess.run(

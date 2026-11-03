@@ -834,3 +834,16 @@ Crash reports now query GPU, Decky/Steam helper and warning logs independently w
 ### test.72: shorter Steam launch option
 
 Activation now copies `~/claw-metrics %command%`. A create-only symlink in the detected user's home points to the existing persistent launcher, preserving its environment, argument forwarding and missing-assets fallback. No PATH or fixed username is required. Steam must expand `~` to the same user's home; verify this on each OS. Existing launch options remain valid. Existing files and foreign symlinks at that name are never replaced; Activation falls back to the old absolute path when the alias is unavailable.
+
+
+### test.73: first installable modular overlay preview
+
+After installing, fully restart each running game once to load the new native library. Keep your current launch command. Open **Layout → Modular layout · preview** and choose **Two rows** or **Graph focus**. The **Use modular layout** switch returns to the classic renderer. New installs/old profiles stay classic until you choose a modular layout.
+
+Import **Export layout** JSON from the existing DevLab editor using **Import DevLab JSON**. Decky also edits the screen anchor/offset and each group's row/column direction, visibility, scale, gap and padding. Detailed element selection, nesting and reordering are authored in DevLab; this first Decky editor is not a drag-and-drop canvas. Export returns the latest document shown in the UI. Settings retain the complete document; an automatic `modular-layout-backup.json` copy is kept in the plugin's user config folder. JSON imports are bounded and validated before replacing settings.
+
+Saved styles include modular mode and its document. Older styles restore classic mode without destroying the currently retained modular document. Fonts, token colors, global solid/linear/radial background, opacity, rounding and outline use the existing appearance controls. Node color/background overrides remain supported. Filled area is opaque, line + fill remains translucent, and all six graph shapes are supported. Numeric slots reserve width so changing readings do not continuously resize panels. Graph histories are resampled to at most 64 points per graph. Only the first selected GPU is used; battery icons are not a separate modular token in v1.
+
+In modular mode the tree owns visibility and geometry; classic metric/position/padding controls do not rearrange it. The generated profile enables sources required by visible tree elements. Missing sources show `--`; TDP/DRAW shell error text cannot expand the HUD. The loader publishes complete immutable documents between frames. Invalid or partially written files keep the last valid native document. Vulkan draw commands honor ImGui vertex offsets for large layouts.
+
+Validation: backend/style migration and strict JSON tests, mocked Decky callbacks, browser width checks at 350 px, hash-verified ImGui fixtures with the packaged Barlow font at 1280x800 and 1920x1080, legacy software-Vulkan regression tests and modular software-Vulkan transitions, font reload, gradients/outlines, all graph modes and a >64K-vertex document. These checks do not certify handheld rendering, gamepad navigation or hardware readings. The native release pipeline and ZIP-content checks must pass before this prerelease is offered for download.

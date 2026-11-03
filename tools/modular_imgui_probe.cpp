@@ -7,9 +7,9 @@
 #include <iostream>
 using namespace claw_modular;
 int main(int argc,char**argv){
- if(argc!=6)return 2;
+ if(argc!=7)return 2;
  const int width=std::stoi(argv[2]),height=std::stoi(argv[3]);
- ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
+ ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.BackendFlags|=ImGuiBackendFlags_RendererHasVtxOffset;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
  ImFont* font=io.Fonts->AddFontFromFileTTF(argv[1],24);assert(font);
  ImFont* large=io.Fonts->AddFontFromFileTTF(argv[1],48);assert(large);
  io.FontDefault=font;io.Fonts->Build();unsigned char* atlas;int aw,ah;io.Fonts->GetTexDataAsAlpha8(&atlas,&aw,&ah);
@@ -30,8 +30,13 @@ int main(int argc,char**argv){
   styles[i].text=packed(appearance.color,100);
   if(appearance.outline)styles[i].outline=IM_COL32(143,184,217,255);
  }
+ values["fps.value"].slot="888";
  auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+ frame.graph_style=std::stoi(argv[6]);
  assert(!frame.geometry.outside);
+ auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";
+ auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+ assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
  for(size_t i=0;i<nodes.size();++i){const auto& b=frame.geometry.boxes[i];assert(b.visible&&b.w>0&&b.h>0);}
  // Readings are owned by the prepared frame; mutation of the caller's map
  // cannot change what is measured/drawn mid-frame.
@@ -50,7 +55,7 @@ int main(int argc,char**argv){
  for(int list=0;list<data->CmdListsCount;++list){if(list)out<<",";auto* d=data->CmdLists[list];out<<"{\"v\":[";
   for(int i=0;i<d->VtxBuffer.Size;++i){if(i)out<<",";const auto& v=d->VtxBuffer[i];out<<"["<<v.pos.x<<","<<v.pos.y<<","<<v.uv.x<<","<<v.uv.y<<","<<v.col<<"]";}
   out<<"],\"idx\":[";for(int i=0;i<d->IdxBuffer.Size;++i){if(i)out<<",";out<<d->IdxBuffer[i];}
-  out<<"],\"cmd\":[";for(int i=0;i<d->CmdBuffer.Size;++i){if(i)out<<",";const auto& c=d->CmdBuffer[i];out<<"["<<c.IdxOffset<<","<<c.ElemCount<<","<<c.ClipRect.x<<","<<c.ClipRect.y<<","<<c.ClipRect.z<<","<<c.ClipRect.w<<"]";}
+  out<<"],\"cmd\":[";for(int i=0;i<d->CmdBuffer.Size;++i){if(i)out<<",";const auto& c=d->CmdBuffer[i];out<<"["<<c.IdxOffset<<","<<c.ElemCount<<","<<c.ClipRect.x<<","<<c.ClipRect.y<<","<<c.ClipRect.z<<","<<c.ClipRect.w<<","<<c.VtxOffset<<"]";}
   out<<"]}";}
  out<<"]}";std::cout<<"PASS "<<width<<"x"<<height<<" nodes="<<nodes.size()<<" vertices="<<data->TotalVtxCount<<"\n";
  ImGui::DestroyContext();

@@ -136,6 +136,14 @@ def normalize_style_presets(payload):
             "token_weights": normalize_token_weights(item.get("token_weights")),
             "token_colors": normalize_token_colors(item.get("token_colors")),
         }
+        preset["modular_enabled"] = False
+        if item.get("modular_layout") is not None:
+            from claw_modular import validate_layout
+            try:
+                preset["modular_layout"] = validate_layout(item["modular_layout"])
+                preset["modular_enabled"] = item.get("modular_enabled") is True
+            except ValueError:
+                pass
         if isinstance(item.get("background"), dict):
             preset["background"] = normalize_background(item["background"])
         if item.get("version") in (2, 3):
@@ -235,6 +243,7 @@ def normalize_background(value):
     return out
 
 DEFAULTS = {
+    "modular_enabled": False, "modular_layout": None,
     "background": BACKGROUND_DEFAULT,
     "enabled": True, "fontsize": 18, "fps_scale": 100, "center_horizontal": False,
     "hud_position": "top-left", "hud_orientation": "horizontal", "vertical_width": 0,
@@ -704,6 +713,10 @@ def normalize(payload):
     if not isinstance(payload, dict):
         return d
     d["background"] = normalize_background(payload.get("background"))
+    if payload.get("modular_layout") is not None:
+        from claw_modular import validate_layout
+        d["modular_layout"] = validate_layout(payload["modular_layout"])
+
     for key, default in DEFAULTS.items():
         v = payload.get(key)
         if type(default) is bool and type(v) is bool:
@@ -724,6 +737,8 @@ def normalize(payload):
         d["vertical_width"] = 160
     if 0 < d["vertical_graph_width"] < 80:
         d["vertical_graph_width"] = 80
+    if not d["modular_layout"]:
+        d["modular_enabled"] = False
     # Existing settings do not contain orientation: keep the old horizontal HUD.
     if payload.get("hud_orientation") in HUD_ORIENTATIONS:
         d["hud_orientation"] = payload["hud_orientation"]
@@ -875,6 +890,26 @@ def write_atomic(path, content, mode=0o644):
 
 def mango_config(settings, native_spacing=False):
     d = normalize(settings)
+    if native_spacing and d["modular_enabled"]:
+        # The modular tree owns visibility; ensure every visible reading has its source.
+        required = set()
+        def scan(node):
+            if not node["visible"]: return
+            if node["kind"] == "metric": required.add(node["token"])
+            for child in node["children"]: scan(child)
+        scan(d["modular_layout"]["root"])
+        metric_flags = {"fps.ms":"fps_ms", "fps.average":"fps_average", "fps.low1":"fps_low1",
+                        "cpu.temp":"cpu_temp", "cpu.clock":"cpu_mhz", "cpu.power":"cpu_power",
+                        "gpu.temp":"gpu_temp", "gpu.clock":"gpu_core_clock", "gpu.power":"gpu_power",
+                        "gpu.junction":"gpu_junction_temp", "gpu.fan":"gpu_fan", "gpu.voltage":"gpu_voltage",
+                        "vram.temp":"gpu_mem_temp", "vram.clock":"gpu_mem_clock", "battery.time":"battery_time",
+                        "ram.game":"ram_game", "ram.swap":"ram_swap", "graph":"graph"}
+        for token in required:
+            group = {"graph":"frametime", "battery.power":"draw", "time.value":"time", "tdp.value":"tdp"}.get(token, token.split('.')[0])
+            d[group] = True
+            if token in metric_flags: d["metrics"][metric_flags[token]] = True
+            if token.startswith('vram.'): d['gpu'] = True
+            if token == 'fps.ms': d['frametime'] = True
     m = d["metrics"]
     c = d["colors"]
     active = lambda key: d["enabled"] and d[key]
@@ -969,6 +1004,7 @@ def mango_config(settings, native_spacing=False):
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
+            "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
             "claw_graph_style=" + str((VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"])
                 if not is_horizontal else GRAPH_STYLES.index(d["graph_style"]))),
             "claw_inner_gap=" + str(d["inner_gap"]),
@@ -1036,6 +1072,36 @@ def update_error_message(error):
         return type(error).__name__ + ": " + str(error)[:220]
 
 
+def read_modular_import(path):
+    import stat
+    from claw_modular import load_layout
+    descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > 1024 * 1024:
+            raise ValueError("Choose a regular JSON file up to 1 MiB")
+        with os.fdopen(descriptor, 'rb') as source:
+            descriptor = -1
+            data = source.read(1024 * 1024 + 1)
+            if len(data) > 1024 * 1024: raise ValueError("File exceeds 1 MiB")
+            return load_layout(data.decode('utf-8'))
+    finally:
+        if descriptor >= 0: os.close(descriptor)
+
+
+def publish_modular(settings):
+    if settings.get("modular_layout") is not None:
+        from claw_modular import encode_native
+        encoded = encode_native(settings["modular_layout"])
+        target = BASE / "modular.layout"
+        if not target.is_file() or target.read_text() != encoded:
+            write_atomic(target, encoded)
+        backup = BASE / "modular-layout-backup.json"
+        original = json.dumps(settings["modular_layout"], indent=2) + "\n"
+        if not backup.is_file() or backup.read_text() != original:
+            write_atomic(backup, original)
+
+
 class Plugin:
     async def _main(self):
         install_font()
@@ -1047,6 +1113,7 @@ class Plugin:
                 settings = normalize(json.load(f))
         except (OSError, ValueError):
             settings = dict(DEFAULTS)
+        publish_modular(settings)
         write_atomic(HUD, mango_config(settings))
         if native_renderer_available():
             install_native_manifest()
@@ -1166,6 +1233,28 @@ class Plugin:
             raise RuntimeError("Diagnostics unavailable")
         return await asyncio.to_thread(self._recorder.export, session_id)
 
+    async def get_modular_info(self):
+        return {"home": str(user_home()), "export_path": str(BASE / "modular-layout-export.json")}
+
+    async def get_modular_preset(self, name: str):
+        if name not in ("two-rows", "graph-focus"):
+            raise ValueError("Unknown modular preset")
+        from claw_modular import load_layout
+        return load_layout((pathlib.Path(__file__).resolve().parent / "assets/modular" / (name + ".json")).read_text())
+
+    async def import_modular_layout(self, path: str):
+        if not isinstance(path, str) or len(path) > 4096:
+            raise ValueError("Invalid file path")
+        return await asyncio.to_thread(read_modular_import, path)
+
+    async def export_modular_layout(self, layout=None):
+        from claw_modular import validate_layout
+        current = normalize(getattr(self, "_current_settings", {}))
+        value = validate_layout(layout if layout is not None else current["modular_layout"])
+        target = BASE / "modular-layout-export.json"
+        write_atomic(target, json.dumps(value, indent=2) + "\n")
+        return {"path": str(target)}
+
     async def get_settings(self):
         try:
             with CONFIG.open(encoding="utf-8") as f:
@@ -1175,6 +1264,7 @@ class Plugin:
 
     async def save_settings(self, settings: dict):
         data = normalize(settings)
+        publish_modular(data)
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
         self._current_settings = data
         write_atomic(draw_path(), draw_text(data) + "\n")
