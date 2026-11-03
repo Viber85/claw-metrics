@@ -48,7 +48,11 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_presets_import_export_and_invalid_import_preserve_file(self):
         plugin=main.Plugin()
-        self.assertEqual(await plugin.get_modular_preset('two-rows'),self.doc)
+        for name,axis in (('horizontal','row'),('vertical','column')):
+            expected=modular.load_layout((ROOT/f'assets/modular/{name}.json').read_text())
+            self.assertEqual(await plugin.get_modular_preset(name),expected)
+            self.assertEqual(expected['root']['axis'],axis)
+        with self.assertRaises(ValueError):await plugin.get_modular_preset('two-rows')
         with self.assertRaises(ValueError):await plugin.get_modular_preset('../bad')
         with tempfile.TemporaryDirectory() as directory,patch.object(main,'BASE',Path(directory)):
             incoming=Path(directory)/'incoming.json';incoming.write_text(json.dumps(self.doc))
