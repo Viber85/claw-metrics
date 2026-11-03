@@ -1,3 +1,9 @@
+## v0.2.4-test.75 — Horizontal / Vertical starter templates
+
+Layout → Layout builder now offers exactly two editable starting templates: **Horizontal** and **Vertical**. Selecting either shows a confirmation before replacing the active modular layout. Open Layout builder to modify groups and individual readings, then Apply or Cancel. Export JSON to back up custom edits. Existing classic horizontal/vertical renderers remain as a fallback using the "Use editable renderer (test)" switch. Color/font/sensor controls remain separate.
+
+Note: Templates are initial JSON layouts, not a promise of pixel-perfect equivalence with the original native classic renderer. Device-level Vulkan/Proton performance and behavior are **not verified**. The Decky plugin name stays Claw Metrics until Better Overlay branding is migrated consistently.
+
 ## v0.2.4-test.74 — DevLab Layout Builder
 
 Open **Layout → Modular layout → Open Layout builder**. Select a group or reading in the tree (or sample preview), then edit its properties. Add, move, reorder or delete elements; Undo/Redo applies to the draft. **Apply layout** saves the complete layout; **Cancel** keeps the existing one. Preset selection and JSON import/export remain in the QAM.
