@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+import main
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('modular_schema', ROOT / 'experiments/modular/schema.py')
@@ -89,6 +90,15 @@ class ModularSchemaTests(unittest.TestCase):
         self.assertIn('separator', schema.encode_native(out))
         separator['height'] = 0
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
+
+    def test_modular_graph_style_uses_builder_choice_for_both_orientations(self):
+        for orientation in ('horizontal', 'vertical'):
+            settings = main.normalize({'modular_enabled': True, 'modular_layout': self.layout,
+                                       'hud_orientation': orientation, 'graph_style': 'bars',
+                                       'vertical_graph_style': 'smooth'})
+            config = main.mango_config(settings, native_spacing=True)
+            self.assertIn('claw_graph_style=2\n', config)
+            self.assertNotIn('separator=1\n', config)
 
     def test_unknown_fields_do_not_become_renderer_parameters(self):
         self.layout['exec'] = 'ignored'

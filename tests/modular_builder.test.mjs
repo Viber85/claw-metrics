@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,closed=false;
+const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false;
 const ui=Object.fromEntries(['ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
@@ -14,18 +14,19 @@ const {Builder}=load('src/modular/Builder.tsx',name=>{
  if(name==='./Hud')return {ModularHud:'preview',initialData:{}};
  if(name==='./preview-fonts')return {previewFontCSS:'@font-face{font-family:ClawPreviewBarlow}'};
  if(name.includes('LayoutSliderField'))return {LayoutSliderField:p=>jsx('slider',p)};
- if(name.includes('controller'))return {OpaqueColorPicker:'color'};
+ if(name.includes('controller'))return {OpaqueColorPicker:'color',graphStyleChoices:[{id:'line',label:'Line'},{id:'bars',label:'Histogram'}]};
  throw Error(name);
 });
 const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
-function render(){cursor=0;return walk(Builder({initial,settings:{},onApply:d=>applied=d,closeModal:()=>closed=true}))}
+function render(){cursor=0;return walk(Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line'},onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true}))}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
 assert(render().find(n=>n.type==='ModalRoot'));
+assert.equal(render().find(n=>n.type==='ModalRoot').props.onOK,undefined,'only the explicit Apply button saves');
 assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own right-panel actions');
 assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
@@ -38,6 +39,13 @@ assert(render().some(n=>n.type==='style'&&n.props.children.includes('grid-templa
 const graph=model.flatten(initial.root).find(n=>n.token==='graph');
 assert(graph);
 render().find(n=>n.type==='preview').props.onSelect(graph.id);
+section('Appearance');
+control('DropdownItem','Graph style').onChange({data:'bars'});
+assert.equal(render().find(n=>n.type==='preview').props.settings.graph_style,'bars');
+assert.equal(appliedAppearance,undefined);
+control('DialogButton','Undo').onClick();
+assert.equal(render().find(n=>n.type==='preview').props.settings.graph_style,'line');
+section('Selected element');
 control('DialogButton','Place graph below · left').onClick();
 assert.equal(draft().root.axis,'column');
 assert.equal(draft().root.children[0].axis,'row');
@@ -72,6 +80,10 @@ assert(render().some(n=>n.props?.className==='claw-builder-stage'));
 control('DropdownItem','Direction').onChange({data:'row'});
 section('Appearance');
 assert(render().some(n=>n.props?.className==='claw-builder-stage'),'preview remains mounted while editing');
+control('slider','Corner radius').onChange(14);
+control('slider','Overlay background opacity (%)').onChange(52);
+assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,14);
+assert.equal(render().find(n=>n.type==='preview').props.settings.opacity,52);
 control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
 control('DialogButton','Undo').onClick();assert.equal(draft().root.gap,initial.root.gap);
 control('DialogButton','Redo').onClick();assert.equal(draft().root.gap,23);
@@ -91,5 +103,6 @@ assert.equal(draft().root.children.at(-1).children[0].height,4);
 const cyclic=model.move(draft(),draft().root.id,newGroup.id);assert.deepEqual(cyclic,draft());
 control('DialogButton','Cancel').onClick();assert(closed);assert.equal(applied,undefined);
 closed=false;control('DialogButton','Apply layout').onClick();assert.equal(closed,false);assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
+assert.equal(appliedAppearance.rounding,14);assert.equal(appliedAppearance.opacity,52);
 assert.throws(()=>model.validate({...initial,x:NaN}));
 console.log('PASS builder: draft isolation, undo/redo, add, move, reorder, delete, cycle protection, cancel and apply. Mock UI only.');

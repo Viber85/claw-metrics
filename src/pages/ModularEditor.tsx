@@ -3,7 +3,7 @@ import {callable,openFilePicker,FileSelectionType} from '@decky/api';
 import {ConfirmModal,DialogButton,Field,PanelSectionRow,ToggleField,showModal} from '@decky/ui';
 import {GamepadGrid} from '../components/GamepadGrid';
 import {ControlGroup} from '../components/ControlGroup';
-import {Builder} from '../modular/Builder';
+import {Builder,type BuilderAppearance} from '../modular/Builder';
 import {isHorizontalLayout,validate, type Layout} from '../modular/model';
 import type {ClawController} from '../controller';
 const preset=callable<[string],any>('get_modular_preset');
@@ -14,7 +14,16 @@ export function ModularEditor({vm}:{vm:ClawController}){
  useEffect(()=>{if(ready)void getInfo().then(v=>Home(v.home)).catch(()=>{});},[ready]);
  const canEdit=ready&&vm.info?.layout_spacing_supported!==false;
  const doc=settings.modular_layout;
- const openBuilder=(layout:Layout)=>{const editor=showModal(<Builder initial={layout} settings={settings} onApply={value=>{editor.Close();void editor.ClosedPromise.then(()=>update({modular_layout:value,modular_enabled:true}));}} closeModal={()=>editor.Close()}/>,undefined,{popupWidth:window.innerWidth,popupHeight:window.innerHeight});};
+ const openBuilder=(layout:Layout)=>{
+  const opener=document.activeElement as HTMLElement|null;
+  let closing=false,pending:{modular_layout:Layout;modular_enabled:true}&BuilderAppearance|undefined;
+  const close=()=>{
+   if(closing)return;
+   closing=true;editor.Close();
+   void editor.ClosedPromise.then(()=>requestAnimationFrame(()=>{if(opener?.isConnected)opener.focus();if(pending)update(pending)}));
+  };
+  const editor=showModal(<Builder initial={layout} settings={settings} onApply={(value,appearance)=>{pending={modular_layout:value,modular_enabled:true,...appearance};close()}} closeModal={close}/>,undefined,{bNeverPopOut:true});
+ };
  const chooseTemplate=(id:'horizontal'|'vertical')=>{
   const label=id==='horizontal'?'Horizontal':'Vertical';
   const dialog=showModal(<ConfirmModal strTitle={'Start from '+label+'?'}

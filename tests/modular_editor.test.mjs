@@ -7,7 +7,7 @@ const vertical=JSON.parse(readFileSync('assets/modular/vertical.json','utf8'));
 const state=[],updates=[],calls=[];let cursor=0,failImport=false;
 const jsx=(type,props)=>({type,props:props||{}});
 const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField','ConfirmModal'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
-let modal,resolveClosed,modalOptions;ui.showModal=(value,_parent,options)=>{modal=value;modalOptions=options;return {Close(){queueMicrotask(()=>resolveClosed())},ClosedPromise:new Promise(resolve=>resolveClosed=resolve)}};
+let modal,resolveClosed,modalOptions,closeCalls=0,focusCalls=0;ui.showModal=(value,_parent,options)=>{modal=value;modalOptions=options;return {Close(){closeCalls++;queueMicrotask(()=>resolveClosed())},ClosedPromise:new Promise(resolve=>resolveClosed=resolve)}};
 const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/import.json'}),callable:route=>async(...args)=>{
  calls.push([route,args]);
  if(route==='get_modular_preset')return structuredClone(args[0]==='vertical'?vertical:doc);
@@ -29,7 +29,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name.includes('GamepadGrid'))return {GamepadGrid:p=>jsx('grid',{children:p.items.map(p.renderItem)})};
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};
  throw new Error(name);
-},JSON,window:{innerWidth:1280,innerHeight:800}});
+},JSON,window:{innerWidth:1280,innerHeight:800},document:{activeElement:{isConnected:true,focus:()=>focusCalls++}},requestAnimationFrame:fn=>fn()});
 const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value}}};
 function walk(value){if(!value||typeof value!=='object')return [];if(Array.isArray(value))return value.flatMap(walk);if(typeof value.type==='function')return walk(value.type(value.props));return [value,...walk(value.props.children)]}
 function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
@@ -43,11 +43,19 @@ button('↔ Horizontal').props.onClick();modal.props.onOK();await new Promise(se
 assert(vm.settings.modular_enabled);assert.equal(vm.settings.modular_layout.root.id,doc.root.id);
 assert.equal(modal.type,'Builder');assert.equal(modal.props.initial.root.axis,'row');
 button('Edit overlay').props.onClick();assert(modal);
-assert.equal(modalOptions.popupWidth,1280);assert.equal(modalOptions.popupHeight,800);
+assert.equal(modalOptions.bNeverPopOut,true);
 const draft=structuredClone(modal.props.initial);draft.root.gap=13;
 assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
-modal.props.onApply(draft);assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
+const appearance={rounding:12,opacity:67,graph_style:'bars'};
+const beforeClose=closeCalls;
+modal.props.onApply(draft,appearance);modal.props.closeModal();
+assert.equal(closeCalls,beforeClose+1,'Apply and close cannot close twice');
+assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
 await new Promise(setImmediate);assert.equal(vm.settings.modular_layout.root.gap,13);
+assert.equal(vm.settings.rounding,12);assert.equal(vm.settings.opacity,67);assert.equal(vm.settings.graph_style,'bars');assert(focusCalls>0);
+button('Edit overlay').props.onClick();
+const updatesBeforeCancel=updates.length;modal.props.closeModal();await new Promise(setImmediate);
+assert.equal(updates.length,updatesBeforeCancel,'Cancel does not save appearance or layout');
 const before=JSON.stringify(vm.settings.modular_layout);failImport=true;
 button('Import JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(JSON.stringify(vm.settings.modular_layout),before);

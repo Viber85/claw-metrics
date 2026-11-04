@@ -1010,8 +1010,8 @@ def mango_config(settings, native_spacing=False):
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
             "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
-            "claw_graph_style=" + str((VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"])
-                if not is_horizontal else GRAPH_STYLES.index(d["graph_style"]))),
+            "claw_graph_style=" + str((GRAPH_STYLES.index(d["graph_style"])
+                if d["modular_enabled"] or is_horizontal else VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"]))),
             "claw_inner_gap=" + str(d["inner_gap"]),
             "claw_vertical_value_gap=" + str(d["vertical_value_gap"]),
             "claw_vertical_graph_width=" + str(d["vertical_graph_width"]),

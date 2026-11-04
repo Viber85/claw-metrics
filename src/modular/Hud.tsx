@@ -11,10 +11,18 @@ export function backgroundStyle(s:any):React.CSSProperties{
  return {background:b.mode==='linear'?`linear-gradient(${b.angle}deg,${stops})`:b.mode==='radial'?`radial-gradient(circle ${b.radius*2}px at ${b.center_x}% ${b.center_y}%,${stops})`:rgba(b.color,s.opacity),borderRadius:s.rounding,boxShadow:b.outline_enabled?`inset 0 0 0 ${b.outline_width}px ${rgba(b.outline_color,b.outline_opacity)}`:undefined};
 }
 export function Graph({width,height,color,kind}:{width:number;height:number;color:string;kind:string}){
- const pts=Array.from({length:61},(_,i)=>[i*5,49+Math.sin(i*.71)*5+Math.cos(i*.23)*10+(i===31?-15:0)]),line='M'+pts.map(p=>p.join(',')).join(' L'),area=line+' L300,80 L0,80 Z';
+ const pts=Array.from({length:61},(_,i)=>[i*5,49+Math.sin(i*.71)*5+Math.cos(i*.23)*10+(i===31?-15:0)]);
+ const smooth=kind==='smooth'||kind==='dual_layer';
+ const points=smooth?pts.flatMap((p,i)=>i===pts.length-1?[p]:Array.from({length:4},(_,j)=>{
+  const a=pts[Math.max(0,i-1)][1],b=p[1],c=pts[i+1][1],d=pts[Math.min(pts.length-1,i+2)][1],t=j/4;
+  return [p[0]+5*t,.5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)];
+ })):pts;
+ const line='M'+points.map(p=>p.join(',')).join(' L'),area=line+' L300,80 L0,80 Z';
+ let average=points[0][1];const layer='M'+points.map(([x,y])=>{average=.85*average+.15*y;return `${x},${average}`}).join(' L');
  return <svg width={width} height={height} viewBox="0 0 300 80" preserveAspectRatio="none" aria-label="Simulated frametime graph">
  {kind==='bars'?pts.map(([x,y],i)=><rect key={i} x={x} y={y} width="4" height={80-y} fill={color}/>):<>
- {kind!=='line'&&<path d={area} fill={color} fillOpacity={kind==='area'?1:.2}/>}
+ {['area','dual','dual_layer'].includes(kind)&&<path d={area} fill={color} fillOpacity={kind==='area'?1:kind==='dual'?.22:.14}/>}
+ {kind==='dual_layer'&&<path d={layer} fill="none" stroke={color} strokeOpacity={.43} strokeWidth="1" vectorEffect="non-scaling-stroke"/>}
  <path d={line} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke"/></>}
  </svg>
 }
