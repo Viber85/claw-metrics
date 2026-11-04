@@ -16,7 +16,7 @@ import {
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "./style-presets";
+import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 import type {SectionKey} from "./components/AccordionCard";
 
@@ -765,6 +765,8 @@ export function useClawController() {
     };
     update({style_presets: {...d.style_presets, [slot]: preset},active_style:slot});
   };
+  const addPreset=()=>{const slot=styleSlotIds.find(id=>!current.current.style_presets[id]);if(slot)savePreset(slot);};
+  const deletePreset=(slot:string)=>{const d=current.current;if(!d.style_presets[slot])return;const presets={...d.style_presets},names={...d.style_names};delete presets[slot];delete names[slot];update({style_presets:presets,style_names:names,active_style:d.active_style===slot?null:d.active_style});};
   const loadPreset = (slot: string) => {
     const preset = current.current.style_presets?.[slot];
     if (!preset) return;
@@ -814,7 +816,7 @@ export function useClawController() {
 
   // One central controller owns settings, Decky RPC and navigation state.
   // Cards only render this model; they never mount separate backend sessions.
-  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, toggleLayoutPanel, advancedPanel, setAdvancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
+  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, toggleLayoutPanel, advancedPanel, setAdvancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
 }
 
 export type ClawController = ReturnType<typeof useClawController>;

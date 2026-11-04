@@ -20,6 +20,7 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
+import {styleSlotIds} from "../style-presets";
 
 type FontWeight = Core.FontWeight;
 type StyleCategory = Core.StyleCategory;
@@ -27,36 +28,32 @@ const { GamepadGrid, tokenGroups, weightLabel, styleTabs, defaultColors, colorRo
 
 /** Standalone colors presentation; all mutable state is owned by the Decky controller. */
 export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
-  const { settings, info, status, openSection, styleCategory, toggleSection, ready, current, update, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, metric, visible, hidden } = vm;
+  const { settings, info, status, openSection, styleCategory, toggleSection, ready, current, update, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle, metric, visible, hidden } = vm;
+  const [expandedStyle,setExpandedStyle]=useState<string|null>(settings.active_style);
+  const savedSlots=styleSlotIds.filter(slot=>Boolean(settings.style_presets?.[slot]));
   return (
 <AccordionCard id="colors" title="Colors & Font" subtitle="Palette, typography and saved styles"
           icon={<FaPalette />} open={openSection === "colors"} onToggle={() => toggleSection("colors")}>
           <PanelSectionRow><Field label="COLORS & FONT"
             description="Edit global appearance or individual metric elements." /></PanelSectionRow>
           <PanelSectionRow><Field label="SAVED STYLES"
-            description="Presets save colors, typography, layout and visible sensors. Re-save legacy presets to capture metric choices." /></PanelSectionRow>
+            description="Save the current overlay builder layout, colors, typography and visible sensors in a style." /></PanelSectionRow>
           <div className="loaded-style-status" role="status">
             {loadedPreset?`Active: ${styleTitle(settings.active_style!)}${presetDirty?" · modified":""}`:"Active: none"}
           </div>
           <Focusable flow-children="column" className="claw-preset-list">
-            {(["1","2"] as const).map(slot=>{
-              const stored=Boolean(settings.style_presets?.[slot]);
-              const active=stored && settings.active_style===slot;
+            {savedSlots.map(slot=>{
+              const active=settings.active_style===slot;
+              const expanded=expandedStyle===slot;
               return <div className="claw-preset-card" data-loaded={active} key={slot}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  gap:6,minWidth:0,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:14,lineHeight:1.2}}>{styleTitle(slot)}</span>
-                  <span style={{fontSize:11,color:active?"#63b3ff":"#aab4c1"}}>
-                    {active?(presetDirty?"Loaded · modified":"Loaded"):stored?"Saved":"Empty"}
-                    {stored && <span style={{display:"block",marginTop:3,fontSize:10}}>
-                      {settings.style_presets[slot]?.groups
-                        ? Object.values(settings.style_presets[slot].groups!).filter(Boolean).length+" active"
-                        : "Legacy preset"}
-                    </span>}
-                  </span>
-                </div>
+                <DialogButton className="claw-preset-heading" aria-expanded={expanded} aria-label={`${styleTitle(slot)} · ${expanded?'collapse':'expand'}`} onClick={()=>setExpandedStyle(expanded?null:slot)}>
+                  <span className="claw-preset-heading-name">{styleTitle(slot)}</span>
+                  <span className="claw-preset-heading-status">{active?(presetDirty?"Loaded · modified":"Loaded"):"Saved"}</span>
+                  <span aria-hidden="true">{expanded?'⌄':'›'}</span>
+                </DialogButton>
+                {expanded&&<>
                 <Focusable flow-children="row" className="claw-preset-actions">
-                  <DialogButton className="claw-control-button" disabled={!ready||!stored} aria-pressed={active}
+                  <DialogButton className="claw-control-button" disabled={!ready} aria-pressed={active}
                     onClick={()=>loadPreset(slot)}
                     style={{background:active?"#dceaff":"#196bd4",
                       color:active?"#12325c":"#ffffff",
@@ -64,24 +61,27 @@ export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
                     <span className="claw-preset-label"><FaPlay aria-hidden="true" /> Load</span>
                   </DialogButton>
                   <DialogButton className="claw-control-button" disabled={!ready} onClick={()=>{
-                      if(stored) confirmAction("Overwrite "+styleTitle(slot)+"?",
-                        "This replaces saved layout, appearance and metric selection.",
+                      confirmAction("Overwrite "+styleTitle(slot)+"?",
+                        "This replaces its saved overlay layout, appearance and metric selection.",
                         ()=>savePreset(slot));
-                      else savePreset(slot);
                     }}
                     style={{background:"#243344",border:"1px solid #43546a",
                       borderRadius:7,color:"#ffffff"}}>
                     <span className="claw-preset-label"><FaDownload aria-hidden="true" /> Save</span>
                   </DialogButton>
                 </Focusable>
-                <DialogButton className="claw-control-button" disabled={!ready}
+                <Focusable flow-children="row" className="claw-preset-actions claw-preset-secondary"><DialogButton className="claw-control-button" disabled={!ready}
                   onClick={()=>renameStyle(slot)} aria-label={"Rename "+styleTitle(slot)}
-                  style={{margin:"7px 0 0",width:"100%",minWidth:0,minHeight:38,
-                    background:"#1b2838",border:"1px solid #37485c",fontSize:12}}>
+                  style={{background:"#1b2838",border:"1px solid #37485c"}}>
                   <FaPen style={{marginRight:6}}/> Rename
-                </DialogButton>
+                </DialogButton><DialogButton className="claw-control-button" disabled={!ready}
+                  onClick={()=>confirmAction("Delete "+styleTitle(slot)+"?","This removes the saved style. Your current overlay settings stay in place.",()=>{deletePreset(slot);setExpandedStyle(null);})}
+                  style={{background:"#302331",border:"1px solid #67465b"}}>Delete</DialogButton></Focusable>
+                </>}
               </div>;
             })}
+            {!savedSlots.length&&<div className="claw-preset-empty">No saved styles yet.</div>}
+            <DialogButton className="claw-preset-add" disabled={!ready||savedSlots.length>=styleSlotIds.length} onClick={()=>{const slot=styleSlotIds.find(id=>!settings.style_presets?.[id]);if(slot){addPreset();setExpandedStyle(slot)}}}>+ Add style</DialogButton>
           </Focusable>
           <BackgroundEditor vm={vm}/>
           <PanelSectionRow><Field label="APPEARANCE EDITOR" description="Select a metric to customize its colors and typography." /></PanelSectionRow>

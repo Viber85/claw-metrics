@@ -395,11 +395,19 @@ class Settings(unittest.TestCase):
             "2": {"font_weight": "invalid", "colors": {"text": "BAD"}},
             "3": {"font_weight": "bold"},
             "4": {"font_weight": "bold"},
+            "13": {"font_weight": "bold"},
         }}
         d = main.normalize(payload)
-        self.assertEqual(sorted(d["style_presets"]), ["1", "2"])
-        self.assertNotIn("3", d["style_presets"])
-        self.assertIsNone(main.normalize({"style_presets": payload["style_presets"], "active_style": "3"})["active_style"])
+        self.assertEqual(sorted(d["style_presets"]), ["1", "2", "3", "4"])
+        self.assertNotIn("13", d["style_presets"])
+        self.assertEqual(main.normalize({"style_presets": payload["style_presets"], "active_style": "3"})["active_style"], "3")
+        self.assertIsNone(main.normalize({"style_presets": payload["style_presets"], "active_style": "13"})["active_style"])
+        expanded = main.normalize({"style_presets": {"12": {"colors": {"text": "AABBCC"}}},
+                                   "style_names": {"12": "  My\n Overlay  ", "13": "Ignored"},
+                                   "active_style": "12"})
+        self.assertEqual(expanded["active_style"], "12")
+        self.assertEqual(expanded["style_names"], {"12": "My Overlay"})
+        self.assertEqual(main.normalize(expanded)["style_presets"]["12"], expanded["style_presets"]["12"])
         self.assertEqual(d["style_presets"]["1"]["token_weights"], {"cpu.power": "bold"})
         self.assertEqual(d["style_presets"]["1"]["token_colors"], {"cpu.power": "AABBCC"})
         self.assertFalse(d["style_presets"]["1"]["fps_bold"])

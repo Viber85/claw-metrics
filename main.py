@@ -103,14 +103,17 @@ def normalize_custom_labels(payload):
     return result
 
 
+STYLE_SLOTS = tuple(str(i) for i in range(1, 13))
+
+
 def normalize_style_names(payload):
     """Optional friendly labels; safe to preserve old unnamed styles."""
     out = {}
     if isinstance(payload, dict):
-        for slot in ("1", "2"):
+        for slot in STYLE_SLOTS:
             name = payload.get(slot)
             if isinstance(name, str):
-                value = re.sub(r"\\s+", " ", re.sub(r"[\\x00-\\x1f\\x7f=,]", " ", name)).strip()[:24]
+                value = re.sub(r"\s+", " ", re.sub(r"[\x00-\x1f\x7f=,]", " ", name)).strip()[:24]
                 if value:
                     out[slot] = value
     return out
@@ -120,7 +123,7 @@ def normalize_style_presets(payload):
     out = {}
     if not isinstance(payload, dict):
         return out
-    for key in ("1", "2"):
+    for key in STYLE_SLOTS:
         item = payload.get(key)
         if not isinstance(item, dict):
             continue

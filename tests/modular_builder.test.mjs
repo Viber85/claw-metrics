@@ -37,12 +37,14 @@ assert(render().find(n=>n.type==='style').props.children.includes('grid-template
 const firstGroup=initial.root.children.find(n=>n.kind==='group');
 assert(firstGroup);
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'nested groups begin collapsed');
-render().find(n=>n.props?.['aria-label']===`Expand ${firstGroup.name}`).props.onClick();
+render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
 assert(render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'group expands');
-render().find(n=>n.props?.['aria-label']===`Collapse ${firstGroup.name}`).props.onClick();
+render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'group collapses without deleting contents');
+assert(!render().some(n=>n.props?.className==='claw-builder-tree-toggle'),'no separate tree toggle');
 render().find(n=>n.type==='preview').props.onSelect(firstGroup.children[0].id);
 assert(render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'selecting an element in preview reopens its group');
+render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(initial.root.name)).props.onClick();
 render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(initial.root.name)).props.onClick();
 render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
 control('DropdownItem','Element vertical alignment').onChange({data:'end'});

@@ -206,15 +206,18 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("const selected=styleMetricSelectionsFrom(preset)", helpers)
         self.assertIn("if(current?.[key]!==value)return true;", helpers)
         self.assertIn("if(current?.metrics?.[key]!==value)return true;", helpers)
-        self.assertIn("Presets save colors", SOURCE)
+        self.assertIn("Save the current overlay builder layout", SOURCE)
         self.assertIn("tests/style_presets.test.mjs", (
             pathlib.Path(__file__).resolve().parents[1] /
             ".github/workflows/layout-experiment.yml").read_text())
         self.assertNotIn("version:2, ...styleLayoutFrom(d)", SOURCE)
 
-    def test_two_compact_preset_slots_fit_decky_width(self):
-        self.assertIn('(["1","2"] as const).map(slot=>{', SOURCE)
-        self.assertNotIn('(["1","2","3"] as const)', SOURCE)
+    def test_compact_saved_style_cards_fit_decky_width(self):
+        self.assertIn('savedSlots.map(slot=>{', SOURCE)
+        self.assertIn('styleSlotIds=Array.from({length:12}', (pathlib.Path(__file__).resolve().parents[1] / 'src/style-presets.ts').read_text())
+        self.assertIn('className="claw-preset-heading" aria-expanded={expanded}', SOURCE)
+        self.assertIn('onClick={()=>{const slot=styleSlotIds.find', SOURCE)
+        self.assertIn('deletePreset(slot)', SOURCE)
         self.assertIn('className="claw-preset-list"', SOURCE)
         self.assertIn('className="claw-preset-actions"', SOURCE)
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', SOURCE)
@@ -222,7 +225,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('max-width: 100% !important', SOURCE)
         self.assertIn('Active: ', SOURCE)
         self.assertIn('function RenameStyleModal', SOURCE)
-        self.assertNotIn('Delete style', SOURCE)
+        self.assertIn('>Delete</DialogButton>', SOURCE)
 
     def test_expanded_card_uses_blue_surface_without_white_outline(self):
         self.assertIn("const active = open || focused;", SOURCE)
@@ -473,7 +476,7 @@ class GroupedQamTests(unittest.TestCase):
     def test_colors_subactions_support_controller_focus(self):
         self.assertIn('<Focusable flow-children="column" className="claw-preset-list">', SOURCE)
         self.assertIn('<Focusable flow-children="row" className="claw-preset-actions">', SOURCE)
-        self.assertIn('className="claw-control-button" disabled={!ready||!stored}', SOURCE)
+        self.assertIn('className="claw-control-button" disabled={!ready} aria-pressed={active}', SOURCE)
         self.assertIn('className="claw-token-controls"', SOURCE)
         self.assertIn('flow-children="row" className="claw-token-controls"', SOURCE)
         self.assertIn('className="claw-control-button claw-token-font"', SOURCE)
@@ -781,7 +784,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('visible.slice(rowIndex*3,rowIndex*3+3)', SOURCE)
         self.assertIn('aria-label={"Rename "+styleTitle(slot)}', SOURCE)
         self.assertIn('onClick={()=>renameStyle(slot)}', SOURCE)
-        self.assertIn('if(stored) confirmAction("Overwrite "+styleTitle(slot)+"?"', SOURCE)
+        self.assertIn('confirmAction("Overwrite "+styleTitle(slot)+"?"', SOURCE)
         self.assertIn('style_names: Record<string,string>', SOURCE)
         self.assertIn('onClick={()=>update({font_weight:weight})}', SOURCE)
         self.assertNotIn('font_weight:weight,token_weights:{}', SOURCE)

@@ -150,7 +150,7 @@ function Content(){
           width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
           overflow-wrap: anywhere;
         }
-        /* Two preset slots only; avoid Decky's intrinsic DialogButton min-width. */
+        /* Saved styles are compact accordions in the narrow QAM. */
         .claw-preset-list {
           display: grid; grid-template-columns: minmax(0, 1fr);
           gap: 8px; width: 100%; min-width: 0; max-width: 100%;
@@ -158,7 +158,7 @@ function Content(){
         }
         .claw-preset-card {
           min-width: 0; max-width: 100%; box-sizing: border-box;
-          border-radius: 9px; padding: 9px;
+          border-radius: 9px; padding: 4px;
           background: #141e29; border: 1px solid #354252;
         }
         .claw-preset-card[data-loaded="true"] {
@@ -166,14 +166,27 @@ function Content(){
         }
         .claw-preset-actions {
           display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 7px; width: 100%; min-width: 0; margin-top: 8px;
+          gap: 5px; width: 100%; min-width: 0; margin-top: 5px;
           box-sizing: border-box;
         }
+        .claw-preset-heading {
+          display: flex !important; align-items: center; gap: 6px;
+          width: 100% !important; min-width: 0 !important; min-height: 38px !important;
+          margin: 0 !important; padding: 5px 8px !important;
+          text-align: left; background: transparent !important; border: 0 !important;
+        }
+        .claw-preset-heading-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; }
+        .claw-preset-heading-status { flex: none; color: #aab4c1; font-size: 10px; }
+        .claw-preset-add { width: 100% !important; min-width: 0 !important; min-height: 35px !important; margin: 0 !important; padding: 5px 8px !important; font-size: 12px !important; }
+        .claw-preset-empty { padding: 6px 8px; color: #aab4c1; font-size: 11px; }
+        .claw-modular-templates button { min-height: 38px !important; padding: 5px 4px !important; font-size: 12px !important; white-space: nowrap !important; }
+        .claw-modular-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; width: 100%; min-width: 0; }
+        .claw-modular-actions button { width: 100% !important; min-width: 0 !important; min-height: 36px !important; margin: 0 !important; padding: 5px 4px !important; font-size: 12px !important; white-space: nowrap !important; }
         .claw-preset-actions > button {
           width: 100% !important; max-width: 100% !important;
           min-width: 0 !important; margin: 0 !important;
-          padding: 8px 3px !important; box-sizing: border-box;
-          font-size: 12px !important; min-height: 38px;
+          padding: 5px 3px !important; box-sizing: border-box;
+          font-size: 11px !important; min-height: 32px !important;
           white-space: normal !important; overflow-wrap: anywhere;
         }
         .claw-preset-actions .claw-preset-label {
