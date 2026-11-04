@@ -15,6 +15,10 @@ const settings={enabled:true,sans:true,fontsize:18,font_weight:'regular',fps_sca
 function walk(n){if(!n||typeof n!=='object')return [];if(Array.isArray(n))return n.flatMap(walk);return[n,...walk(n.props?.children)]}
 let nodes=walk(ModularHud({layout,settings,data:{gpu:72},selected:'none',onSelect:()=>{}}));
 assert.equal(nodes.find(n=>n.props?.className==='modular-hud').props.style.fontFamily,'ClawPreviewBarlow');
+settings.fps_scale=200;
+const fps=layout.root.children.find(n=>n.name==='FPS').children.find(n=>n.token==='fps.value');
+nodes=walk(ModularHud({layout,settings,data:{gpu:72},selected:'none',onSelect:()=>{}}));
+assert.equal(nodes.find(n=>n.props?.['data-node-id']===fps.id).props.style.fontSize,`${fps.scale/100}em`,'native modular text size uses node scale, without classic FPS multiplier');
 const reading=nodes.find(n=>n.props?.['data-node-id']===gpu.children[1].id);
 assert.equal(walk(reading).find(n=>n.type==='span'&&n.props.style?.textAlign).props.style.textAlign,'start','individual metric aligns its ink left inside the reserved width');
 const separator=nodes.find(n=>n.props?.['data-node-id']==='test-line');
