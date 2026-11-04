@@ -29,7 +29,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name.includes('GamepadGrid'))return {GamepadGrid:p=>jsx('grid',{children:p.items.map(p.renderItem)})};
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};
  throw new Error(name);
-},JSON,window:{innerWidth:1280,innerHeight:800},document:{activeElement:{isConnected:true,focus:()=>focusCalls++}},requestAnimationFrame:fn=>fn()});
+},JSON,window:{innerWidth:1280,innerHeight:800},document:{activeElement:{isConnected:true,focus:()=>{throw Error('Must focus Edit overlay') }},querySelector:selector=>selector==='[data-claw-builder-open]'?{isConnected:true,focus:()=>focusCalls++}:null},requestAnimationFrame:fn=>fn()});
 const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value}}};
 function walk(value){if(!value||typeof value!=='object')return [];if(Array.isArray(value))return value.flatMap(walk);if(typeof value.type==='function')return walk(value.type(value.props));return [value,...walk(value.props.children)]}
 function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
