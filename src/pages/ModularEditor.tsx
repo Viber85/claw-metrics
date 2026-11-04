@@ -4,7 +4,7 @@ import {ConfirmModal,DialogButton,Field,PanelSectionRow,ToggleField,showModal} f
 import {GamepadGrid} from '../components/GamepadGrid';
 import {ControlGroup} from '../components/ControlGroup';
 import {Builder} from '../modular/Builder';
-import {validate, type Layout} from '../modular/model';
+import {isHorizontalLayout,validate, type Layout} from '../modular/model';
 import type {ClawController} from '../controller';
 const preset=callable<[string],any>('get_modular_preset');
 const importLayout=callable<[string],any>('import_modular_layout');
@@ -30,7 +30,7 @@ export function ModularEditor({vm}:{vm:ClawController}){
   {!canEdit&&ready&&<PanelSectionRow><Field label="Native renderer unavailable" description="Reinstall this plugin version to restore its bundled renderer."/></PanelSectionRow>}
   <PanelSectionRow><ToggleField label="Use editable renderer (test)" checked={settings.modular_enabled} disabled={!canEdit||busy||!doc} onChange={value=>update({modular_enabled:value})}/></PanelSectionRow>
   <PanelSectionRow><GamepadGrid className="claw-tiles claw-modular-templates" columns={2} items={([['horizontal','↔ Horizontal'],['vertical','↕ Vertical']] as Array<['horizontal'|'vertical',string]>)} renderItem={([id,label])=><DialogButton key={id} aria-label={id+' template'} disabled={!canEdit||busy} style={{minWidth:0,minHeight:38,padding:'5px 4px',fontSize:12,background:"#1c3450",border:"1px solid #456987",borderRadius:8}} onClick={()=>chooseTemplate(id)}>{label}</DialogButton>}/></PanelSectionRow>
-  <PanelSectionRow><Field label="CURRENT OVERLAY" description={doc?`${doc.root.axis==='column'?'Vertical':'Horizontal'} · Save it in Colors & Font → Styles to keep it for later.`:'Choose a template to begin.'}/></PanelSectionRow>
+  <PanelSectionRow><Field label="CURRENT OVERLAY" description={doc?`${isHorizontalLayout(doc)?'Horizontal':'Vertical'} · Save it in Colors & Font → Styles to keep it for later.`:'Choose a template to begin.'}/></PanelSectionRow>
   <PanelSectionRow><div className="claw-modular-actions"><DialogButton disabled={!canEdit||busy||!doc} onClick={()=>doc&&openBuilder(doc)}>Edit overlay</DialogButton><DialogButton disabled={!canEdit||busy} onClick={()=>void action(async()=>{const file=await openFilePicker(FileSelectionType.FILE,home,true,false);if(!file?.realpath&&!file?.path)return;const value=await importLayout(file.realpath||file.path);update({modular_layout:value,modular_enabled:true});Message('Layout imported. Settings are saving.')})}>Import JSON</DialogButton></div></PanelSectionRow>
   {message&&<PanelSectionRow><div role="status" style={{overflowWrap:'anywhere',fontSize:12,padding:'6px 0'}}>{message}</div></PanelSectionRow>}
  </ControlGroup>

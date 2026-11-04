@@ -21,6 +21,34 @@ export function move(layout:Layout,id:string,targetId:string,index?:number):Layo
  if(!item||!target||!from||target.kind!=='group'||find(item,targetId))return layout;
  from.children=from.children.filter(n=>n.id!==id);target.children.splice(index??target.children.length,0,item);return out;
 }
+// Keep the readings in their existing row while giving the graph its own row.
+export function placeGraphBelow(layout:Layout,id:string):Layout{
+ const out=structuredClone(layout),graphNode=find(out.root,id);
+ if(graphNode?.kind!=='metric'||graphNode.token!=='graph')throw new Error('Select a frametime graph.');
+ const graphParent=parent(out.root,id);
+ if(!graphParent)throw new Error('Graph has no parent group.');
+ let container:Node=graphParent;
+ container.children=container.children.filter(child=>child.id!==id);
+ while(container!==out.root&&container.children.length===0){
+  const ancestor:Node=parent(out.root,container.id)!;
+  ancestor.children=ancestor.children.filter(child=>child.id!==container.id);
+  container=ancestor;
+ }
+ if(out.root.axis==='row'){
+  const readings=group('Readings',out.root.children,{axis:'row',align:out.root.align,gap:out.root.gap,padding:0});
+  out.root.children=[readings];
+  out.root.axis='column';
+  out.root.align='start';
+  out.root.gap=8;
+ }
+ graphNode.selfAlign='start';
+ out.root.children.push(graphNode);
+ return validate(out);
+}
+export function isHorizontalLayout(layout:Layout):boolean{
+ const {root}=layout;
+ return root.axis==='row'||(root.axis==='column'&&root.children.length===2&&root.children[0].kind==='group'&&root.children[0].axis==='row'&&root.children[1].kind==='metric'&&root.children[1].token==='graph');
+}
 const tokens=(...keys:string[])=>keys.map(k=>metric(k));
 const cpu=(s?:any)=>group('CPU',tokens('cpu.label','cpu.load',...(!s||s.metrics.cpu_temp?['cpu.temp']:[]),...(!s||s.metrics.cpu_mhz?['cpu.clock']:[]),...(!s||s.metrics.cpu_power?['cpu.power']:[])));
 const gpu=(s?:any)=>group('GPU',tokens('gpu.label','gpu.load',...(!s||s.metrics.gpu_temp?['gpu.temp']:[]),...(!s||s.metrics.gpu_core_clock?['gpu.clock']:[]),...(!s||s.metrics.gpu_power?['gpu.power']:[])));

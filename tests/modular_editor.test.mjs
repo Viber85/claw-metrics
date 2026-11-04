@@ -24,7 +24,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name==='@decky/api')return api;
  if(name==='@decky/ui')return ui;
  if(name.includes('modular/Builder'))return {Builder:'Builder'};
- if(name.includes('modular/model'))return {validate:value=>value};
+ if(name.includes('modular/model'))return {validate:value=>value,isHorizontalLayout:value=>value.root.axis==='row'||value.root.children.length===2&&value.root.children[0].axis==='row'&&value.root.children[1].token==='graph'};
  if(name.includes('LayoutSliderField'))return {LayoutSliderField:p=>jsx('slider',p)};
  if(name.includes('GamepadGrid'))return {GamepadGrid:p=>jsx('grid',{children:p.items.map(p.renderItem)})};
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};

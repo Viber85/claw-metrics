@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-85]
+    branches: [test/builder-ui-86]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.85
+  group: claw-metrics-v0.2.4-test.86
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.85.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.86.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.85', package['version']
+              assert package['version'] == '0.2.4-test.86', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.85
-          path: ClawMetrics-v0.2.4-test.85.zip
+          name: ClawMetrics-v0.2.4-test.86
+          path: ClawMetrics-v0.2.4-test.86.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.85 ClawMetrics-v0.2.4-test.85.zip \
+          gh release create v0.2.4-test.86 ClawMetrics-v0.2.4-test.86.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.85 – Saved style cards and compact builder controls" \
-            --notes "Experimental test.85: saved styles are collapsible cards with add and confirmed delete, supporting up to twelve slots while preserving existing styles. Saving a style includes the current editable overlay layout. Group names in the builder toggle their children without a separate arrow button. The Layout builder menu removes Export current layout and uses compact template and edit/import actions; Import JSON remains for DevLab files. Retains test.84 native renderer and element alignment. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."
+            --title "Claw Metrics v0.2.4-test.86 – Frametime graph below readings" \
+            --notes "Experimental test.86: select a Frametime graph in Layout Builder and use Place graph below left to move it beneath the full horizontal row. The graph keeps its settings and can be restored with Undo. Preview stays in horizontal mode; a native ImGui fixture checks left alignment and vertical separation. Retains test.85 saved styles and existing settings. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; device appearance and controller navigation still require confirmation."

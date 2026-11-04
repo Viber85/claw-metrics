@@ -41,6 +41,11 @@ int main(int argc,char**argv){
  auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
  assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
  for(size_t i=0;i<nodes.size();++i){const auto& b=frame.geometry.boxes[i];assert(b.visible&&b.w>0&&b.h>0);}
+ if(nodes[0].axis==Axis::Column&&nodes.size()>2&&nodes[1].axis==Axis::Row&&nodes.back().token=="graph"){
+  const auto& row=frame.geometry.boxes[1];const auto& graph=frame.geometry.boxes.back();
+  assert(graph.y>=row.y+row.h-0.1f);
+  assert(std::abs(graph.x-row.x)<1.0f);
+ }
  // Readings are owned by the prepared frame; mutation of the caller's map
  // cannot change what is measured/drawn mid-frame.
  values.clear();
