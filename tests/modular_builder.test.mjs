@@ -24,8 +24,11 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[2];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+assert.equal(render().find(n=>n.type==='ConfirmModal').props.strTitle,undefined);
+assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children).includes('Guides')));
-control('slider','Zoom (%)').onChange(75);assert.equal(state[8],.75);
+assert.equal(control('slider','Zoom (%)').max,50);
+control('slider','Zoom (%)').onChange(50);assert.equal(state[8],.5);
 control('DialogButton','Fit').onClick();assert.equal(state[1],true);
 assert(render().some(n=>n.props?.['data-orientation']==='horizontal'));
 control('DropdownItem','Direction').onChange({data:'column'});
