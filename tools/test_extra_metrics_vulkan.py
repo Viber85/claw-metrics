@@ -48,13 +48,19 @@ with tempfile.TemporaryDirectory() as directory:
         os.replace(staging,config)
     write(0)
     stop=threading.Event()
+    observed={mode:threading.Event() for mode in range(5)}
     errors=[]
     def switch():
         try:
-            # Warm up >100 frames in each initial layout before switching.
+            # Startup and shader compilation vary widely on shared CI runners.
+            # Wait for real drawn readings before advancing each live mode.
+            if not observed[0].wait(60):
+                raise RuntimeError('Initial Vulkan reading did not appear')
             for mode in (1,2,3,4,0):
-                if stop.wait(3): return
+                if stop.wait(2): return
                 write(mode)
+                if mode!=0 and not observed[mode].wait(15):
+                    raise RuntimeError(f'Vulkan reading for mode {mode} did not appear')
         except Exception as error:
             errors.append(error)
     worker=threading.Thread(target=switch)
@@ -62,16 +68,28 @@ with tempfile.TemporaryDirectory() as directory:
          'VK_ICD_FILENAMES':str(icds[0]),'DISABLE_MANGOHUD':'1',
          'MANGOHUD_CONFIGFILE':str(config),'CLAW_METRICS_VERIFY':'1'}
     worker.start()
+    lines=[]
+    def collect(stream):
+        for line in stream:
+            lines.append(line)
+            match=re.search(r'CLAW_EXTRA mode=(\d+) token=28',line)
+            if match: observed[int(match.group(1))].set()
     try:
-        result=subprocess.run(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
-                               'vkcube','--c','1200','--width','1280','--height','720'],
-                              env=env,text=True,capture_output=True,timeout=100)
+        process=subprocess.Popen(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
+                                  'vkcube','--c','3000','--width','1280','--height','720'],
+                                 env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=1)
+        reader=threading.Thread(target=collect,args=(process.stdout,))
+        reader.start()
+        try: returncode=process.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            process.kill();process.wait();raise
+        reader.join()
     finally:
         stop.set();worker.join()
-    log=result.stdout+'\n'+result.stderr
+    log=''.join(lines)
     print(log[-18000:])
     assert not errors,errors
-    assert result.returncode==0,('Vulkan process failed',result.returncode)
+    assert returncode==0,('Vulkan process failed',returncode)
     readings=re.findall(r'CLAW_EXTRA mode=(\d+) token=(\d+) value=([\d.]+) x=([\d.-]+) y=([\d.-]+) right=([\d.-]+) bottom=([\d.-]+) vertices=(\d+)',log)
     for mode in range(3):
         for token in range(28,32):
