@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-81]
+    branches: [test/builder-ui-82]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.81
+  group: claw-metrics-v0.2.4-test.82
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.81.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.82.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.81', package['version']
+              assert package['version'] == '0.2.4-test.82', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.81
-          path: ClawMetrics-v0.2.4-test.81.zip
+          name: ClawMetrics-v0.2.4-test.82
+          path: ClawMetrics-v0.2.4-test.82.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.81 ClawMetrics-v0.2.4-test.81.zip \
+          gh release create v0.2.4-test.82 ClawMetrics-v0.2.4-test.82.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.81 – Compact Builder workspace" \
-            --notes "Experimental test.81: removes Builder and Preview headings, compresses the horizontal preview to a short strip and overlays its zoom controls on the right. The lower element list and settings receive more vertical space. Zoom ranges from 10 to 50 percent, starting at 45 percent for Horizontal and 50 percent for Vertical; Fit remains bounded to 50 percent. Retains the test.80 two-column controls, persistent selection, native alignment and safe Apply. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; actual Decky layout and controller navigation require device confirmation."
+            --title "Claw Metrics v0.2.4-test.82 – Raised compact Builder workspace" \
+            --notes "Experimental test.82: uses the empty Steam modal header space to raise the preview and expand the lower editor. Name/visibility, direction/alignment, spacing and position controls now share compact two-column rows. Movement and deletion buttons share one row; element rows, cards and action buttons are shorter. The horizontal preview remains a compact full-width strip with a 10-50 percent zoom control. Retains test.81 native renderer, presets and safe Apply behavior. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."
