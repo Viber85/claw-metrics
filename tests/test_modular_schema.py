@@ -80,6 +80,16 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
+    def test_separator_is_validated_and_has_no_sensor_source(self):
+        separator = copy.deepcopy(self.layout['root']['children'][0]['children'][0])
+        separator.update(id='line', token='separator', name='Separator line', width=180, height=2, color='#ABCDEF')
+        self.layout['root']['children'].append(separator)
+        out = schema.validate_layout(self.layout)
+        self.assertEqual(out['root']['children'][-1]['height'], 2)
+        self.assertIn('separator', schema.encode_native(out))
+        separator['height'] = 0
+        with self.assertRaises(ValueError): schema.validate_layout(self.layout)
+
     def test_unknown_fields_do_not_become_renderer_parameters(self):
         self.layout['exec'] = 'ignored'
         self.layout['root']['unsupported'] = 'ignored'

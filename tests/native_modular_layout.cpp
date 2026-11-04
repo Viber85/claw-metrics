@@ -30,6 +30,7 @@ int main(){
  nodes[1].visible=false;r=run();assert(!r.boxes[1].visible);assert(near(r.boxes[0].h,30));
  nodes[2].visible=false;r=run();assert(near(r.boxes[0].w,10)&&near(r.boxes[0].h,10));
  nodes={root,a,b};nodes[2].token="graph";nodes[2].scale=2;r=run();assert(near(r.boxes[2].w,180)); // graph pixel dimensions don't scale with font
+ nodes={root,a,b};nodes[2].token="separator";nodes[2].width=140;nodes[2].height=2;r=run();assert(near(r.boxes[2].w,140)&&near(r.boxes[2].h,2));
  nodes={root,a,b};nodes[0].children={1};nodes[1].group=true;nodes[1].scale=2;nodes[1].children={2};r=run();assert(near(r.boxes[2].h,40)); // inherited font scale
  auto rejects=[&](){try{run();return false;}catch(const std::invalid_argument&){return true;}};
  nodes[1].children={0};assert(rejects());

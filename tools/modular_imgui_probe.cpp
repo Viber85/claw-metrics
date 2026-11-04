@@ -60,9 +60,9 @@ int main(int argc,char**argv){
  ImGui::NewFrame();
  // Real glyph vertices must move with a column's start/center/end setting,
  // while the reserved width remains stable for changing readings.
- auto draw_alignment=[&](Align align){
+ auto draw_alignment=[&](Align align,SelfAlign item_alignment=SelfAlign::Auto){
   Node root;root.id="alignment";root.axis=Axis::Column;root.align=align;root.children={1};
-  Node child;child.id="reading";child.group=false;child.token="cpu.load";
+  Node child;child.id="reading";child.group=false;child.token="cpu.load";child.self_align=item_alignment;
   Text value;value.value="2%";value.slot="100%";value.font=font;
   auto sample=prepare({root,child},std::vector<Style>(2),{{"cpu.load",value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
   ImDrawList list(ImGui::GetDrawListSharedData());list._ResetForNewFrame();list.PushClipRectFullScreen();
@@ -73,6 +73,7 @@ int main(int argc,char**argv){
  };
  const float left=draw_alignment(Align::Start),center=draw_alignment(Align::Center),right=draw_alignment(Align::End);
  assert(left+1<center&&center+1<right);
+ assert(std::abs(draw_alignment(Align::Center,SelfAlign::Start)-left)<1);
  paint(frame,ImGui::GetBackgroundDrawList());ImGui::Render();
  auto* data=ImGui::GetDrawData();assert(data->TotalVtxCount>0);
  std::ofstream out(std::string(argv[4])+".json");out<<"{\"width\":"<<width<<",\"height\":"<<height<<",\"lists\":[";

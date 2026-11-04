@@ -25,6 +25,7 @@ struct Frame {
     size_t root=0;
     float font_size=24;
     ImU32 graph_color=IM_COL32(48,229,160,255);
+    ImU32 separator_color=IM_COL32(240,242,245,255);
     int graph_style=0;
 };
 inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
@@ -64,7 +65,17 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float inset=style.outline_width/2;
             if(box.w>2*inset&&box.h>2*inset)draw->AddRect(ImVec2(lo.x+inset,lo.y+inset),ImVec2(hi.x-inset,hi.y-inset),style.outline,std::max(0.f,style.rounding-inset),0,style.outline_width);
         }
-        if(n.group){for(auto child:n.children)visit(child,scale,n.axis==Axis::Column?n.align:Align::Start);return;}
+        if(n.group){for(auto child:n.children){
+            const auto& item=frame.nodes[child];
+            const Align alignment=n.axis==Axis::Column&&item.self_align!=SelfAlign::Auto?
+                item.self_align==SelfAlign::Start?Align::Start:item.self_align==SelfAlign::Center?Align::Center:Align::End:
+                n.axis==Axis::Column?n.align:Align::Start;
+            visit(child,scale,alignment);
+        }return;}
+        if(n.token=="separator"){
+            draw->AddRectFilled(ImVec2(lo.x+n.padding,lo.y+n.padding),ImVec2(hi.x-n.padding,hi.y-n.padding),style.text?style.text:frame.separator_color);
+            return;
+        }
         if(n.token=="graph"){
             if(frame.graph.size()<2)return;
             // Bound each primitive reservation below 16-bit index limits;

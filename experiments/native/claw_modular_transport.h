@@ -45,7 +45,7 @@ inline Document decode(const std::string& bytes){
     if(!(input>>magic>>anchor>>doc.x>>doc.y>>count)||(magic!="CLAW_MODULAR_V1"&&magic!="CLAW_MODULAR_V2")||anchor<0||anchor>5||count<1||count>96)
         throw std::invalid_argument("Invalid transport header");
     doc.anchor=static_cast<Anchor>(anchor);doc.nodes.resize(count);doc.appearance.resize(count);
-    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value graph ";
+    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value graph separator ";
     for(int i=0;i<count;++i){
         auto& n=doc.nodes[i];auto& style=doc.appearance[i];std::string id;int group,visible,axis,align,self_align=0,outline,children;
         if(!(input>>id>>n.token>>group>>visible>>axis>>align)||

@@ -6,7 +6,7 @@ TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.loa
               'cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction '
               'gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value '
               'vram.temp vram.clock battery.label battery.value battery.time battery.power '
-              'time.value tdp.value graph').split())
+              'time.value tdp.value graph separator').split())
 ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right')
 
 
@@ -40,7 +40,7 @@ def validate_layout(value):
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
         out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
-        for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 40, 1000), ('height', 16, 240)):
+        for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
             out[key] = number(v.get(key), low, high)
         out['color'] = color(v.get('color'))
         out['background'] = color(v.get('background'))

@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-86]
+    branches: [test/builder-ui-87]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.86
+  group: claw-metrics-v0.2.4-test.87
   cancel-in-progress: true
 
 jobs:
@@ -64,6 +64,7 @@ jobs:
           node tests/session_reports.test.mjs
           node tests/modular_editor.test.mjs
           node tests/modular_builder.test.mjs
+          node tests/modular_preview.test.mjs
       - name: Verify isolated Decky backend import
         run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
       - name: Type-check QAM
@@ -219,7 +220,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.86.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.87.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +236,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.86', package['version']
+              assert package['version'] == '0.2.4-test.87', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.86
-          path: ClawMetrics-v0.2.4-test.86.zip
+          name: ClawMetrics-v0.2.4-test.87
+          path: ClawMetrics-v0.2.4-test.87.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.86 ClawMetrics-v0.2.4-test.86.zip \
+          gh release create v0.2.4-test.87 ClawMetrics-v0.2.4-test.87.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.86 – Frametime graph below readings" \
-            --notes "Experimental test.86: select a Frametime graph in Layout Builder and use Place graph below left to move it beneath the full horizontal row. The graph keeps its settings and can be restored with Undo. Preview stays in horizontal mode; a native ImGui fixture checks left alignment and vertical separation. Retains test.85 saved styles and existing settings. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; device appearance and controller navigation still require confirmation."
+            --title "Claw Metrics v0.2.4-test.87 – Matching preview font, left alignment and separator" \
+            --notes "Experimental test.87: Live preview embeds the same bundled Barlow Semi Condensed font weights and ClawSans fallback used by the native renderer. Element Left alignment now also aligns the text inside reserved numeric slots. Layout Builder adds a Separator line reading with length, thickness and color controls, rendered natively. Retains test.86 frametime graph placement and saved styles. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; device appearance and controller navigation still require confirmation."

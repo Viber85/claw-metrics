@@ -46,7 +46,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
            !range(n.gap,0,80)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
-           !range(n.width,40,1000)||!range(n.height,16,240)||(!n.group&&!n.children.empty())||
+           !range(n.width,40,1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
         ids.push_back(n.id);
         for(auto child:n.children)validate(child,depth+1);
@@ -60,7 +60,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
         Size out;
         if(!n.group) {
             // Graph dimensions are CSS/device pixels, like DevLab's SVG attributes.
-            out=n.token=="graph"?Size{n.width,n.height}:measure(n.token,font*scale);
+            out=(n.token=="graph"||n.token=="separator")?Size{n.width,n.height}:measure(n.token,font*scale);
             if(!range(out.w,0,1000000)||!range(out.h,0,1000000))throw std::invalid_argument("Invalid metric measurement");
         } else {
             size_t count=0;

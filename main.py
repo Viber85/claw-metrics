@@ -908,6 +908,8 @@ def mango_config(settings, native_spacing=False):
                         "vram.temp":"gpu_mem_temp", "vram.clock":"gpu_mem_clock", "battery.time":"battery_time",
                         "ram.game":"ram_game", "ram.swap":"ram_swap", "graph":"graph"}
         for token in required:
+            if token == "separator":
+                continue  # Decorative element has no sensor source.
             group = {"graph":"frametime", "battery.power":"draw", "time.value":"time", "tdp.value":"tdp"}.get(token, token.split('.')[0])
             d[group] = True
             if token in metric_flags: d["metrics"][metric_flags[token]] = True
