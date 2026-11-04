@@ -74,13 +74,15 @@ with tempfile.TemporaryDirectory() as directory:
             lines.append(line)
             match=re.search(r'CLAW_EXTRA mode=(\d+) token=28',line)
             if match: observed[int(match.group(1))].set()
+            if 'CLAW_GRAPH layout=vertical style=3' in line: observed[3].set()
+            if 'CLAW_OUTLINE mode=0 vertical=0' in line: observed[4].set()
     try:
         process=subprocess.Popen(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
-                                  'vkcube','--c','3000','--width','1280','--height','720'],
+                                  'vkcube','--c','6000','--width','1280','--height','720'],
                                  env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=1)
         reader=threading.Thread(target=collect,args=(process.stdout,))
         reader.start()
-        try: returncode=process.wait(timeout=120)
+        try: returncode=process.wait(timeout=180)
         except subprocess.TimeoutExpired:
             process.kill();process.wait();raise
         reader.join()
