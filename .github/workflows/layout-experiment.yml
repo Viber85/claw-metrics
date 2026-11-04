@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-83]
+    branches: [test/builder-ui-84]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.83
+  group: claw-metrics-v0.2.4-test.84
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.83.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.84.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.83', package['version']
+              assert package['version'] == '0.2.4-test.84', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.83
-          path: ClawMetrics-v0.2.4-test.83.zip
+          name: ClawMetrics-v0.2.4-test.84
+          path: ClawMetrics-v0.2.4-test.84.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.83 ClawMetrics-v0.2.4-test.83.zip \
+          gh release create v0.2.4-test.84 ClawMetrics-v0.2.4-test.84.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.83 – Dedicated zoom rail and collapsible groups" \
-            --notes "Experimental test.83: removes Fit and maps the existing 10-50 percent preview scale to a 20-100 percent slider display. Horizontal preview reserves a separate narrow zoom rail so overlay content cannot cover the control. Elements groups have independent expand/collapse buttons, while preview selection reopens ancestor groups. The left navigator is wider and the right property cards and controls are more compact. Template buttons open the builder from the fetched orientation-checked document after the confirmation closes, and the classic HUD controls are labeled separately. Retains native renderer, presets and safe Apply behavior. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."
+            --title "Claw Metrics v0.2.4-test.84 – Element alignment and right-panel actions" \
+            --notes "Experimental test.84: adds per-element cross-axis alignment with auto inheritance from the parent group, preserved across React, Python validation, V2 native transport and ImGui rendering. V1 native documents still decode with auto alignment. Apply and Cancel are now fixed at the bottom of the right properties panel using ModalRoot, with the left navigator and right settings scrolling separately. Retains test.83 template selection fix, preview zoom and collapsible groups. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."

@@ -106,6 +106,8 @@ def run(args):
         for name in ('two-rows','graph-focus','horizontal','vertical'):
             preset=ROOT/('assets/modular' if name in ('horizontal','vertical') else 'experiments/modular')/(name+'.json')
             document=schema.load_layout(preset.read_text())
+            if name=='horizontal':
+                document['root']['children'][0]['selfAlign']='end'
             (tmp/'modular_fixture.h').write_text(fixture(document))
             transport=tmp/'input.layout';transport.write_text(schema.encode_native(document))
             binary=tmp/'probe'

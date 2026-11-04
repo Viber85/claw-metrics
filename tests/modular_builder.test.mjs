@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,closed=false;
-const ui=Object.fromEntries(['ConfirmModal','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
+const ui=Object.fromEntries(['ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
 const {Builder}=load('src/modular/Builder.tsx',name=>{
@@ -24,7 +24,9 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
-assert.equal(render().find(n=>n.type==='ConfirmModal').props.strTitle,undefined);
+assert(render().find(n=>n.type==='ModalRoot'));
+assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own right-panel actions');
+assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children).includes('Guides')));
 assert.equal(control('slider','Zoom (%)').max,100);
@@ -41,6 +43,10 @@ render().find(n=>n.props?.['aria-label']===`Collapse ${firstGroup.name}`).props.
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'group collapses without deleting contents');
 render().find(n=>n.type==='preview').props.onSelect(firstGroup.children[0].id);
 assert(render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'selecting an element in preview reopens its group');
+render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(initial.root.name)).props.onClick();
+render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
+control('DropdownItem','Element vertical alignment').onChange({data:'end'});
+assert.equal(draft().root.children[0].selfAlign,'end');
 render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(initial.root.name)).props.onClick();
 assert(render().some(n=>n.props?.['data-orientation']==='horizontal'));
 control('DropdownItem','Direction').onChange({data:'column'});
@@ -59,7 +65,7 @@ control('DropdownItem','Move to group').onChange({data:initial.root.id});assert.
 control('DialogButton','Move earlier').onClick();assert.equal(draft().root.children.at(-1).id,newGroup.id);
 control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);
 const cyclic=model.move(draft(),draft().root.id,newGroup.id);assert.deepEqual(cyclic,draft());
-render().find(n=>n.type==='ConfirmModal').props.onCancel();assert(closed);assert.equal(applied,undefined);
-closed=false;render().find(n=>n.type==='ConfirmModal').props.onOK();assert.equal(closed,false);assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
+control('DialogButton','Cancel').onClick();assert(closed);assert.equal(applied,undefined);
+closed=false;control('DialogButton','Apply layout').onClick();assert.equal(closed,false);assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
 assert.throws(()=>model.validate({...initial,x:NaN}));
 console.log('PASS builder: draft isolation, undo/redo, add, move, reorder, delete, cycle protection, cancel and apply. Mock UI only.');

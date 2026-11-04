@@ -1,5 +1,5 @@
 export type Axis='row'|'column';
-export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;children:Node[];token:string;width:number;height:number};
+export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;children:Node[];token:string;width:number;height:number};
 export type Layout={schema:'claw-modular-layout';version:1;anchor:string;x:number;y:number;root:Node};
 export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'];
 export const catalog:Record<string,string>={
@@ -10,7 +10,7 @@ export const catalog:Record<string,string>={
  'battery.label':'Battery label','battery.value':'Battery charge','battery.time':'Battery time','battery.power':'Power draw','time.value':'Clock','tdp.value':'TDP','graph':'Frametime graph'};
 let serial=0;
 export const uid=()=>`n-${Date.now().toString(36)}-${++serial}`;
-export function node(kind:Node['kind'],name:string,extra:Partial<Node>={}):Node{return {id:uid(),kind,name,visible:true,axis:'row',gap:8,padding:0,align:'center',scale:100,color:'',background:'',opacity:85,outline:false,children:[],token:'fps.value',width:180,height:44,...extra}}
+export function node(kind:Node['kind'],name:string,extra:Partial<Node>={}):Node{return {id:uid(),kind,name,visible:true,axis:'row',gap:8,padding:0,align:'center',selfAlign:'auto',scale:100,color:'',background:'',opacity:85,outline:false,children:[],token:'fps.value',width:180,height:44,...extra}}
 export const metric=(token:string,extra:Partial<Node>={})=>node('metric',catalog[token]||token,{token,...extra});
 export const group=(name:string,children:Node[],extra:Partial<Node>={})=>node('group',name,{children,...extra});
 export function find(root:Node,id:string):Node|undefined{if(root.id===id)return root;for(const c of root.children){const found=find(c,id);if(found)return found}}
@@ -39,9 +39,9 @@ export function validate(input:any):Layout{
  const color=(v:any)=>{if(typeof v!=='string'||(v!==''&&!/^#[\da-fA-F]{6}$/.test(v)))throw new Error('Invalid color.');return v};
  const visit=(v:any,depth:number):Node=>{
   if(++count>96||depth>8)throw new Error('Limit: 96 elements and 8 nesting levels.');
-  if(!v||typeof v.id!=='string'||v.id.length>100||ids.has(v.id)||!['group','metric'].includes(v.kind)||typeof v.name!=='string'||v.name.length>80||typeof v.visible!=='boolean'||!['row','column'].includes(v.axis)||!['start','center','end'].includes(v.align)||typeof v.outline!=='boolean'||!Array.isArray(v.children))throw new Error('Invalid element or duplicate ID.');
+  if(!v||typeof v.id!=='string'||v.id.length>100||ids.has(v.id)||!['group','metric'].includes(v.kind)||typeof v.name!=='string'||v.name.length>80||typeof v.visible!=='boolean'||!['row','column'].includes(v.axis)||!['start','center','end'].includes(v.align)||!['auto','start','center','end'].includes(v.selfAlign??'auto')||typeof v.outline!=='boolean'||!Array.isArray(v.children))throw new Error('Invalid element or duplicate ID.');
   ids.add(v.id);if(v.kind==='metric'&&(!catalog[v.token]||v.children.length))throw new Error('Invalid metric.');
-  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,40,1000),height:number(v.height,16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
+  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,40,1000),height:number(v.height,16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');
  return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,0,2000),root};

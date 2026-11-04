@@ -32,6 +32,9 @@ int main(int argc,char**argv){
  }
  values["fps.value"].slot="888";
  auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+ if(nodes[1].self_align==SelfAlign::End){auto default_nodes=nodes;default_nodes[1].self_align=SelfAlign::Auto;
+  auto baseline=prepare(default_nodes,styles,values,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+  assert(frame.geometry.boxes[1].y>baseline.geometry.boxes[1].y+1);}
  frame.graph_style=std::stoi(argv[6]);
  assert(!frame.geometry.outside);
  auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";

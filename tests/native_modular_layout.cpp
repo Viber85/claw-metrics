@@ -14,6 +14,9 @@ int main(){
  auto r=run();assert(near(r.boxes[0].w,80)&&near(r.boxes[0].h,30));
  assert(near(r.boxes[1].x,25)&&near(r.boxes[1].y,40));
  assert(near(r.boxes[2].x,55)&&near(r.boxes[2].y,35));
+ nodes[1].self_align=SelfAlign::Start;r=run();assert(near(r.boxes[1].y,35)&&near(r.boxes[2].y,35));
+ nodes[1].self_align=SelfAlign::End;r=run();assert(near(r.boxes[1].y,45)&&near(r.boxes[2].y,35));
+ nodes[1].self_align=SelfAlign::Auto;
  for(auto anchor:{Anchor::TopLeft,Anchor::TopCenter,Anchor::TopRight,Anchor::BottomLeft,Anchor::BottomCenter,Anchor::BottomRight}){
   r=run(anchor);const bool bottom=anchor==Anchor::BottomLeft||anchor==Anchor::BottomCenter||anchor==Anchor::BottomRight;
   const bool center=anchor==Anchor::TopCenter||anchor==Anchor::BottomCenter;
@@ -23,6 +26,7 @@ int main(){
  nodes[0].axis=Axis::Column;r=run();assert(near(r.boxes[0].w,50)&&near(r.boxes[0].h,50));assert(near(r.boxes[1].x,35));
  nodes[0].align=Align::End;r=run();assert(near(r.boxes[1].x,45));
  nodes[0].align=Align::Start;r=run();assert(near(r.boxes[1].x,25));
+ nodes[1].self_align=SelfAlign::End;r=run();assert(near(r.boxes[1].x,45));nodes[1].self_align=SelfAlign::Auto;
  nodes[1].visible=false;r=run();assert(!r.boxes[1].visible);assert(near(r.boxes[0].h,30));
  nodes[2].visible=false;r=run();assert(near(r.boxes[0].w,10)&&near(r.boxes[0].h,10));
  nodes={root,a,b};nodes[2].token="graph";nodes[2].scale=2;r=run();assert(near(r.boxes[2].w,180)); // graph pixel dimensions don't scale with font

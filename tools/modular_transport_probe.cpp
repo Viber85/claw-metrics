@@ -18,6 +18,10 @@ int main(int argc,char**argv){
  assert(power_text("DRAW 12W\ninjected","DRAW")=="DRAW --");
  std::ifstream file(argv[1]);std::string bytes((std::istreambuf_iterator<char>(file)),{});
  auto doc=decode(bytes);assert(doc.nodes.size()>1);
+ assert(doc.nodes[1].self_align==SelfAlign::End);
+ std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";
+ while(std::getline(old_input,line)){if(line.empty())continue;std::istringstream record(line);std::vector<std::string> fields;std::string field;while(record>>field)fields.push_back(field);assert(fields.size()>=17);fields.erase(fields.begin()+6);for(size_t j=0;j<fields.size();++j){if(j)legacy+=' ';legacy+=fields[j];}legacy+='\n';}
+ auto migrated=decode(legacy);assert(migrated.nodes.size()==doc.nodes.size()&&migrated.nodes[1].self_align==SelfAlign::Auto);
  assert(doc.appearance[0].background=="112233"&&doc.appearance[0].opacity==44&&doc.appearance[0].outline);
  assert(doc.appearance.back().color=="ABCDEF");
  Exchange exchange;assert(!exchange.take());exchange.publish(bytes);auto first=exchange.take();assert(first&&!exchange.take());

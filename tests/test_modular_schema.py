@@ -14,10 +14,16 @@ class ModularSchemaTests(unittest.TestCase):
     def setUp(self):
         self.layout = json.loads((ROOT / 'experiments/modular/two-rows.json').read_text())
 
-    def test_devlab_presets_are_accepted_without_changes(self):
+    def test_devlab_presets_are_migrated_without_losing_fields(self):
         for name in ('two-rows', 'graph-focus'):
             original = json.loads((ROOT / ('experiments/modular/' + name + '.json')).read_text())
-            self.assertEqual(schema.validate_layout(original), original)
+            migrated = schema.validate_layout(original)
+            def strip_default_alignment(node):
+                self.assertEqual(node.pop('selfAlign'), 'auto')
+                for child in node['children']:
+                    strip_default_alignment(child)
+            strip_default_alignment(migrated['root'])
+            self.assertEqual(migrated, original)
 
     def test_input_is_not_mutated_or_referenced(self):
         out = schema.validate_layout(self.layout)
@@ -60,10 +66,19 @@ class ModularSchemaTests(unittest.TestCase):
         self.layout['root']['id'] = 'čćž' * 20
         self.layout['root'].update(background='#112233', opacity=44, outline=True)
         text = schema.encode_native(self.layout)
-        self.assertTrue(text.startswith('CLAW_MODULAR_V1\n'))
+        self.assertTrue(text.startswith('CLAW_MODULAR_V2\n'))
         self.assertIn(self.layout['root']['id'].encode().hex(), text)
         self.assertIn('112233 44 1', text)
         with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
+
+    def test_element_alignment_is_validated_and_persisted(self):
+        child = self.layout['root']['children'][0]
+        child['selfAlign'] = 'end'
+        out = schema.validate_layout(self.layout)
+        self.assertEqual(out['root']['children'][0]['selfAlign'], 'end')
+        self.assertIn('CLAW_MODULAR_V2', schema.encode_native(out))
+        child['selfAlign'] = 'diagonal'
+        with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
     def test_unknown_fields_do_not_become_renderer_parameters(self):
         self.layout['exec'] = 'ignored'

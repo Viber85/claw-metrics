@@ -33,11 +33,12 @@ def validate_layout(value):
         if not isinstance(key, str) or len(key) > 100 or key in ids:
             raise ValueError('Invalid or duplicate node ID')
         ids.add(key)
-        if v.get('kind') not in ('group', 'metric') or not isinstance(v.get('name'), str) or len(v['name']) > 80 or type(v.get('visible')) is not bool or v.get('axis') not in ('row', 'column') or v.get('align') not in ('start', 'center', 'end') or type(v.get('outline')) is not bool or not isinstance(v.get('children'), list):
+        if v.get('kind') not in ('group', 'metric') or not isinstance(v.get('name'), str) or len(v['name']) > 80 or type(v.get('visible')) is not bool or v.get('axis') not in ('row', 'column') or v.get('align') not in ('start', 'center', 'end') or v.get('selfAlign', 'auto') not in ('auto', 'start', 'center', 'end') or type(v.get('outline')) is not bool or not isinstance(v.get('children'), list):
             raise ValueError('Invalid node')
         if v['kind'] == 'metric' and (not isinstance(v.get('token'), str) or v['token'] not in TOKENS or v['children']):
             raise ValueError('Invalid metric')
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
+        out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
         for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 40, 1000), ('height', 16, 240)):
             out[key] = number(v.get(key), low, high)
@@ -75,11 +76,12 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V1', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes))))]
+    lines = ['CLAW_MODULAR_V2', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes))))]
     for n, children in nodes:
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),
-                  str(('start', 'center', 'end').index(n['align']))]
+                  str(('start', 'center', 'end').index(n['align'])),
+                  str(('auto', 'start', 'center', 'end').index(n['selfAlign']))]
         fields += [numeric(n[k]) for k in ('gap', 'padding')]
         fields += [numeric(n['scale'] / 100)]
         fields += [numeric(n[k]) for k in ('width', 'height')]

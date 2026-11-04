@@ -12,12 +12,14 @@ struct Size { float w=0,h=0; };
 struct Rect { float x=0,y=0,w=0,h=0; bool visible=false; };
 enum class Axis { Row, Column };
 enum class Align { Start, Center, End };
+enum class SelfAlign { Auto, Start, Center, End };
 enum class Anchor { TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight };
 struct Node {
     std::string id,token;
     bool group=true,visible=true;
     Axis axis=Axis::Row;
     Align align=Align::Center;
+    SelfAlign self_align=SelfAlign::Auto;
     float gap=8,padding=0,scale=1,width=180,height=44;
     std::vector<size_t> children;
 };
@@ -42,6 +44,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
         if(n.id.size()>400||std::find(ids.begin(),ids.end(),n.id)!=ids.end()||
            (n.axis!=Axis::Row&&n.axis!=Axis::Column)||
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
+           (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
            !range(n.gap,0,80)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
            !range(n.width,40,1000)||!range(n.height,16,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
@@ -88,7 +91,10 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             if(!nodes[child].visible)continue;
             const auto c=sizes[child];
             float cross=n.axis==Axis::Row?s.h-2*n.padding-c.h:s.w-2*n.padding-c.w;
-            cross=n.align==Align::Start?0:n.align==Align::Center?cross/2:cross;
+            const auto alignment=nodes[child].self_align==SelfAlign::Auto?n.align:
+                nodes[child].self_align==SelfAlign::Start?Align::Start:
+                nodes[child].self_align==SelfAlign::Center?Align::Center:Align::End;
+            cross=alignment==Align::Start?0:alignment==Align::Center?cross/2:cross;
             place(child,px+n.padding+(n.axis==Axis::Row?cursor:cross),py+n.padding+(n.axis==Axis::Row?cross:cursor));
             cursor+=(n.axis==Axis::Row?c.w:c.h)+n.gap;
         }
