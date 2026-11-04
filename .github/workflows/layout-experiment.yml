@@ -1,7 +1,7 @@
 name: Build Claw Metrics v0.2.4 experimental ZIP
 on:
   push:
-    branches: [test/builder-ui-82]
+    branches: [test/builder-ui-83]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.82
+  group: claw-metrics-v0.2.4-test.83
   cancel-in-progress: true
 
 jobs:
@@ -219,7 +219,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.82.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.83.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -235,18 +235,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.82', package['version']
+              assert package['version'] == '0.2.4-test.83', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.82
-          path: ClawMetrics-v0.2.4-test.82.zip
+          name: ClawMetrics-v0.2.4-test.83
+          path: ClawMetrics-v0.2.4-test.83.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.82 ClawMetrics-v0.2.4-test.82.zip \
+          gh release create v0.2.4-test.83 ClawMetrics-v0.2.4-test.83.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.82 – Raised compact Builder workspace" \
-            --notes "Experimental test.82: uses the empty Steam modal header space to raise the preview and expand the lower editor. Name/visibility, direction/alignment, spacing and position controls now share compact two-column rows. Movement and deletion buttons share one row; element rows, cards and action buttons are shorter. The horizontal preview remains a compact full-width strip with a 10-50 percent zoom control. Retains test.81 native renderer, presets and safe Apply behavior. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."
+            --title "Claw Metrics v0.2.4-test.83 – Dedicated zoom rail and collapsible groups" \
+            --notes "Experimental test.83: removes Fit and maps the existing 10-50 percent preview scale to a 20-100 percent slider display. Horizontal preview reserves a separate narrow zoom rail so overlay content cannot cover the control. Elements groups have independent expand/collapse buttons, while preview selection reopens ancestor groups. The left navigator is wider and the right property cards and controls are more compact. Retains native renderer, presets and safe Apply behavior. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; on-device Decky spacing and controller navigation still require confirmation."
