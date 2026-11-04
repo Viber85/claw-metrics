@@ -26,7 +26,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('export type HudOrientation = "horizontal" | "vertical"', SOURCE)
         self.assertIn('hud_orientation: HudOrientation', SOURCE)
         self.assertIn('hud_orientation:"horizontal"', SOURCE)
-        self.assertIn('label="HUD orientation"', SOURCE)
+        self.assertIn('label="Classic HUD orientation"', SOURCE)
         self.assertIn('id:"vertical",label:"Vertical"', SOURCE)
         self.assertIn('aria-pressed={settings.hud_orientation===choice.id}', SOURCE)
         self.assertIn('onClick={()=>update({hud_orientation:choice.id})}', SOURCE)
