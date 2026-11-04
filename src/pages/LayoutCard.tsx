@@ -32,7 +32,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
           <ModularEditor vm={vm}/>
           {!settings.modular_enabled && <>
-          <PanelSectionRow><Field label="HUD orientation"
+          <PanelSectionRow><Field label="Classic HUD orientation"
             description="Choose a horizontal strip or vertical stack. Restart the running game to apply." /></PanelSectionRow>
           <GamepadGrid items={([
             {id:"horizontal",label:"Horizontal",symbol:"↔"},
