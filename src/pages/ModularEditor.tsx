@@ -15,16 +15,14 @@ export function ModularEditor({vm}:{vm:ClawController}){
  const canEdit=ready&&vm.info?.layout_spacing_supported!==false;
  const doc=settings.modular_layout;
  const openBuilder=(layout:Layout)=>{
-  const opener=document.activeElement as HTMLElement|null;
   let closing=false,pending:{modular_layout:Layout;modular_enabled:true}&BuilderAppearance|undefined;
   const close=()=>{
    if(closing)return;
    closing=true;editor.Close();
-   void editor.ClosedPromise.then(()=>requestAnimationFrame(()=>{
-    const target=document.querySelector('[data-claw-builder-open]') as HTMLElement|null;
-    if(target?.isConnected)target.focus();else if(opener?.isConnected)opener.focus();
-    if(pending)update(pending);
-   }));
+   // Let Steam's modal manager restore QAM focus; forcing DOM focus here can
+   // desynchronize controller navigation after this full-screen modal closes.
+   // Wait for the close transition before triggering the backend settings save.
+   void editor.ClosedPromise.then(()=>window.setTimeout(()=>{if(pending)update(pending)},350));
   };
   const editor=showModal(<Builder initial={layout} settings={settings} onApply={(value,appearance)=>{pending={modular_layout:value,modular_enabled:true,...appearance};close()}} closeModal={close}/>,undefined,{bNeverPopOut:true});
  };

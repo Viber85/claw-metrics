@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useLayoutEffect,useRef,useState} from 'react';
 import type {Layout,Node} from './model';
 const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
@@ -27,6 +27,17 @@ export function Graph({width,height,color,kind}:{width:number;height:number;colo
  </svg>
 }
 export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=true}:{layout:Layout;settings:any;data:any;selected:string;onSelect:(id:string)=>void;editing?:boolean}){
+ const host=useRef<HTMLDivElement>(null),[fitWidths,setFitWidths]=useState<Record<string,number>>({});
+ useLayoutEffect(()=>{
+  const element=host.current;if(!element)return;
+  const next:Record<string,number>={};
+  for(const graph of Array.from(element.querySelectorAll<HTMLElement>('[data-auto-width="true"]'))){
+   const parent=graph.parentElement;if(!parent)continue;
+   const siblingWidth=Math.max(0,...Array.from(parent.children).filter(child=>child!==graph).map(child=>(child as HTMLElement).offsetWidth));
+   if(siblingWidth>0){const id=graph.dataset.nodeId;if(id)next[id]=Math.max(0,siblingWidth-2*(Number(graph.dataset.padding)||0));}
+  }
+  setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
+ },[layout,s.fontsize,s.sans,s.font_weight]);
  const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':'02:15','battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row'):React.ReactNode{
@@ -35,13 +46,14 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='tdp.value'?'tdp':n.token==='time.value'?'time':n.token==='graph'?'graph':part==='label'?category:'text';
   const color=n.color||'#'+(s.token_colors?.[n.token]||s.colors[palette]||s.colors.text);
   const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:n.padding,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:6,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:'inset 0 0 0 1px #8fb8d9'}:{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:3};
-  const props:any={'data-node-id':n.id,onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
+  const graphWidth=n.width===0?(fitWidths[n.id]||180):n.width;
+  const props:any={'data-node-id':n.id,...(n.token==='graph'&&n.width===0?{'data-auto-width':'true','data-padding':n.padding}:{}),onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';
   const alignment=parentAxis==='column'&&n.selfAlign!=='auto'?n.selfAlign:parentAlignment;
-  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`}}>{n.token==='graph'?<Graph width={n.width} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{slots[n.token]}</span><span style={{position:'absolute',left:n.padding,right:n.padding,textAlign:alignment}}>{value}</span></>:value}</div>
+  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{slots[n.token]}</span><span style={{position:'absolute',left:n.padding,right:n.padding,textAlign:alignment}}>{value}</span></>:value}</div>
  }
  const bottom=layout.anchor.startsWith('bottom'),right=layout.anchor.endsWith('right'),center=layout.anchor.endsWith('center');
- return s.enabled?<div className="modular-hud" style={{position:'absolute',top:bottom?undefined:layout.y,bottom:bottom?layout.y:undefined,left:center?'50%':right?undefined:layout.x,right:right?layout.x:undefined,transform:center?`translateX(calc(-50% + ${layout.x}px))`:undefined,fontSize:s.fontsize,fontFamily:s.sans?'ClawPreviewBarlow':'ClawPreviewSans',fontWeight:s.sans?(weights[s.font_weight]||400):400,lineHeight:1.2}}>{render(layout.root,true)}</div>:null;
+ return s.enabled?<div ref={host} className="modular-hud" style={{position:'absolute',top:bottom?undefined:layout.y,bottom:bottom?layout.y:undefined,left:center?'50%':right?undefined:layout.x,right:right?layout.x:undefined,transform:center?`translateX(calc(-50% + ${layout.x}px))`:undefined,fontSize:s.fontsize,fontFamily:s.sans?'ClawPreviewBarlow':'ClawPreviewSans',fontWeight:s.sans?(weights[s.font_weight]||400):400,lineHeight:1.2}}>{render(layout.root,true)}</div>:null;
 }
 

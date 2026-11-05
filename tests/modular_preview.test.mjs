@@ -4,7 +4,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
 const module={exports:{}};
-runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{},console});
+runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]}:{},console});
 const {ModularHud}=module.exports;
 const layout=JSON.parse(readFileSync('assets/modular/horizontal.json'));
 const gpu=layout.root.children.find(n=>n.name==='GPU');

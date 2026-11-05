@@ -40,7 +40,7 @@ def validate_layout(value):
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
         out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
-        for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
+        for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 0 if v['kind'] == 'metric' and v['token'] == 'graph' else 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
             out[key] = number(v.get(key), low, high)
         out['color'] = color(v.get('color'))
         out['background'] = color(v.get('background'))

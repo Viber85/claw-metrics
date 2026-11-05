@@ -40,5 +40,10 @@ int main(){
  nodes={root,a,b};nodes[2].id=nodes[1].id;assert(rejects());
  nodes={root,a,b};r=layout(nodes,0,{40,20},Anchor::TopCenter,0,0,10,measure);assert(r.outside&&r.boxes[0].x<0);
  bool bad=false;try{layout(nodes,0,{1280,800},Anchor::TopLeft,0,0,10,[](const std::string&,float){return Size{-1,0};});}catch(const std::invalid_argument&){bad=true;}assert(bad);
- std::cout<<"PASS: nested layout, inherited scale, graph dimensions, all anchors, alignment, hidden children, overflow and invalid trees\n";
+ std::vector<Node> fit(5);fit[0].id="overlay";fit[0].axis=Axis::Column;fit[0].children={1,4};fit[1].id="readings";fit[1].axis=Axis::Row;fit[1].gap=10;fit[1].children={2,3};
+ fit[2].id="cpu";fit[2].group=false;fit[2].token="cpu.load";fit[3]=fit[2];fit[3].id="gpu";fit[3].token="gpu.load";
+ fit[4].id="graph";fit[4].group=false;fit[4].token="graph";fit[4].width=0;fit[4].height=20;
+ auto fit_result=layout(fit,0,{1280,800},Anchor::TopLeft,20,30,10,[](const std::string& token,float){return Size{token=="cpu.load"?40.f:50.f,10.f};});
+ assert(near(fit_result.boxes[1].w,100));assert(near(fit_result.boxes[4].w,fit_result.boxes[1].w));assert(near(fit_result.boxes[0].w,fit_result.boxes[1].w));
+ std::cout<<"PASS: nested layout, inherited scale, auto graph width, all anchors, alignment, hidden children, overflow and invalid trees\n";
 }

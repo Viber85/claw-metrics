@@ -91,6 +91,22 @@ class ModularSchemaTests(unittest.TestCase):
         separator['height'] = 0
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
+    def test_graph_can_match_its_vertical_parent_width(self):
+        def find_graph(node):
+            if node.get('kind') == 'metric' and node.get('token') == 'graph': return node
+            for child in node.get('children', []):
+                found = find_graph(child)
+                if found: return found
+        graph = find_graph(self.layout['root'])
+        graph['width'] = 0
+        out = schema.validate_layout(self.layout)
+        self.assertEqual(find_graph(out['root'])['width'], 0)
+
+    def test_only_graph_accepts_auto_width(self):
+        item = self.layout['root']['children'][0]['children'][0]
+        item.update(token='cpu.load', width=0)
+        with self.assertRaises(ValueError): schema.validate_layout(self.layout)
+
     def test_modular_graph_style_uses_builder_choice_for_both_orientations(self):
         for orientation in ('horizontal', 'vertical'):
             settings = main.normalize({'modular_enabled': True, 'modular_layout': self.layout,

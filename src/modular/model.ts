@@ -25,6 +25,9 @@ export function move(layout:Layout,id:string,targetId:string,index?:number):Layo
 export function placeGraphBelow(layout:Layout,id:string):Layout{
  const out=structuredClone(layout),graphNode=find(out.root,id);
  if(graphNode?.kind!=='metric'||graphNode.token!=='graph')throw new Error('Select a frametime graph.');
+ // The footer should finish at the edge of the readings row, regardless of
+ // how many CPU/GPU fields the user has enabled.
+ graphNode.width=0;
  const graphParent=parent(out.root,id);
  if(!graphParent)throw new Error('Graph has no parent group.');
  let container:Node=graphParent;
@@ -69,7 +72,8 @@ export function validate(input:any):Layout{
   if(++count>96||depth>8)throw new Error('Limit: 96 elements and 8 nesting levels.');
   if(!v||typeof v.id!=='string'||v.id.length>100||ids.has(v.id)||!['group','metric'].includes(v.kind)||typeof v.name!=='string'||v.name.length>80||typeof v.visible!=='boolean'||!['row','column'].includes(v.axis)||!['start','center','end'].includes(v.align)||!['auto','start','center','end'].includes(v.selfAlign??'auto')||typeof v.outline!=='boolean'||!Array.isArray(v.children))throw new Error('Invalid element or duplicate ID.');
   ids.add(v.id);if(v.kind==='metric'&&(!catalog[v.token]||v.children.length))throw new Error('Invalid metric.');
-  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,40,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
+  const widthMin=v.kind==='metric'&&v.token==='graph'?0:40;
+  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');
  return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,0,2000),root};

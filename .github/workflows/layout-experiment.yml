@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 experimental ZIP
+name: Build Claw Metrics v0.2.4 test.89 ZIP
 on:
   push:
-    branches: [test/builder-ui-88]
+    branches: [test/builder-ui-89]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.88
+  group: claw-metrics-v0.2.4-test.89
   cancel-in-progress: true
 
 jobs:
@@ -220,7 +220,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.88.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.89.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -236,18 +236,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.88', package['version']
+              assert package['version'] == '0.2.4-test.89', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.88
-          path: ClawMetrics-v0.2.4-test.88.zip
+          name: ClawMetrics-v0.2.4-test.89
+          path: ClawMetrics-v0.2.4-test.89.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.88 ClawMetrics-v0.2.4-test.88.zip \
+          gh release create v0.2.4-test.89 ClawMetrics-v0.2.4-test.89.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.88 – Editor focus and appearance controls" \
-            --notes "Experimental test.88: keep Layout Builder and its color picker in the same Steam QAM window, guard double close and restore the opener focus after the modal closes. Apply commits the layout and draft corner radius, background opacity and graph style together; Cancel discards them. Graph styles now preview smooth curves and layers, and the modular native renderer uses the builder-selected style in either orientation. Retains test.87 separator and matching preview font. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; the QAM focus behavior must be confirmed on the device."
+            --title "Claw Metrics v0.2.4-test.89 – Graph fitting and QAM close stability" \
+            --notes "Experimental test.89: graph width can match the readings row in both preview and native layout, and Place graph below enables that mode. The editor now leaves QAM focus restoration to Steam and waits for the close transition before saving on Apply. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; QAM responsiveness still needs confirmation on the device."

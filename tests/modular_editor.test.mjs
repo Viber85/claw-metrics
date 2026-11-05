@@ -4,10 +4,10 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const doc=JSON.parse(readFileSync('assets/modular/horizontal.json','utf8'));
 const vertical=JSON.parse(readFileSync('assets/modular/vertical.json','utf8'));
-const state=[],updates=[],calls=[];let cursor=0,failImport=false;
+const state=[],updates=[],calls=[],timers=[];let cursor=0,failImport=false;
 const jsx=(type,props)=>({type,props:props||{}});
 const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField','ConfirmModal'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
-let modal,resolveClosed,modalOptions,closeCalls=0,focusCalls=0;ui.showModal=(value,_parent,options)=>{modal=value;modalOptions=options;return {Close(){closeCalls++;queueMicrotask(()=>resolveClosed())},ClosedPromise:new Promise(resolve=>resolveClosed=resolve)}};
+let modal,resolveClosed,modalOptions,closeCalls=0;ui.showModal=(value,_parent,options)=>{modal=value;modalOptions=options;return {Close(){closeCalls++;queueMicrotask(()=>resolveClosed())},ClosedPromise:new Promise(resolve=>resolveClosed=resolve)}};
 const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/import.json'}),callable:route=>async(...args)=>{
  calls.push([route,args]);
  if(route==='get_modular_preset')return structuredClone(args[0]==='vertical'?vertical:doc);
@@ -29,7 +29,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name.includes('GamepadGrid'))return {GamepadGrid:p=>jsx('grid',{children:p.items.map(p.renderItem)})};
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};
  throw new Error(name);
-},JSON,window:{innerWidth:1280,innerHeight:800},document:{activeElement:{isConnected:true,focus:()=>{throw Error('Must focus Edit overlay') }},querySelector:selector=>selector==='[data-claw-builder-open]'?{isConnected:true,focus:()=>focusCalls++}:null},requestAnimationFrame:fn=>fn()});
+},JSON,window:{innerWidth:1280,innerHeight:800,setTimeout:fn=>{timers.push(fn);return timers.length}},document:{activeElement:{isConnected:true,focus:()=>{throw Error('Modal close should not force DOM focus')}}},requestAnimationFrame:fn=>fn()});
 const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value}}};
 function walk(value){if(!value||typeof value!=='object')return [];if(Array.isArray(value))return value.flatMap(walk);if(typeof value.type==='function')return walk(value.type(value.props));return [value,...walk(value.props.children)]}
 function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
@@ -51,8 +51,9 @@ const beforeClose=closeCalls;
 modal.props.onApply(draft,appearance);modal.props.closeModal();
 assert.equal(closeCalls,beforeClose+1,'Apply and close cannot close twice');
 assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
-await new Promise(setImmediate);assert.equal(vm.settings.modular_layout.root.gap,13);
-assert.equal(vm.settings.rounding,12);assert.equal(vm.settings.opacity,67);assert.equal(vm.settings.graph_style,'bars');assert(focusCalls>0);
+await new Promise(setImmediate);assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap,'Apply waits until the modal close transition ends');
+assert.equal(timers.length,1);timers.shift()();assert.equal(vm.settings.modular_layout.root.gap,13);
+assert.equal(vm.settings.rounding,12);assert.equal(vm.settings.opacity,67);assert.equal(vm.settings.graph_style,'bars');
 button('Edit overlay').props.onClick();
 const updatesBeforeCancel=updates.length;modal.props.closeModal();await new Promise(setImmediate);
 assert.equal(updates.length,updatesBeforeCancel,'Cancel does not save appearance or layout');

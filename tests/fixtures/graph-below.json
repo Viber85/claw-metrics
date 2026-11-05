@@ -689,7 +689,7 @@
         "color": "",
         "background": "",
         "opacity": 85,
-        "width": 120,
+        "width": 0,
         "height": 28,
         "children": []
       }

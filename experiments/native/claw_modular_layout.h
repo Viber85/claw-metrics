@@ -46,7 +46,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
            !range(n.gap,0,80)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
-           !range(n.width,40,1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
+           !range(n.width,!n.group&&n.token=="graph"?0.f:40.f,1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
         ids.push_back(n.id);
         for(auto child:n.children)validate(child,depth+1);
@@ -63,13 +63,26 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             out=(n.token=="graph"||n.token=="separator")?Size{n.width,n.height}:measure(n.token,font*scale);
             if(!range(out.w,0,1000000)||!range(out.h,0,1000000))throw std::invalid_argument("Invalid metric measurement");
         } else {
-            size_t count=0;
+            size_t count=0;std::vector<size_t> children;float widest_non_auto_graph=0;
             for(auto child:n.children) {
                 if(!nodes[child].visible)continue;
-                const auto c=size(child,scale);
+                auto c=size(child,scale);children.push_back(child);
+                const bool auto_graph=!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0;
+                if(!auto_graph)widest_non_auto_graph=std::max(widest_non_auto_graph,c.w);
                 if(n.axis==Axis::Row){out.w+=c.w;out.h=std::max(out.h,c.h);}
                 else {out.h+=c.h;out.w=std::max(out.w,c.w);}
                 ++count;
+            }
+            // A graph with width=0 follows the widest sibling in a vertical group.
+            // This keeps it aligned with the readings row instead of overshooting it.
+            for(auto child:children)if(!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0){
+                const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?widest_non_auto_graph:180.f+2*nodes[child].padding;
+                sizes[child].w=target;
+            }
+            if(n.axis==Axis::Column){
+                // Recompute after resolving auto-width graph children so their
+                // own default padding cannot make the parent wider than readings.
+                out.w=0;for(auto child:children)out.w=std::max(out.w,sizes[child].w);
             }
             const float gaps=count?float(count-1)*n.gap:0;
             if(n.axis==Axis::Row)out.w+=gaps;else out.h+=gaps;
