@@ -1,34 +1,56 @@
-# Claw Metrics v0.3.0
+# Claw Metrics
 
-Decky QAM controls for MSI Claw A8 Z2 Extreme on official SteamOS. Includes an isolated, opt-in native MangoHud fork for 64-bit and 32-bit Vulkan/OpenGL games.
+**A customizable performance overlay for handheld PC games, controlled from Decky Loader's Quick Access Menu.** Choose the readings you need, build a compact horizontal HUD or a vertical stack, and tune its appearance without editing MangoHud configuration by hand.
 
-## Custom renderer
+[Download the latest test ZIP](https://github.com/Viber85/claw-metrics/releases/tag/v0.2.4-test.90) · [Current test source](https://github.com/Viber85/claw-metrics/tree/test/separator-controls) · [Report a problem](https://github.com/Viber85/claw-metrics/issues)
 
-- Independent font size for the FPS number in ELEMENTS → FPS. Other text keeps the base font size.
-- Horizontal and vertical padding, rounded background, actual measured centering, and X/Y adjustment.
-- Fit-to-width scales the entire row only when its measured natural width exceeds the game render width. Relative FPS size is retained. Disable fitting if you want fixed pixel sizes and manage overflow yourself.
-- Stock mode remains available; old settings do not automatically activate the native renderer.
+> **Experimental build.** The latest release's separator changes and editor exit behavior still need confirmation on a device running Bazzite 45.
 
-The private binaries and font are checksum-verified and copied into ~/.config/ClawMetrics. No OS package, system MangoHud library, SteamOS partition or power limit is modified. See renderer/README.md and shipped MIT/font licenses for source and build details.
+## Preview
 
-## First activation
+![Illustration of the Layout Builder based on its current controls](docs/previews/layout-builder.svg)
 
-1. Install the full ZIP and restart Decky Loader.
-2. Open CLAW RENDERER and select Claw renderer + izgled prijedloga.
-3. Copy the NEW launch command from ACTIVATION into the test game's Steam Launch Options. The old mangohud command loads the system library and cannot enable the new native controls.
-4. Restart the game. Keep Steam's native performance overlay off to avoid duplication.
-5. Expand ELEMENTS → FPS to change only the FPS number size. APPEARANCE contains padding, centering, fit-to-width and X/Y controls.
+*Layout Builder illustration based on the current editor source. It shows the persistent preview and zoom control above the collapsible element tree and appearance controls. This is a schematic, not a device screenshot.*
 
-To return to stock, disable Koristi Claw renderer and copy the displayed stock launch command back into Steam. The private fork also follows the stock rendering path when its custom-mode setting is off.
+The images below are **actual output of the bundled native ImGui renderer** from the `v0.2.4-test.90` render-fixture job, using sample sensor values on a 1280 × 800 canvas. They show the layout and font without a photographed game in the background.
 
-## Existing features
+| Horizontal overlay | Vertical overlay |
+| --- | --- |
+| ![Native horizontal overlay fixture](docs/previews/horizontal-native.png) | ![Native vertical overlay fixture](docs/previews/vertical-native.png) |
 
-Expandable metric groups, per-sensor switches, enabled counts, up/down ordering, hide/restore, opacity, rounding and bundled proportional Claw Sans. Existing top-margin preferences migrate to Y, and order/submetrics are retained. CPU/GPU load are the base Always metrics. VRAM clocks/temperature render in MangoHud's VRAM block and require GPU and VRAM enabled. Frametime milliseconds belong to the FPS block; the graph can be moved separately. GPU sensor availability depends on the hardware.
+![Native horizontal overlay with frametime graph underneath](docs/previews/graph-below-native.png)
 
-DRAW samples actual battery discharge power in the Decky host and exposes readable text; it does not require Python in the game runtime. Charging or missing readings display DRAW --. Applied TDP readback from Panel de Control is still unavailable; no fake TDP or power-limit write is made.
+*Graph below the readings, rendered by the same native fixture. In the editor you can reorder readings, nest groups, place the graph, and save the result as a style in **Colors & Font**.*
 
-## Verification scope
+## What you can customize
 
-Release gates include Python tests, TypeScript checks, frontend build, stock ImGui fixtures, 64/32-bit native compilation, real software Vulkan rendering, packaged private-launch Vulkan/OpenGL integration, actual FPS draw-font ratios and ZIP contents/version. Test branches do not publish releases. The main branch only publishes after every required job succeeds.
+| Area | Options |
+| --- | --- |
+| Readings | FPS and frametime, CPU/GPU load and available sensors, RAM/VRAM, battery, time, TDP and battery draw. Sensor availability depends on the device. |
+| Layout | Classic horizontal/vertical HUD or an editable layout with nested groups, element order, alignment, screen position and spacing. |
+| Graphs and separators | Frametime graph styles and dimensions; separator elements in the builder. The classic horizontal HUD has separator color, height and thickness controls in test.90. |
+| Appearance | Per-category colors and font weights, text/FPS size, solid or gradient background, opacity, rounded corners and optional outline. |
+| Presets and diagnostics | Reusable saved styles, update checks, renderer status and local crash-session reports. Reports are not uploaded automatically. |
 
-These checks do not replace MSI Claw hardware, real Proton-game, sleep/resume or controller-navigation testing. This is a launch-option renderer, not an automatic Gamescope replacement. Keep the working v0.2.3 package available as a fallback while first testing the new native mode.
+Claw Metrics bundles an isolated, modified MangoHud renderer for its advanced HUD features. It does not replace the system MangoHud installation or change hardware power limits. A classic renderer option remains available while testing editable layouts.
+
+## Install and launch
+
+1. Install [Decky Loader](https://decky.xyz/) on a compatible Linux handheld/Game Mode setup.
+2. Download [ClawMetrics-v0.2.4-test.90.zip](https://github.com/Viber85/claw-metrics/releases/download/v0.2.4-test.90/ClawMetrics-v0.2.4-test.90.zip) and install that ZIP through Decky Loader. Existing plugin settings are migrated rather than intentionally reset.
+3. In the plugin's **Activation** card, copy the launch command and paste it into the game's Steam **Launch Options**. The short command is:
+
+   ```text
+   ~/claw-metrics %command%
+   ```
+
+4. Fully restart the game so it loads the bundled renderer. Disable Steam's own performance overlay if you do not want two overlays at once.
+5. Use **Metrics**, **Layout** and **Colors & Font** in the Quick Access Menu. **Advanced** can check whether a running game loaded the Claw renderer.
+
+The launcher is created by the plugin on installation. If the short command is unavailable, use the command shown in **Activation** instead. Vulkan injection, sensor readings and controller behavior depend on the device, game and OS; the ZIP's automated checks are not a substitute for device testing.
+
+## Status and source
+
+The current test release is **v0.2.4-test.90**. Its source lives on [`test/separator-controls`](https://github.com/Viber85/claw-metrics/tree/test/separator-controls); the default `main` branch is a separate development line, so use that test branch when reviewing the code for this download. The release pipeline runs Python, TypeScript, ImGui and software Vulkan checks and verifies the installation ZIP. Bazzite 45 testing is ongoing; the new build still needs direct checks for separator appearance and QAM response after **Apply layout**.
+
+Development details and the previous default-branch README are preserved in [the documentation archive](docs/README-v0.3.0-archive.md). Font licenses ship with the installation package.
