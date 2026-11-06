@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.89 ZIP
+name: Build Claw Metrics v0.2.4 test.90 ZIP
 on:
   push:
-    branches: [test/builder-ui-89]
+    branches: [test/separator-controls]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.89
+  group: claw-metrics-v0.2.4-test.90
   cancel-in-progress: true
 
 jobs:
@@ -222,7 +222,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.89.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.90.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -238,18 +238,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.89', package['version']
+              assert package['version'] == '0.2.4-test.90', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.89
-          path: ClawMetrics-v0.2.4-test.89.zip
+          name: ClawMetrics-v0.2.4-test.90
+          path: ClawMetrics-v0.2.4-test.90.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.89 ClawMetrics-v0.2.4-test.89.zip \
+          gh release create v0.2.4-test.90 ClawMetrics-v0.2.4-test.90.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.89 – Graph fitting and QAM close stability" \
-            --notes "Experimental test.89: graph width can match the readings row in both preview and native layout, and Place graph below enables that mode. The editor now leaves QAM focus restoration to Steam and waits for the close transition before saving on Apply. CI covers Python, frontend, ImGui, Vulkan and ZIP checks; QAM responsiveness still needs confirmation on the device."
+            --title "Claw Metrics v0.2.4-test.90 – Separator alignment and controls" \
+            --notes "Experimental test.90: classic horizontal separators share a stable baseline, with height and thickness controls alongside color; modular separator color inherits the global palette and its controls open when selected. CI covers Python, frontend, ImGui, Vulkan and ZIP checks. Test on Bazzite 45; QAM responsiveness after Apply still needs device confirmation."
