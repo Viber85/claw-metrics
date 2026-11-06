@@ -76,6 +76,7 @@ STYLE_LAYOUT_RANGES = {
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12),
     "inner_gap": (0, 16), "graph_width": (80, 200),
+    "separator_height": (50, 150), "separator_thickness": (1, 6),
     "vertical_value_gap": (0, 16), "vertical_category_gap": (0, 20),
     "vertical_graph_width": (0, 420),
     "vertical_graph_height": (16, 120),
@@ -258,6 +259,7 @@ DEFAULTS = {
     # Native MangoHud 0.8.1 hard-codes these; retain the desired values
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
+    "separator_height": 100, "separator_thickness": 2,
     "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line",
     "vertical_graph_style": "smooth",
     "colors": COLORS,
@@ -729,6 +731,7 @@ def normalize(payload):
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
                            ("table_gap", 0, 12), ("graph_width", 80, 200),
+                           ("separator_height", 50, 150), ("separator_thickness", 1, 6),
                            ("inner_gap", 0, 16), ("vertical_width", 0, 420),
                            ("vertical_value_gap", 0, 16), ("vertical_category_gap", 0, 20),
                            ("vertical_graph_width", 0, 420),
@@ -1009,6 +1012,8 @@ def mango_config(settings, native_spacing=False):
             "claw_element_gap=" + str(d["element_gap"]),
             "claw_table_padding_x=" + str(d["table_gap"]),
             "claw_graph_width=" + str(d["graph_width"]),
+            "claw_separator_height=" + str(d["separator_height"]),
+            "claw_separator_thickness=" + str(d["separator_thickness"]),
             "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
             "claw_graph_style=" + str((GRAPH_STYLES.index(d["graph_style"])
                 if d["modular_enabled"] or is_horizontal else VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"]))),

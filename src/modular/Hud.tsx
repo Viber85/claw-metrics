@@ -43,7 +43,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row'):React.ReactNode{
   if(!n.visible)return null;
   const [category,part]=n.token.split('.');
-  const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='tdp.value'?'tdp':n.token==='time.value'?'time':n.token==='graph'?'graph':part==='label'?category:'text';
+  const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='tdp.value'?'tdp':n.token==='time.value'?'time':n.token==='graph'?'graph':n.token==='separator'?'separator':part==='label'?category:'text';
   const color=n.color||'#'+(s.token_colors?.[n.token]||s.colors[palette]||s.colors.text);
   const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:n.padding,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:6,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:'inset 0 0 0 1px #8fb8d9'}:{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:3};
   const graphWidth=n.width===0?(fitWidths[n.id]||180):n.width;

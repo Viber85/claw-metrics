@@ -26,7 +26,7 @@ const { hudPositions, GraphStyleIcon, graphStyleChoices, GamepadGrid, defaults, 
 
 /** Standalone layout presentation; all mutable state is owned by the Decky controller. */
 export function LayoutCard({vm}:{vm:Core.ClawController}) {
-  const { settings, info, layoutPanel, toggleLayoutPanel, openSection, toggleSection, ready, update, confirmAction, hidden } = vm;
+  const { settings, info, layoutPanel, toggleLayoutPanel, openSection, toggleSection, ready, update, confirmAction, openColorPicker, hidden } = vm;
   return (
 <AccordionCard id="layout" title="Layout" subtitle="Orientation, position, size and spacing"
           icon={<FaThLarge />} open={openSection === "layout"} onToggle={() => toggleSection("layout")}>
@@ -176,6 +176,23 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 
 
           </ControlGroup>
+          {settings.hud_orientation==="horizontal" && <ControlGroup title="Separators" summary="Color · height · thickness"
+            open={layoutPanel==="separators"} onToggle={()=>toggleLayoutPanel("separators")}>
+            <PanelSectionRow><DialogButton className="claw-control-button" disabled={!ready || !info?.layout_spacing_supported}
+              style={{width:"100%",minWidth:0,minHeight:36,padding:"5px 10px",display:"flex",alignItems:"center",gap:8}}
+              onClick={()=>openColorPicker("separator","Separator color")}>
+              <span aria-hidden="true" style={{width:16,height:16,flexShrink:0,borderRadius:3,
+                border:"1px solid #bccbd9",background:"#"+settings.colors.separator}}/>Separator color
+            </DialogButton></PanelSectionRow>
+            <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Separator height (%)"
+              value={settings.separator_height} min={50} max={150} step={5} showValue
+              disabled={!ready || !info?.layout_spacing_supported}
+              onChange={separator_height=>update({separator_height})}/></div></PanelSectionRow>
+            <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Separator thickness (px)"
+              value={settings.separator_thickness} min={1} max={6} step={1} showValue
+              disabled={!ready || !info?.layout_spacing_supported}
+              onChange={separator_thickness=>update({separator_thickness})}/></div></PanelSectionRow>
+          </ControlGroup>}
           <ControlGroup title="Frametime graph" summary="Graph style and width"
             open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
@@ -230,7 +247,8 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
           vertical_value_gap:defaults.vertical_value_gap,vertical_category_gap:defaults.vertical_category_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
-          graph_width:defaults.graph_width,graph_style:defaults.graph_style,vertical_graph_style:defaults.vertical_graph_style,inline_metrics:defaults.inline_metrics
+          graph_width:defaults.graph_width,separator_height:defaults.separator_height,separator_thickness:defaults.separator_thickness,
+          graph_style:defaults.graph_style,vertical_graph_style:defaults.vertical_graph_style,inline_metrics:defaults.inline_metrics
         }))}>
             Reset layout to defaults
           </ButtonItem></PanelSectionRow>

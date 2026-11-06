@@ -24,6 +24,9 @@ assert.equal(walk(reading).find(n=>n.type==='span'&&n.props.style?.textAlign).pr
 const separator=nodes.find(n=>n.props?.['data-node-id']==='test-line');
 assert.equal(walk(separator).find(n=>n.type==='span').props.style.height,2);
 assert.equal(walk(separator).find(n=>n.type==='span').props.style.background,'#ABCDEF');
+const inherited=structuredClone(line);inherited.id='global-separator';inherited.color='';gpu.children.push(inherited);
+nodes=walk(ModularHud({layout,settings:{...settings,colors:{...settings.colors,separator:'AA7733'}},data:{gpu:72},selected:'none',onSelect:()=>{}}));
+assert.equal(walk(nodes.find(n=>n.props?.['data-node-id']==='global-separator')).find(n=>n.type==='span').props.style.background,'#AA7733');
 settings.sans=false;
 nodes=walk(ModularHud({layout,settings,data:{gpu:72},selected:'none',onSelect:()=>{}}));
 assert.equal(nodes.find(n=>n.props?.className==='modular-hud').props.style.fontFamily,'ClawPreviewSans');

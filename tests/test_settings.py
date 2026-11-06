@@ -89,6 +89,10 @@ class Settings(unittest.TestCase):
         self.assertEqual(main.normalize({})['element_gap'], 8)
         self.assertEqual(main.normalize({})['table_gap'], 4)
         self.assertEqual(main.normalize({})['graph_width'], 150)
+        self.assertEqual(main.normalize({})['separator_height'], 100)
+        self.assertEqual(main.normalize({})['separator_thickness'], 2)
+        self.assertEqual(main.normalize({'separator_height':999,'separator_thickness':0})['separator_height'], 150)
+        self.assertEqual(main.normalize({'separator_height':999,'separator_thickness':0})['separator_thickness'], 1)
         self.assertEqual(main.normalize({})['inner_gap'], 4)
         self.assertTrue(main.normalize({})['inline_metrics'])
         self.assertTrue(main.normalize({})['fps_bold'])
@@ -99,12 +103,16 @@ class Settings(unittest.TestCase):
         self.assertIn('claw_element_gap=2\n', patched)
         self.assertIn('claw_table_padding_x=4\n', patched)
         self.assertIn('claw_graph_width=150\n', patched)
+        self.assertIn('claw_separator_height=100\n', patched)
+        self.assertIn('claw_separator_thickness=2\n', patched)
         self.assertIn('claw_inner_gap=4\n', patched)
         self.assertIn('claw_inline_metrics=1\n', patched)
         self.assertIn('claw_fps_bold=1\n', patched)
         safe = main.mango_config(main.normalize({}))
         self.assertNotIn('claw_inner_gap=', safe)
         self.assertNotIn('claw_inline_metrics=', safe)
+        self.assertNotIn('claw_separator_height=', safe)
+        self.assertNotIn('claw_separator_thickness=', safe)
         self.assertNotIn('claw_fps_bold=', safe)
         off = main.mango_config(main.normalize({'inline_metrics': False, 'fps_bold': False}), native_spacing=True)
         self.assertIn('claw_inline_metrics=0\n', off)
@@ -388,7 +396,7 @@ class Settings(unittest.TestCase):
 
     def test_style_presets_validate_before_reuse(self):
         payload = {"style_presets": {
-            "1": {"font_weight": "semibold", "fps_bold": False,
+            "1": {"font_weight": "semibold", "fps_bold": False, "separator_height": 125, "separator_thickness": 4,
                    "token_weights": {"cpu.power": "bold", "bogus": "bold"},
                    "token_colors": {"cpu.power": "#AABBCC"},
                    "colors": {"separator": "12ABEF"}},
@@ -412,6 +420,8 @@ class Settings(unittest.TestCase):
         self.assertEqual(d["style_presets"]["1"]["token_colors"], {"cpu.power": "AABBCC"})
         self.assertFalse(d["style_presets"]["1"]["fps_bold"])
         self.assertEqual(d["style_presets"]["1"]["colors"]["separator"], "12ABEF")
+        self.assertEqual(d["style_presets"]["1"]["separator_height"], 125)
+        self.assertEqual(d["style_presets"]["1"]["separator_thickness"], 4)
         self.assertEqual(d["style_presets"]["2"]["font_weight"], "regular")
         self.assertEqual(d["style_presets"]["2"]["colors"]["text"], main.COLORS["text"])
         d["style_presets"]["1"]["token_weights"]["cpu.power"] = "light"

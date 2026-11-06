@@ -116,7 +116,8 @@ bool ClawTryModular() {
         if(!box.visible||box.w<=0||box.h<=0)return true;
         ClawModularBackground(ImVec4(box.x,box.y,box.w,box.h),p,!active->appearance[0].background.empty(),root_fill);
         frame.graph_color=ImGui::ColorConvertFloat4ToU32(HUDElements.colors.frametime);
-        frame.separator_color=ImGui::ColorConvertFloat4ToU32(HUDElements.colors.text);
+        const unsigned separator_rgb=p.horizontal_separator_color;
+        frame.separator_color=IM_COL32((separator_rgb>>16)&255,(separator_rgb>>8)&255,separator_rgb&255,255);
         auto* draw=ImGui::GetForegroundDrawList();const int before=draw->VtxBuffer.Size;
         claw_modular::paint(frame,draw);
         if(std::getenv("CLAW_METRICS_VERIFY")){

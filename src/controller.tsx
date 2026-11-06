@@ -104,7 +104,7 @@ export const styleTabs: [StyleCategory,string][] = [
   ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
-export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
+export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width"|"separator_height"|"separator_thickness"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
   background?:OverlayBackground; sans?:boolean; inline_metrics?:boolean; graph_style?:GraphStyle; vertical_graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
   groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
@@ -241,7 +241,7 @@ export type Settings = Record<Group, boolean> & {
   custom_labels: Record<string,string>;
   enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; vertical_width: number; vertical_value_gap: number; vertical_category_gap: number; vertical_graph_width: number; vertical_graph_height: number; vertical_graph_style: GraphStyle; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
-  padding_x: number; element_gap: number; table_gap: number; graph_width: number; graph_style: GraphStyle;
+  padding_x: number; element_gap: number; table_gap: number; graph_width: number; separator_height:number; separator_thickness:number; graph_style: GraphStyle;
   inner_gap: number; inline_metrics: boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
   metrics: Record<string, boolean>;
   colors: ColorSettings;
@@ -287,7 +287,7 @@ export const defaults: Settings = {
   enabled: true, fontsize: 18, fps_scale: 100, center_horizontal: false, hud_position: "top-left", hud_orientation:"horizontal", vertical_width:0, vertical_value_gap:8, vertical_category_gap:6, vertical_graph_width:0, vertical_graph_height:44, vertical_graph_style:"smooth", opacity: 80, fps: true, frametime: true,
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
-  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, graph_style: "line",
+  padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, separator_height:100, separator_thickness:2, graph_style: "line",
   inner_gap: 4, inline_metrics: true, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_average:false, fps_low1:false, ram_game:false, ram_swap:false, fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
@@ -361,7 +361,7 @@ export function withTimeout<T>(request: Promise<T>): Promise<T> {
 export {AccordionCard} from "./components/AccordionCard";
 export type {SectionKey,AccordionCardProps} from "./components/AccordionCard";
 
-export type LayoutPanel = "position" | "size" | "spacing" | "frametime";
+export type LayoutPanel = "position" | "size" | "spacing" | "frametime" | "separators";
 export type AdvancedPanel = "updates" | "diagnostics" | "backup";
 export {ControlGroup} from "./components/ControlGroup";
 

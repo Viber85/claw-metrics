@@ -60,7 +60,7 @@ def run(imgui_dir=None, render_dir=None):
         # render_check.cpp includes imgui/imgui.h relative to this temporary root.
         source = tmp / 'render_check.cpp'
         source.write_bytes((root / 'tools/render_check.cpp').read_bytes())
-        subprocess.run(['g++', '-O1', '-I', str(dest), str(source), *sources, '-o', str(target)], check=True)
+        subprocess.run(['g++', '-std=c++14', '-O1', '-I', str(dest), '-I', str(root / 'experiments/native'), str(source), *sources, '-o', str(target)], check=True)
         cases = [
             ("full", 1920, 18, 8, 8, 8, 0),
             ("minimal", 1920, 18, 8, 8, 8, 1),
@@ -93,6 +93,10 @@ def run(imgui_dir=None, render_dir=None):
             assert x == ox and y == oy, output
             assert x >= 0 and x + width < screen and height < 120, output
             spans = re.findall(r'label .*? at ([\d.-]+)\.\.([\d.-]+)', output)
+            dividers = re.findall(r'separator x=([\d.-]+) y=([\d.-]+)\.\.([\d.-]+) thickness=([\d.-]+)', output)
+            assert len(dividers) >= 2, output
+            assert len({(a,b) for _,a,b,_ in dividers}) == 1, 'Separators have different vertical positions: '+output
+            assert all(float(t)==2 for *_,t in dividers), output
             assert spans and all(x <= float(a) < float(b) <= x + width for a, b in spans), output
             # Stock MangoHud v0.8.1 pushes a symmetric 5px WindowPadding.
             # Protect the actual content inset rather than exposing a fake slider.

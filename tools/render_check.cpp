@@ -2,6 +2,7 @@
 // Fixture metrics only: this is not a Vulkan injection or hardware sensor test.
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "claw_horizontal_separator.h"
 #include <cstdio>
 #include <fstream>
 #include <vector>
@@ -12,6 +13,7 @@ static ImU32 fg=IM_COL32(240,242,245,255);
 static bool record=false;
 struct Label {std::string text;float x,y,w,h;};
 std::vector<Label> labels;
+std::vector<claw_horizontal_separator::Line> separators;
 void text(const char* s,ImU32 color=fg){
  auto* window=ImGui::GetCurrentWindow();auto pos=window->DC.CursorPos;auto sz=ImGui::CalcTextSize(s);
  if(record)labels.push_back({s,pos.x,pos.y,sz.x,sz.y});
@@ -21,7 +23,7 @@ void text(const char* s,ImU32 color=fg){
 void next(){ImGui::TableNextColumn();count++;}
 void value(const char* s){next();ImVec2 p=ImGui::GetCursorPos();float off=ImGui::CalcTextSize("A").x*4;ImGui::SetCursorPosX(p.x+off-ImGui::CalcTextSize(s).x);text(s);}
 void unit(const char*s,ImFont* small){ImGui::SameLine(0,1);ImGui::PushFont(small);text(s);ImGui::PopFont();}
-void separator(){ImGui::SameLine();ImGui::Spacing();ImGui::SameLine();auto p=ImGui::GetCursorScreenPos();ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x-5,p.y+2),ImVec2(p.x-5,p.y+ImGui::GetFontSize()*.85),IM_COL32(119,124,135,255));ImGui::SameLine();ImGui::Spacing();}
+void separator(){ImGui::SameLine();ImGui::Spacing();ImGui::SameLine();auto p=ImGui::GetCursorScreenPos();auto line=claw_horizontal_separator::geometry(ImGui::GetWindowPos(),ImGui::GetStyle().WindowPadding.y,ImGui::GetIO().FontDefault->FontSize,p.x,100,2);if(record)separators.push_back(line);ImGui::GetWindowDrawList()->AddLine(line.start,line.end,IM_COL32(119,124,135,255),line.thickness);ImGui::SameLine();ImGui::Spacing();}
 int main(int argc,char**argv){
  bool stretch=atoi(argv[2]);int width=atoi(argv[3]);int mode=argc>4?atoi(argv[4]):0;bool minimal=mode==1;bool clocks=mode!=2;
  float font_size=argc>5?atof(argv[5]):18;
@@ -62,5 +64,9 @@ int main(int argc,char**argv){
  auto*d=ImGui::GetDrawData();std::ofstream out("draw.json");out<<"{\"width\":"<<width<<",\"height\":200,\"lists\":[";
  for(int n=0;n<d->CmdListsCount;n++){if(n)out<<",";auto*l=d->CmdLists[n];out<<"{\"v\":[";for(int i=0;i<l->VtxBuffer.Size;i++){if(i)out<<",";auto&v=l->VtxBuffer[i];out<<"["<<v.pos.x<<","<<v.pos.y<<","<<v.uv.x<<","<<v.uv.y<<","<<v.col<<"]";}out<<"],\"idx\":[";for(int i=0;i<l->IdxBuffer.Size;i++){if(i)out<<",";out<<l->IdxBuffer[i];}out<<"],\"cmd\":[";for(int i=0;i<l->CmdBuffer.Size;i++){if(i)out<<",";auto&c=l->CmdBuffer[i];out<<"["<<c.IdxOffset<<","<<c.ElemCount<<","<<c.ClipRect.x<<","<<c.ClipRect.y<<","<<c.ClipRect.z<<","<<c.ClipRect.w<<"]";}out<<"]}";}out<<"]}";
  for(auto &l:labels)printf("label %s at %g..%g y=%g\n",l.text.c_str(),l.x,l.x+l.w,l.y);
+ for(const auto& line:separators)printf("separator x=%g y=%g..%g thickness=%g\n",line.start.x,line.start.y,line.end.y,line.thickness);
+ const auto a=claw_horizontal_separator::geometry(ImVec2(0,4),5,18,100,50,1);
+ const auto b=claw_horizontal_separator::geometry(ImVec2(0,4),5,18,200,150,6);
+ if(a.end.y-a.start.y>=b.end.y-b.start.y || a.thickness!=1 || b.thickness!=6)return 4;
  ImGui::DestroyContext();
 }

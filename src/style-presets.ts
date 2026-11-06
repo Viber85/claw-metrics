@@ -1,7 +1,7 @@
 export const styleSlotIds=Array.from({length:12},(_,index)=>String(index+1));
 // A style snapshots appearance + enabled metric groups/submetrics. Renamed labels and
 // manual metric order remain global; legacy appearance-only styles stay compatible.
-export const styleLayoutKeys = ['modular_enabled','modular_layout','background','sans','fontsize','fps_scale','center_horizontal','hud_position','hud_orientation','vertical_width','vertical_value_gap','vertical_category_gap','vertical_graph_width','vertical_graph_height','vertical_graph_style','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','graph_style','inline_metrics'] as const;
+export const styleLayoutKeys = ['modular_enabled','modular_layout','background','sans','fontsize','fps_scale','center_horizontal','hud_position','hud_orientation','vertical_width','vertical_value_gap','vertical_category_gap','vertical_graph_width','vertical_graph_height','vertical_graph_style','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','inner_gap','graph_width','separator_height','separator_thickness','graph_style','inline_metrics'] as const;
 export function styleLayoutFrom(value:any){
  const result:any={};
  for(const key of styleLayoutKeys){

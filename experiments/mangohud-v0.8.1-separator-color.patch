@@ -1,60 +1,120 @@
 --- a/src/overlay_params.h
 +++ b/src/overlay_params.h
-@@ -190,7 +190,8 @@
+@@ -190,7 +190,10 @@
     OVERLAY_PARAM_CUSTOM(claw_inner_gap)             \
     OVERLAY_PARAM_CUSTOM(claw_inline_metrics)        \
     OVERLAY_PARAM_CUSTOM(claw_fps_bold)              \
 -   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
 +   OVERLAY_PARAM_CUSTOM(horizontal_separator_color)   \
++   OVERLAY_PARAM_CUSTOM(claw_separator_height)     \
++   OVERLAY_PARAM_CUSTOM(claw_separator_thickness)  \
 +   OVERLAY_PARAM_CUSTOM(cellpadding_y)               \
     OVERLAY_PARAM_CUSTOM(table_columns)               \
     OVERLAY_PARAM_CUSTOM(blacklist)                   \
     OVERLAY_PARAM_CUSTOM(autostart_log)               \
-@@ -289,7 +290,8 @@
+@@ -289,7 +292,9 @@
     std::vector<unsigned> cpu_load_value;
     std::vector<unsigned> fps_color;
     std::vector<unsigned> fps_value;
 -   unsigned media_player_color;
 +   unsigned media_player_color;
 +   unsigned horizontal_separator_color;
++   float claw_separator_height, claw_separator_thickness;
     unsigned table_columns;
     bool no_small_font;
     float font_size, font_scale;
 --- a/src/overlay_params.cpp
 +++ b/src/overlay_params.cpp
-@@ -521,7 +521,8 @@
+@@ -521,7 +521,10 @@
  #define parse_custom_text(s) parse_str(s)
  #define parse_fps_value(s) parse_load_value(s)
  #define parse_fps_color(s) parse_load_color(s)
 -#define parse_battery_color(s) parse_color(s)
 +#define parse_battery_color(s) parse_color(s)
 +#define parse_horizontal_separator_color(s) parse_color(s)
++#define parse_claw_separator_height(s) parse_float(s)
++#define parse_claw_separator_thickness(s) parse_float(s)
  #define parse_media_player_format(s) parse_str_tokenize(s, ";", false)
  #define parse_fsr_steam_sharpness(s) parse_float(s)
  #define parse_text_outline_color(s) parse_color(s)
-@@ -776,7 +777,8 @@
+@@ -776,7 +779,10 @@
     params->time_format = "%T";
     params->gpu_color = 0x2e9762;
     params->cpu_color = 0x2e97cb;
 -   params->vram_color = 0xad64c1;
 +   params->vram_color = 0xad64c1;
 +   params->horizontal_separator_color = 0x777c87;
++   params->claw_separator_height = 100.0f;
++   params->claw_separator_thickness = 2.0f;
     params->ram_color = 0xc26693;
     params->engine_color = 0xeb5b5b;
     params->io_color = 0xa491d3;
 --- a/src/overlay.cpp
 +++ b/src/overlay.cpp
-@@ -651,7 +651,12 @@
-    }
- 
-     // Draw the separator line
+@@ -12,3 +12,4 @@
+ #include "overlay.h"
++#include "claw_horizontal_separator.h"
+ #include "cpu.h"
+ #include "gpu.h"
+@@ -631,28 +632,33 @@
+-void horizontal_separator(struct overlay_params& params) {
+-    ImGui::SameLine();
+-    ImGui::Spacing();
+-    ImGui::SameLine();
+-
+-    ImDrawList* drawList = ImGui::GetWindowDrawList();
+-    ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+-    ImVec2 startPos(cursorPos.x - 5, cursorPos.y + 2);
+-    ImVec2 endPos(startPos.x, cursorPos.y + params.font_size * 0.85);
+-
+-    float outlineThickness = 1.0f;
+-
+-   if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_text_outline]){
+-      // Draw the black outline
+-      drawList->AddLine(ImVec2(startPos.x - outlineThickness, startPos.y), ImVec2(startPos.x - outlineThickness, endPos.y), IM_COL32_BLACK, outlineThickness + 2);
+-      drawList->AddLine(ImVec2(startPos.x + outlineThickness, startPos.y), ImVec2(startPos.x + outlineThickness, endPos.y), IM_COL32_BLACK, outlineThickness + 2);
+-      drawList->AddLine(ImVec2(startPos.x - outlineThickness, startPos.y - outlineThickness/2), ImVec2(startPos.x + outlineThickness, startPos.y - outlineThickness/2), IM_COL32_BLACK, outlineThickness + 2);
+-      drawList->AddLine(ImVec2(startPos.x - outlineThickness, endPos.y + outlineThickness/2), ImVec2(startPos.x + outlineThickness, endPos.y + outlineThickness/2), IM_COL32_BLACK, outlineThickness + 2);
+-   } else {
+-      outlineThickness *= 2;
+-   }
+-
+-    // Draw the separator line
 -    drawList->AddLine(startPos, endPos, params.vram_color, outlineThickness);
-+    // MangoHud config colors are 0xRRGGBB but ImDrawList needs packed
-+    // ImU32 RGBA with an opaque alpha channel.
+-
+-    ImGui::SameLine();
+-    ImGui::Spacing();
+-}
++void horizontal_separator(struct overlay_params& params) {
++    ImGui::SameLine();
++    ImGui::Spacing();
++    ImGui::SameLine();
++
++    ImDrawList* drawList = ImGui::GetWindowDrawList();
++    ImVec2 cursorPos = ImGui::GetCursorScreenPos();
++    const auto line = claw_horizontal_separator::geometry(
++        ImGui::GetWindowPos(), ImGui::GetStyle().WindowPadding.y,
++        params.font_size, cursorPos.x, params.claw_separator_height,
++        params.claw_separator_thickness);
++    const ImVec2 startPos = line.start, endPos = line.end;
++
++    const float outlineThickness = line.thickness;
++
++   if (HUDElements.params->enabled[OVERLAY_PARAM_ENABLED_text_outline]){
++      // Draw the black outline
++      drawList->AddLine(ImVec2(startPos.x - outlineThickness, startPos.y), ImVec2(startPos.x - outlineThickness, endPos.y), IM_COL32_BLACK, outlineThickness + 2);
++      drawList->AddLine(ImVec2(startPos.x + outlineThickness, startPos.y), ImVec2(startPos.x + outlineThickness, endPos.y), IM_COL32_BLACK, outlineThickness + 2);
++      drawList->AddLine(ImVec2(startPos.x - outlineThickness, startPos.y - outlineThickness/2), ImVec2(startPos.x + outlineThickness, startPos.y - outlineThickness/2), IM_COL32_BLACK, outlineThickness + 2);
++      drawList->AddLine(ImVec2(startPos.x - outlineThickness, endPos.y + outlineThickness/2), ImVec2(startPos.x + outlineThickness, endPos.y + outlineThickness/2), IM_COL32_BLACK, outlineThickness + 2);
++   }
++
++    // Draw the separator line
++    // MangoHud colors are 0xRRGGBB; ImDrawList needs packed opaque RGBA.
 +    const unsigned rgb = params.horizontal_separator_color;
 +    const ImU32 rgba = IM_COL32((rgb >> 16) & 0xff, (rgb >> 8) & 0xff,
 +                                rgb & 0xff, 0xff);
 +    drawList->AddLine(startPos, endPos, rgba, outlineThickness);
- 
-     ImGui::SameLine();
-     ImGui::Spacing();
++
++    ImGui::SameLine();
++    ImGui::Spacing();
++}

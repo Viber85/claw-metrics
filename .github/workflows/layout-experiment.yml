@@ -87,6 +87,7 @@ jobs:
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
             https://github.com/flightlessmango/MangoHud.git native-source
           cd native-source
+          cp ../experiments/native/claw_horizontal_separator.h src/
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-spacing.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-separator-color.patch
@@ -95,6 +96,7 @@ jobs:
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-condensed-font.patch
           grep -q 'params.horizontal_separator_color' src/overlay.cpp
+          grep -q 'claw_horizontal_separator::geometry' src/overlay.cpp
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch -p1 < ../experiments/mangohud-v0.8.1-compact-other-groups.patch
           patch --dry-run -p1 < ../experiments/mangohud-v0.8.1-inline-fps.patch
