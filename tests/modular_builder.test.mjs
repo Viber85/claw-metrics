@@ -100,7 +100,8 @@ units.onChange(true);
 assert.equal(render().find(n=>n.type==='preview').props.settings.unit_superscript,true);
 control('DialogButton','Undo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.unit_superscript,false);
 control('DialogButton','Redo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.unit_superscript,true);
-control('slider','Group gap').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
+section('Group spacing');
+control('slider','Horizontal spacing between groups (px)').onChange(23);assert.equal(draft().root.gap,23);assert.equal(applied,undefined);assert.notEqual(initial.root.gap,23);
 control('DialogButton','Undo').onClick();assert.equal(draft().root.gap,initial.root.gap);
 control('DialogButton','Redo').onClick();assert.equal(draft().root.gap,23);
 control('DialogButton','+ Group').onClick();let newGroup=draft().root.children.at(-1);assert.equal(newGroup.name,'New group');
@@ -124,3 +125,26 @@ assert.equal(appliedAppearance.rounding,14);assert.equal(appliedAppearance.opaci
 assert.equal(appliedAppearance.unit_superscript,true);
 assert.throws(()=>model.validate({...initial,x:NaN}));
 console.log('PASS builder: draft isolation, undo/redo, add, move, reorder, delete, cycle protection, cancel and apply. Mock UI only.');
+
+// CPU/GPU separation edits the containing row/column, preserving internal gaps.
+state.length=0;
+const cpu=model.flatten(initial.root).find(n=>n.name==='CPU');
+const container=model.parent(initial.root,cpu.id);
+render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Group spacing');
+control('slider','Horizontal spacing to sibling groups (px)').onChange(31);
+assert.equal(model.find(draft().root,container.id).gap,31);
+assert.equal(model.find(draft().root,cpu.id).gap,cpu.gap);
+control('DialogButton','Undo').onClick();assert.equal(model.find(draft().root,container.id).gap,container.gap);
+control('DialogButton','Redo').onClick();assert.equal(model.find(draft().root,container.id).gap,31);
+render().find(n=>n.type==='preview').props.onSelect(container.id);
+control('DropdownItem','Direction').onChange({data:'column'});
+render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Group spacing');
+assert(!render().some(n=>n.type==='slider'&&n.props.label==='Horizontal spacing to sibling groups (px)'));
+control('slider','Vertical spacing to sibling groups (px)').onChange(27);
+assert.equal(model.find(draft().root,container.id).gap,27);
+assert.equal(model.find(draft().root,cpu.id).gap,cpu.gap);
+control('slider','Horizontal spacing inside group (px)').onChange(11);
+assert.equal(model.find(draft().root,cpu.id).gap,11);
+assert.equal(model.find(draft().root,container.id).gap,27);
+control('DialogButton','Apply layout').onClick();assert.equal(model.parent(applied.root,cpu.id).gap,27);
+console.log('PASS group spacing: containing row/column gaps, independent internal spacing, undo/redo and saved layout.');

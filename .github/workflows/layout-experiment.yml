@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.92 ZIP
+name: Build Claw Metrics v0.2.4 test.93 ZIP
 on:
   push:
-    branches: [test/unit-superscript-92]
+    branches: [test/unit-group-spacing-93]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.92
+  group: claw-metrics-v0.2.4-test.93
   cancel-in-progress: true
 
 jobs:
@@ -238,7 +238,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.92.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.93.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -254,18 +254,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.92', package['version']
+              assert package['version'] == '0.2.4-test.93', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.92
-          path: ClawMetrics-v0.2.4-test.92.zip
+          name: ClawMetrics-v0.2.4-test.93
+          path: ClawMetrics-v0.2.4-test.93.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.92 ClawMetrics-v0.2.4-test.92.zip \
+          gh release create v0.2.4-test.93 ClawMetrics-v0.2.4-test.93.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.92 – Superscript unit toggle" \
-            --notes "Experimental test.92: Appearance in Layout builder offers a Superscript units toggle for °C/°F, MHz, GiB, ms, W, %, RPM and mV in modular preview and native renderer. Existing layouts default to normal text. OpenGL/Vulkan paths remain bundled. CI validates geometry and injection; Bazzite handheld behavior requires device testing."
+            --title "Claw Metrics v0.2.4-test.93 – Consistent units and group spacing" \
+            --notes "Experimental test.93: consistent number-to-unit gaps in normal and superscript modular overlays. Group spacing exposes horizontal or vertical sibling spacing separately from internal reading spacing. Existing layouts retain their spacing. CI checks frontend behavior, native geometry, Vulkan live unit-mode transitions, OpenGL injection and ZIP contents. Handheld/gamepad behavior requires device confirmation."

@@ -23,8 +23,8 @@ with tempfile.TemporaryDirectory() as directory:
     (tmp/'modular.json').write_text(json.dumps(manifest))
     def atomic(path,text):
         staging=path.with_suffix('.tmp');staging.write_text(text);os.replace(staging,path)
-    def settings(size=24, style="line", background="linear", enabled=True):
-        value=main.normalize({'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
+    def settings(size=24, style="line", background="linear", enabled=True, units=False):
+        value=main.normalize({'unit_superscript':units,'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         atomic(config,main.mango_config(value,native_spacing=True)+'fps_limit=60\n')
     docs={name:schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text()) for name in ('two-rows','graph-focus')}
     stress=copy.deepcopy(docs['two-rows']);stress['root'].update(id='stress-root',axis='column',children=[])
@@ -44,9 +44,9 @@ with tempfile.TemporaryDirectory() as directory:
             if stop.wait(2):return
             atomic(transport,'CLAW_MODULAR_V1\ntruncated')
             if stop.wait(2):return
-            atomic(transport,schema.encode_native(docs['graph-focus']));settings(24,'area','radial')
+            atomic(transport,schema.encode_native(docs['graph-focus']));settings(24,'area','radial',units=True)
             if stop.wait(2):return
-            settings(26,'bars','solid')
+            settings(26,'bars','solid',units=True)
             if stop.wait(2):return
             settings(26,'dual','linear')
             if stop.wait(2):return
@@ -82,6 +82,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert 'CLAW_EXTRA mode=0' in log,'Legacy fallback was not exercised'
     styles={int(x) for x in re.findall(r'CLAW_MODULAR .*? style=(\d+)',log)}
     assert styles==set(range(6)),('Missing graph style',styles)
+    assert {int(x) for x in re.findall(r'CLAW_MODULAR .*? units=(\d+)',log)}=={0,1},'Normal/superscript live modes not both drawn'
     for mode in (1,2): assert f'CLAW_BACKGROUND mode={mode}' in log,('Missing modular gradient',mode)
     assert 'CLAW_OUTLINE mode=0' in log,'Transparent solid background lost its outline'
     print('PASS actual Vulkan: live FPS/text/graph geometry, two imported layouts, rejected partial file, font reload, restored layout and clean exit. Sensors are lavapipe/host fixtures, not handheld validation.')

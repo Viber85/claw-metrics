@@ -44,14 +44,48 @@ int main(int argc,char**argv){
  assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
  // The unit must be measured at its actual reduced size and raised position.
  assert(unit_parts("cpu.temp","54°C").first=="54");
- assert(unit_parts("cpu.clock","3500 MHz").second==" MHz");
- assert(unit_parts("ram.value","12.6 GiB").second==" GiB");
- assert(unit_parts("fps.ms","11.9 ms").second==" ms");
+ assert(unit_parts("cpu.clock","3500 MHz").second=="MHz");
+ assert(unit_parts("ram.value","12.6 GiB").second=="GiB");
+ assert(unit_parts("fps.ms","11.9 ms").second=="ms");
  assert(unit_parts("cpu.temp","--").second.empty());
  Text temperature;temperature.value="54°C";temperature.font=font;
  auto normal=reading_size(temperature,"cpu.temp",24,false,temperature.value);
  auto raised=reading_size(temperature,"cpu.temp",24,true,temperature.value);
  assert(raised.w<normal.w&&raised.h>normal.h);
+ // Every unit uses a gap in full-size pixels, including power strings with
+ // a space after the number and memory/frequency strings before the suffix.
+ for(bool raised_units:{false,true})for(float size:{18.f,32.f}){
+  for(const auto& reading:std::vector<std::pair<std::string,std::string>>{
+      {"cpu.power","8.6 W"},{"gpu.power","12.4 W"},{"battery.power","DRAW 27 W"},
+      {"tdp.value","TDP 28 W"},{"ram.value","12.6 GiB"},{"vram.value","7.4 GiB"},
+      {"cpu.clock","3500 MHz"},{"fps.ms","11.9 ms"},{"cpu.temp","54°C"}}){
+   const auto parts=unit_parts(reading.first,reading.second);
+   assert(!parts.second.empty()&&parts.first.back()!=' '&&parts.second.front()!=' ');
+   Text t;t.value=reading.second;t.font=font;
+   const auto extent=reading_size(t,reading.first,size,raised_units,t.value);
+   const float main_width=font->CalcTextSizeA(size,1e10f,0,parts.first.c_str()).x;
+   const float unit_width=font->CalcTextSizeA(size*(raised_units?.7f:1.f),1e10f,0,parts.second.c_str()).x;
+   assert(std::abs(extent.w-main_width-unit_width-size*.14f)<.001f);
+  }
+ }
+ // Separate CPU/GPU containers in either direction without changing their
+ // internal spacing; these are the same parent gaps edited by the builder.
+ for(Axis axis:{Axis::Row,Axis::Column}){
+  Node root;root.id="spacing-root";root.axis=axis;root.children={1,4};
+  Node cpu;cpu.id="cpu-group";cpu.children={2,3};cpu.gap=6;
+  Node gpu;gpu.id="gpu-group";gpu.children={5,6};gpu.gap=9;
+  Node a;a.id="cpu-reading-1";a.group=false;a.token="cpu.power";
+  Node b=a;b.id="cpu-reading-2";
+  Node c=a;c.id="gpu-reading-1";c.token="gpu.power";
+  Node d=c;d.id="gpu-reading-2";
+  std::vector<Node> groups={root,cpu,a,b,gpu,c,d};
+  auto sample=[&](float gap){groups[0].gap=gap;return prepare(groups,std::vector<Style>(7),frame.readings,{},0,{float(width),float(height)},Anchor::TopLeft,10,10,24,superscript);};
+  const auto tight=sample(0),wide=sample(31);
+  const auto& first=wide.geometry.boxes[1];const auto& second=wide.geometry.boxes[4];
+  assert(std::abs((axis==Axis::Row?second.x-first.x-first.w:second.y-first.y-first.h)-31)<.001f);
+  assert(std::abs(first.w-tight.geometry.boxes[1].w)<.001f&&std::abs(first.h-tight.geometry.boxes[1].h)<.001f);
+  assert(wide.nodes[1].gap==6&&wide.nodes[4].gap==9);
+ }
  auto elevated=prepare(nodes,styles,frame.readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,true);
  assert(elevated.unit_superscript);
  for(size_t i=0;i<nodes.size();++i){const auto& b=frame.geometry.boxes[i];assert(b.visible&&b.w>0&&b.h>0);}

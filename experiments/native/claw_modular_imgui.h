@@ -46,14 +46,17 @@ inline std::pair<std::string,std::string> unit_parts(const std::string& token,co
     if(value.size()<=length||value.compare(value.size()-length,length,suffix)!=0)return {value,{}};
     auto main=value.substr(0,value.size()-length);
     if(main.find_first_of("0123456789")==std::string::npos)return {value,{}};
-    return {std::move(main),suffix};
+    while(!main.empty()&&main.back()==' ')main.pop_back();
+    std::string unit=suffix;while(!unit.empty()&&unit.front()==' ')unit.erase(0,1);
+    return {std::move(main),std::move(unit)};
 }
+inline float unit_gap(float size) { return size*.14f; }
 inline Size reading_size(const Text& text,const std::string& token,float size,bool superscript,const std::string& value) {
-    const auto parts=superscript?unit_parts(token,value):std::make_pair(value,std::string());
+    const auto parts=unit_parts(token,value);
     auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str());
     if(!parts.second.empty()){
-        extent.x+=text.font->CalcTextSizeA(size*.7f,std::numeric_limits<float>::max(),0,parts.second.c_str()).x;
-        extent.y+=size*.18f;
+        extent.x+=unit_gap(size)+text.font->CalcTextSizeA(size*(superscript?.7f:1.f),std::numeric_limits<float>::max(),0,parts.second.c_str()).x;
+        if(superscript)extent.y+=size*.18f;
     }
     return {extent.x,extent.y};
 }
@@ -151,14 +154,14 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
         }else{
             const auto& text=frame.readings.at(n.token);
             const float size=frame.font_size*scale;
-            const auto parts=frame.unit_superscript?unit_parts(n.token,text.value):std::make_pair(text.value,std::string());
+            const auto parts=unit_parts(n.token,text.value);
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
             const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
             const auto color=style.text?style.text:text.color;
-            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset,lo.y+n.padding+(parts.second.empty()?0:size*.18f)),color,parts.first.c_str());
+            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset,lo.y+n.padding+(!parts.second.empty()&&frame.unit_superscript?size*.18f:0)),color,parts.first.c_str());
             if(!parts.second.empty()){
                 const float main_width=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str()).x;
-                draw->AddText(text.font,size*.7f,ImVec2(lo.x+n.padding+offset+main_width,lo.y+n.padding),color,parts.second.c_str());
+                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+n.padding+offset+main_width+unit_gap(size),lo.y+n.padding),color,parts.second.c_str());
             }
         }
     };

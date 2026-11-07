@@ -1,3 +1,9 @@
+## v0.2.4-test.93 — Consistent units and group spacing
+
+Numbers and units now use the same explicit gap in normal and superscript modular overlays, including W, GiB, MHz, ms, temperatures and percentages. The preview and native renderer share the same spacing rule.
+
+Select a group such as **CPU** or **GPU** in Layout builder, then open **Group spacing**. **Horizontal / Vertical spacing to sibling groups** adjusts the containing row or column and applies to all its children. **Spacing inside group** adjusts its readings independently. Select the containing group to change its direction. Saved layouts keep their existing gaps; Apply saves the draft and Cancel discards it.
+
 ## v0.2.4-test.92 — Superscript units in the editable overlay
 
 In Layout builder, select **Overlay → Appearance** and toggle **Superscript units** to draw temperature, frequency, memory, frametime, power and percentage units smaller and raised. The sample preview updates immediately; **Apply layout** saves the choice with the current style. Existing layouts stay in normal text until enabled. The same choice is restored when loading a saved style. This applies to the editable modular overlay, while the classic renderer retains its existing labels. Native rendering and gamepad behavior still need a handheld test.

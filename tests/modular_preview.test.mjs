@@ -5,12 +5,19 @@ import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
 const module={exports:{}};
 runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]}:{},console});
-const {ModularHud,unitParts}=module.exports;
+const {ModularHud,unitParts,readingText}=module.exports;
 assert.equal(unitParts('cpu.temp','54°C').join('|'),'54|°C');
-assert.equal(unitParts('gpu.clock','1750 MHz').join('|'),'1750| MHz');
-assert.equal(unitParts('ram.value','12.6 GiB').join('|'),'12.6| GiB');
-assert.equal(unitParts('fps.ms','11.9 ms').join('|'),'11.9| ms');
+assert.equal(unitParts('gpu.clock','1750 MHz').join('|'),'1750|MHz');
+assert.equal(unitParts('ram.value','12.6 GiB').join('|'),'12.6|GiB');
+assert.equal(unitParts('fps.ms','11.9 ms').join('|'),'11.9|ms');
 assert.equal(unitParts('gpu.temp','--').join('|'),'--|');
+for(const enabled of [false,true])for(const [token,value,unit] of [['cpu.power','8.6 W','W'],['battery.power','DRAW 27 W','W'],['tdp.value','TDP 28 W','W'],['ram.value','12.6 GiB','GiB'],['gpu.clock','1750 MHz','MHz'],['fps.ms','11.9 ms','ms']]){
+ const output=readingText(token,value,enabled);
+ assert.equal(output.props.style.columnGap,'.14em');
+ assert(!output.props.children[0].props.children.endsWith(' '));
+ assert.equal(output.props.children[1].props.children,unit);
+ assert.equal(output.props.children[1].props.style.fontSize,enabled?'.7em':'1em');
+}
 const layout=JSON.parse(readFileSync('assets/modular/horizontal.json'));
 const gpu=layout.root.children.find(n=>n.name==='GPU');
 gpu.align='center';gpu.children[1].selfAlign='start';

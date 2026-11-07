@@ -80,7 +80,7 @@ bool ClawTryModular() {
         if(item.value.find("tdp.txt")!=std::string::npos)set("tdp.value",claw_modular::power_text(item.ret,"TDP"));
         if(item.value.find("draw.txt")!=std::string::npos)set("battery.power",claw_modular::power_text(item.ret,"DRAW"));
     }
-    const char* slots[]={"","888","888.8 ms","","100%","888°C","8888 MHz","88.8 W","","100%","888°C","8888 MHz","88.8 W","888°C Jnc","88888 RPM","8888 mV","","888.8 GiB","","888.8 GiB","888°C","8888 MHz","","100%","88:88","","88:88","","AVG 8888.8","1% LOW 8888.8","GAME 888.8 GiB","SWAP 888.8 GiB"};
+    const char* slots[]={"","888","888.8 ms","","100%","888°C","8888 MHz","88.8 W","","100%","888°C","8888 MHz","88.8 W","888°C","88888 RPM","8888 mV","","888.8 GiB","","888.8 GiB","888°C","8888 MHz","","100%","88:88","","88:88","","AVG 8888.8","1% LOW 8888.8","GAME 888.8 GiB","SWAP 888.8 GiB"};
     for(int token=0;token<32;++token)readings[keys[token]].slot=slots[token];
     for(int token:{25,27})readings[keys[token]].slot=ClawSlotReference(token,"%s",readings[keys[token]].value.c_str());
     data.stat_selector=OVERLAY_PLOTS_frame_timing;
@@ -123,8 +123,8 @@ bool ClawTryModular() {
         if(std::getenv("CLAW_METRICS_VERIFY")){
             static std::string previous;
             const auto key=active->nodes[0].id;
-            const auto signature=key+std::to_string(p.claw_graph_style)+std::to_string(p.claw_background_mode);
-            if(data.n_frames>100&&(previous!=signature||data.n_frames%60==0)){previous=signature;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f style=%u background=%u\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y,unsigned(p.claw_graph_style),unsigned(p.claw_background_mode));}
+            const auto signature=key+std::to_string(p.claw_graph_style)+std::to_string(p.claw_background_mode)+std::to_string(p.claw_unit_superscript);
+            if(data.n_frames>100&&(previous!=signature||data.n_frames%60==0)){previous=signature;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f style=%u background=%u units=%u\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y,unsigned(p.claw_graph_style),unsigned(p.claw_background_mode),unsigned(p.claw_unit_superscript));}
         }
         return true;
     }catch(const std::exception&){return false;} // Legacy HUD remains the fallback.

@@ -3,7 +3,7 @@ import type {Layout,Node} from './model';
 const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
 // do not change when sample values are shorter than live values.
-const slots:Record<string,string>={'fps.value':'888','fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C Jnc','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
+const slots:Record<string,string>={'fps.value':'888','fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
 export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,draw:27,tdp:28};
 export function unitParts(token:string,value:string):[string,string]{
  const temperature=['cpu.temp','gpu.temp','gpu.junction','vram.temp'].includes(token);
@@ -16,11 +16,12 @@ export function unitParts(token:string,value:string):[string,string]{
   token==='gpu.voltage'?' mV':token==='gpu.fan'?(value.includes('RPM')?' RPM':'% FAN'):'';
  if(!suffix||!value.endsWith(suffix))return [value,''];
  const main=value.slice(0,-suffix.length);
- return /\d/.test(main)?[main,suffix]:[value,''];
+ return /\d/.test(main)?[main.trimEnd(),suffix.trimStart()]:[value,''];
 }
 export function readingText(token:string,value:string,superscript:boolean){
- const [main,unit]=superscript?unitParts(token,value):[value,''];
- return unit?<span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top'}}><span style={{paddingTop:'.18em'}}>{main}</span><span style={{fontSize:'.7em'}}>{unit}</span></span>:value;
+ const [main,unit]=unitParts(token,value);
+ // The gap belongs to the reading's full font size, never the smaller unit.
+ return unit?<span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top',columnGap:'.14em'}}><span style={{paddingTop:superscript?'.18em':0}}>{main}</span><span style={{fontSize:superscript?'.7em':'1em'}}>{unit}</span></span>:value;
 }
 export function rgba(hex:string,opacity:number){const c=(hex||'161820').replace('#','');return `rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${opacity/100})`}
 export function backgroundStyle(s:any):React.CSSProperties{
