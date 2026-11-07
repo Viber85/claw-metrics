@@ -13,8 +13,10 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run(['g++','-std=c++14','-Wall','-Wextra','-Werror','-O1','-pthread',
                     '-fsanitize=address,undefined','-fno-omit-frame-pointer',
                     '-I',str(ROOT/'experiments/native'),str(ROOT/'tools/modular_transport_probe.cpp'),'-o',str(binary)],check=True)
-    for name in ('two-rows','graph-focus'):
-        doc=schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text())
+    for name in ('two-rows','graph-focus','center-left','center-right'):
+        source='graph-focus' if name.startswith('center-') else name
+        doc=schema.load_layout((ROOT/f'experiments/modular/{source}.json').read_text())
+        if name.startswith('center-'):doc.update(anchor=name,y=-22)
         doc['root'].update(id='čćž'*20,background='#112233',opacity=44,outline=True)
         last=doc['root']
         while last['children']:last=last['children'][-1]

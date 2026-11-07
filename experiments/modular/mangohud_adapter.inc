@@ -123,8 +123,8 @@ bool ClawTryModular() {
         if(std::getenv("CLAW_METRICS_VERIFY")){
             static std::string previous;
             const auto key=active->nodes[0].id;
-            const auto signature=key+std::to_string(p.claw_graph_style)+std::to_string(p.claw_background_mode)+std::to_string(p.claw_unit_superscript);
-            if(data.n_frames>100&&(previous!=signature||data.n_frames%60==0)){previous=signature;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f style=%u background=%u units=%u\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y,unsigned(p.claw_graph_style),unsigned(p.claw_background_mode),unsigned(p.claw_unit_superscript));}
+            const auto signature=key+std::to_string(p.claw_graph_style)+std::to_string(p.claw_background_mode)+std::to_string(p.claw_unit_superscript)+std::to_string(int(active->anchor));
+            if(data.n_frames>100&&(previous!=signature||data.n_frames%60==0)){previous=signature;std::fprintf(stderr,"CLAW_MODULAR nodes=%zu root=%s fps=%s vertices=%d outside=%d frame=%llu width=%.1f height=%.1f screen=%.0fx%.0f style=%u background=%u units=%u anchor=%d x=%.1f y=%.1f\n",active->nodes.size(),key.c_str(),readings["fps.value"].value.c_str(),draw->VtxBuffer.Size-before,frame.geometry.outside?1:0,static_cast<unsigned long long>(data.n_frames),frame.geometry.boxes[0].w,frame.geometry.boxes[0].h,size.x,size.y,unsigned(p.claw_graph_style),unsigned(p.claw_background_mode),unsigned(p.claw_unit_superscript),int(active->anchor),box.x,box.y);}
         }
         return true;
     }catch(const std::exception&){return false;} // Legacy HUD remains the fallback.

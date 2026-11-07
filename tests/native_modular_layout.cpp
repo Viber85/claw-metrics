@@ -23,6 +23,17 @@ int main(){
   const bool right=anchor==Anchor::TopRight||anchor==Anchor::BottomRight;
   assert(near(r.boxes[0].x,center?620:right?1180:20));assert(near(r.boxes[0].y,bottom?740:30));assert(!r.outside);
  }
+ // Center-edge anchors track measured HUD height at both resolutions and
+ // accept signed vertical offsets without changing the legacy six IDs.
+ assert(int(Anchor::BottomRight)==5&&int(Anchor::CenterLeft)==6&&int(Anchor::CenterRight)==7);
+ for(auto anchor:{Anchor::CenterLeft,Anchor::CenterRight})for(float screen_h:{800.f,1080.f})for(float offset:{-35.f,0.f,42.f})for(auto axis:{Axis::Row,Axis::Column}){
+  auto centered_nodes=nodes;centered_nodes[0].axis=axis;
+  auto centered=layout(centered_nodes,0,{1920,screen_h},anchor,16,offset,18,measure);
+  const auto& box=centered.boxes[0];
+  assert(near(box.y+box.h/2,screen_h/2+offset));
+  assert(near(box.x,anchor==Anchor::CenterLeft?16:1920-box.w-16));
+  assert(!centered.outside);
+ }
  nodes[0].axis=Axis::Column;r=run();assert(near(r.boxes[0].w,50)&&near(r.boxes[0].h,50));assert(near(r.boxes[1].x,35));
  nodes[0].align=Align::End;r=run();assert(near(r.boxes[1].x,45));
  nodes[0].align=Align::Start;r=run();assert(near(r.boxes[1].x,25));

@@ -103,10 +103,11 @@ def run(args):
             font=tmp/'ClawSans.ttf';font.write_bytes(gzip.decompress(base64.b64decode((ROOT/'assets/ClawSans.ttf.gz.b64').read_bytes())))
             import main
             assert hashlib.sha256(font.read_bytes()).hexdigest()==main.FONT_SHA256
-        for name in ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript'):
-            source='graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
+        for name in ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right'):
+            source='vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
             preset=ROOT/('tests/fixtures' if source=='graph-below' else 'assets/modular' if source in ('horizontal','vertical') else 'experiments/modular')/(source+'.json')
             document=schema.load_layout(preset.read_text())
+            if name.startswith('center-'):document.update(anchor=name,x=16,y=0)
             if name=='separator':
                 from copy import deepcopy
                 line=deepcopy(document['root']['children'][-1])
@@ -121,7 +122,7 @@ def run(args):
             subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(tmp),'-I',str(ROOT/'experiments/native'),
                             str(ROOT/'tools/modular_imgui_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
             for width,height in (((1280,800),) if name=='superscript' else ((1280,800),(1920,1080))):
-                for style in (range(1) if name=='superscript' else range(6)):
+                for style in (range(1) if name=='superscript' or name.startswith('center-') else range(6)):
                     target=output/f'{name}-{width}x{height}-style{style}'
                     subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['1'] if name=='superscript' else [])],check=True)
                     raster(target.with_suffix('.json'))

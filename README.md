@@ -1,3 +1,7 @@
+## v0.2.4-test.94 — Center left and Center right
+
+In **Layout builder → Position on screen → Anchor**, choose **Center left** or **Center right** to center the overlay vertically against either screen edge. Horizontal offset sets the inward margin. Vertical offset from center accepts negative (up) and positive (down) values; selecting a center anchor from a top/bottom anchor starts at zero. Centering follows the measured overlay height when fonts, groups or layout change. Existing six anchor IDs and saved layouts are preserved.
+
 ## v0.2.4-test.93 — Consistent units and group spacing
 
 Numbers and units now use the same explicit gap in normal and superscript modular overlays, including W, GiB, MHz, ms, temperatures and percentages. The preview and native renderer share the same spacing rule.

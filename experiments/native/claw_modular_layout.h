@@ -13,7 +13,8 @@ struct Rect { float x=0,y=0,w=0,h=0; bool visible=false; };
 enum class Axis { Row, Column };
 enum class Align { Start, Center, End };
 enum class SelfAlign { Auto, Start, Center, End };
-enum class Anchor { TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight };
+// Append new anchors: existing transport IDs 0..5 must remain stable.
+enum class Anchor { TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight, CenterLeft, CenterRight };
 struct Node {
     std::string id,token;
     bool group=true,visible=true;
@@ -32,7 +33,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
                      Anchor anchor,float x,float y,float font,const Measure& measure) {
     if(nodes.empty()||nodes.size()>96||root>=nodes.size()||!nodes[root].group||
        !range(screen.w,1,32768)||!range(screen.h,1,32768)||!range(x,0,2000)||
-       !range(y,0,2000)||!range(font,1,256)||static_cast<int>(anchor)<0||static_cast<int>(anchor)>5||!measure)
+       !range(y,anchor==Anchor::CenterLeft||anchor==Anchor::CenterRight?-2000.f:0.f,2000)||!range(font,1,256)||static_cast<int>(anchor)<0||static_cast<int>(anchor)>7||!measure)
         throw std::invalid_argument("Invalid layout input");
     std::vector<bool> visited(nodes.size(),false);
     std::vector<std::string> ids;
@@ -93,8 +94,9 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
     const auto total=size(root,1);
     float left=x,top=y;
     if(anchor==Anchor::TopCenter||anchor==Anchor::BottomCenter)left=(screen.w-total.w)/2+x;
-    if(anchor==Anchor::TopRight||anchor==Anchor::BottomRight)left=screen.w-total.w-x;
+    if(anchor==Anchor::TopRight||anchor==Anchor::BottomRight||anchor==Anchor::CenterRight)left=screen.w-total.w-x;
     if(anchor==Anchor::BottomLeft||anchor==Anchor::BottomCenter||anchor==Anchor::BottomRight)top=screen.h-total.h-y;
+    if(anchor==Anchor::CenterLeft||anchor==Anchor::CenterRight)top=(screen.h-total.h)/2+y;
     Result out;out.boxes.resize(nodes.size());
     std::function<void(size_t,float,float)> place=[&](size_t i,float px,float py) {
         const auto& n=nodes[i];if(!n.visible)return;

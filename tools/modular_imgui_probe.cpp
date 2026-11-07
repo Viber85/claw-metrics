@@ -38,6 +38,15 @@ int main(int argc,char**argv){
   assert(frame.geometry.boxes[1].y>baseline.geometry.boxes[1].y+1);}
  frame.graph_style=std::stoi(argv[6]);
  assert(!frame.geometry.outside);
+ if(document.anchor==Anchor::CenterLeft||document.anchor==Anchor::CenterRight){
+  const auto& b=frame.geometry.boxes[0];
+  assert(std::abs(b.y+b.h/2-height/2.f-document.y)<.001f);
+  assert(std::abs(b.x-(document.anchor==Anchor::CenterLeft?document.x:width-b.w-document.x))<.001f);
+  const auto larger=prepare(nodes,styles,frame.readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,28,superscript);
+  const auto& changed=larger.geometry.boxes[0];
+  assert(std::abs(changed.y+changed.h/2-height/2.f-document.y)<.001f);
+ }
+
  auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";
  // Compare changing readings with the same unit mode to isolate width stability.
  auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);

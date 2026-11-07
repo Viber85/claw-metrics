@@ -1,7 +1,7 @@
 export type Axis='row'|'column';
 export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;children:Node[];token:string;width:number;height:number};
 export type Layout={schema:'claw-modular-layout';version:1;anchor:string;x:number;y:number;root:Node};
-export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'];
+export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right','center-left','center-right'];
 export const catalog:Record<string,string>={
  'fps.label':'FPS label','fps.value':'FPS value','fps.ms':'Frametime','fps.average':'Average FPS','fps.low1':'1% low',
  'cpu.label':'CPU label','cpu.load':'CPU load','cpu.temp':'CPU temperature','cpu.clock':'CPU clock','cpu.power':'CPU power',
@@ -76,6 +76,6 @@ export function validate(input:any):Layout{
   return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');
- return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,0,2000),root};
+ return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,input.anchor.startsWith('center-')?-2000:0,2000),root};
 }
 

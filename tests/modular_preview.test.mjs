@@ -51,3 +51,12 @@ const fonts=readFileSync('src/modular/preview-fonts.ts','utf8');
 for(const weight of [300,400,600,700])assert(fonts.includes(`font-weight:${weight}`));
 assert.equal((fonts.match(/data:font\/woff2;base64,/g)||[]).length,5);
 console.log('PASS modular preview: bundled native font faces, individual left text alignment, separator geometry and color.');
+
+for(const anchor of ['center-left','center-right'])for(const y of [-25,0,25]){
+ const placed={...layout,anchor,x:18,y};
+ const host=walk(ModularHud({layout:placed,settings,data:{gpu:72},selected:'none',onSelect:()=>{}})).find(n=>n.props?.className==='modular-hud');
+ assert.equal(host.props.style.top,`calc(50% + ${y}px)`);
+ assert.equal(host.props.style.transform,'translateY(-50%)');
+ assert.equal(host.props.style[anchor==='center-left'?'left':'right'],18);
+ assert.equal(host.props.style.bottom,undefined);
+}

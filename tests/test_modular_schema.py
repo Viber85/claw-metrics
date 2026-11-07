@@ -123,3 +123,17 @@ class ModularSchemaTests(unittest.TestCase):
         self.assertNotIn('exec', out)
         self.assertNotIn('unsupported', out['root'])
         with self.assertRaises(ValueError): schema.load_layout(' ' * (1024 * 1024 + 1))
+
+    def test_center_edge_anchors_preserve_signed_offsets_and_old_ids(self):
+        self.assertEqual(schema.ANCHORS[:6], ('top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'))
+        for index, anchor in enumerate(('center-left','center-right'),6):
+            for offset in (-40,0,40):
+                doc=copy.deepcopy(self.layout);doc.update(anchor=anchor,y=offset)
+                out=schema.load_layout(json.dumps(doc))
+                self.assertEqual(out['y'],offset)
+                self.assertEqual(schema.encode_native(out).splitlines()[1].split()[0],str(index))
+                settings=main.normalize({'modular_enabled':True,'modular_layout':out,'style_presets':{'1':{'modular_enabled':True,'modular_layout':out}}})
+                self.assertEqual(settings['modular_layout'],out)
+                self.assertEqual(settings['style_presets']['1']['modular_layout'],out)
+        bad=copy.deepcopy(self.layout);bad.update(anchor='top-left',y=-1)
+        with self.assertRaises(ValueError):schema.validate_layout(bad)

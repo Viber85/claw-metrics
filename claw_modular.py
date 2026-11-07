@@ -7,7 +7,7 @@ TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.loa
               'gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value '
               'vram.temp vram.clock battery.label battery.value battery.time battery.power '
               'time.value tdp.value graph separator').split())
-ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right')
+ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center-left', 'center-right')
 
 
 def validate_layout(value):
@@ -51,7 +51,7 @@ def validate_layout(value):
     if root['kind'] != 'group':
         raise ValueError('Root must be a group')
     return {'schema': 'claw-modular-layout', 'version': 1, 'anchor': value['anchor'],
-            'x': number(value.get('x'), 0, 2000), 'y': number(value.get('y'), 0, 2000), 'root': root}
+            'x': number(value.get('x'), 0, 2000), 'y': number(value.get('y'), -2000 if value['anchor'].startswith('center-') else 0, 2000), 'root': root}
 
 
 def load_layout(text):

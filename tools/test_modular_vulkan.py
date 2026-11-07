@@ -27,6 +27,7 @@ with tempfile.TemporaryDirectory() as directory:
         value=main.normalize({'unit_superscript':units,'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         atomic(config,main.mango_config(value,native_spacing=True)+'fps_limit=60\n')
     docs={name:schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text()) for name in ('two-rows','graph-focus')}
+    docs['graph-focus'].update(anchor='center-left',x=16,y=-12)
     stress=copy.deepcopy(docs['two-rows']);stress['root'].update(id='stress-root',axis='column',children=[])
     metric=copy.deepcopy(docs['two-rows']['root']['children'][1]['children'][1]['children'][-1])
     for row in range(4):
@@ -36,7 +37,7 @@ with tempfile.TemporaryDirectory() as directory:
             group['children'].append(child)
         stress['root']['children'].append(group)
     stress['x']=0
-    for doc in docs.values():doc['x']=0
+    docs['two-rows']['x']=0
     settings();atomic(transport,schema.encode_native(docs['two-rows']))
     stop=threading.Event();errors=[]
     def transitions():
@@ -60,6 +61,7 @@ with tempfile.TemporaryDirectory() as directory:
             if stop.wait(2):return
             atomic(transport,schema.encode_native(stress));settings(24,'dual_layer','radial')
             if stop.wait(2):return
+            docs['graph-focus']['anchor']='center-right'
             atomic(transport,schema.encode_native(docs['graph-focus']));settings(24,'line','radial')
         except Exception as error:errors.append(error)
     worker=threading.Thread(target=transitions);worker.start()
@@ -79,6 +81,13 @@ with tempfile.TemporaryDirectory() as directory:
     assert any(k==second and int(f)>400 for _,k,_,_,_,f in matches),('Active modular draw did not survive font reload',matches)
     assert any(k=='stress-root' and int(v)>65535 for _,k,_,v,_,_ in matches),('Large-mesh path not exercised',matches)
     assert matches[-1][1]==second,('Did not re-enable modular rendering',matches)
+    positions=re.findall(r'CLAW_MODULAR .*? width=([\d.]+) height=([\d.]+) screen=([\d.]+)x([\d.]+).*? anchor=([67]) x=([\d.-]+) y=([\d.-]+)',log)
+    assert {int(p[4]) for p in positions}=={6,7},('Both center edges were not drawn',positions)
+    for w,h,sw,sh,anchor,x,y in positions:
+        w,h,sw,sh,x,y=map(float,(w,h,sw,sh,x,y))
+        assert abs(y+h/2-sh/2+12)<.3,('Not centered after layout/font changes',positions)
+        assert abs(x-(16 if anchor=='6' else sw-w-16))<.3,('Wrong edge margin',positions)
+    assert len({p[1] for p in positions if p[4]=='6'})>1,'Center anchor did not survive a height/font change'
     assert 'CLAW_EXTRA mode=0' in log,'Legacy fallback was not exercised'
     styles={int(x) for x in re.findall(r'CLAW_MODULAR .*? style=(\d+)',log)}
     assert styles==set(range(6)),('Missing graph style',styles)
