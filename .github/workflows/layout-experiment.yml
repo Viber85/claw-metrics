@@ -127,6 +127,7 @@ jobs:
           python3 ../tools/check_background.py src
           python3 ../tools/check_extra_metrics.py src
           python3 ../experiments/enable_modular_renderer.py src
+          python3 ../experiments/guard_glx_swap_interval.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
