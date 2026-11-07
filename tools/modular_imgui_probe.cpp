@@ -34,12 +34,13 @@ int main(int argc,char**argv){
  const bool superscript=argc==8&&std::string(argv[7])=="1";
  auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
  if(nodes[1].self_align==SelfAlign::End){auto default_nodes=nodes;default_nodes[1].self_align=SelfAlign::Auto;
-  auto baseline=prepare(default_nodes,styles,values,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+  auto baseline=prepare(default_nodes,styles,values,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
   assert(frame.geometry.boxes[1].y>baseline.geometry.boxes[1].y+1);}
  frame.graph_style=std::stoi(argv[6]);
  assert(!frame.geometry.outside);
  auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";
- auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+ // Compare changing readings with the same unit mode to isolate width stability.
+ auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
  assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
  // The unit must be measured at its actual reduced size and raised position.
  assert(unit_parts("cpu.temp","54°C").first=="54");
