@@ -13,6 +13,12 @@ class EditorStyleSave(unittest.IsolatedAsyncioTestCase):
         current=main.normalize({'modular_layout':layout,'modular_enabled':False,'opacity':80})
         plugin._current_settings=current
         draft=json.loads(json.dumps(layout));draft['root']['name']='Saved editor draft'
+        def graph(node):
+            if node['token']=='graph':return node
+            for child in node['children']:
+                found=graph(child)
+                if found is not None:return found
+        graph(draft['root'])['color']='#FF00FF'
         preset={'version':3,'modular_layout':draft,'modular_enabled':True,'opacity':55,
                 'token_colors':{'tdp.label':'FFAC12','tdp.value':'DDEEFF'}}
         with tempfile.TemporaryDirectory() as directory:
@@ -25,6 +31,7 @@ class EditorStyleSave(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(saved['style_names']['2'],'From editor')
             self.assertEqual(saved['style_presets']['2']['modular_layout']['root']['name'],'Saved editor draft')
             self.assertEqual(saved['style_presets']['2']['opacity'],55)
+            self.assertEqual(graph(saved['style_presets']['2']['modular_layout']['root'])['color'],'#FF00FF')
             self.assertEqual(saved['modular_layout'],current['modular_layout'])
             self.assertEqual(saved['opacity'],80)
             self.assertFalse(saved['modular_enabled'])

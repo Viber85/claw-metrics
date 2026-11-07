@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.99 ZIP
+name: Build Claw Metrics v0.2.4 test.100 ZIP
 on:
   push:
-    branches: [test/editor-save-style-enter-99]
+    branches: [test/editor-graph-color-100]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.99
+  group: claw-metrics-v0.2.4-test.100
   cancel-in-progress: true
 
 jobs:
@@ -243,7 +243,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.99.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.100.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -259,18 +259,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.99', package['version']
+              assert package['version'] == '0.2.4-test.100', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.99
-          path: ClawMetrics-v0.2.4-test.99.zip
+          name: ClawMetrics-v0.2.4-test.100
+          path: ClawMetrics-v0.2.4-test.100.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.99 ClawMetrics-v0.2.4-test.99.zip \
+          gh release create v0.2.4-test.100 ClawMetrics-v0.2.4-test.100.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.99 – Save styles inside editor and keep Enter local" \
-            --notes "Experimental test.99: Save style inside the overlay editor uses the same named slots as Colors & Fonts. New and overwrite actions snapshot the current draft and appearance without closing or publishing live renderer files. Saved styles persist even if the editor is cancelled; Apply still activates the layout. Enter in group/reading/style name fields is handled locally and implicit modal confirmation is disabled. Includes functional editor tests, backend persistence/error tests, native renderer checks and ZIP validation. Device keyboard/controller behavior still needs handheld confirmation."
+            --title "Claw Metrics v0.2.4-test.100 – Graph color override and relevant size controls" \
+            --notes "Experimental test.100: The editor hides Element scale for frametime graph readings; Graph width and Graph height remain available. Native graph drawing now uses the saved per-element color for lines, bars, filled areas and layered graphs, with Use plugin color restoring inheritance. Regression checks cover editor Apply/style snapshots, disk persistence, actual ImGui RGB vertices and Vulkan live imports across all six graph styles. Includes OpenGL, native layout and ZIP checks. Handheld confirmation remains necessary."

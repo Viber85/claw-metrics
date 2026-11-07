@@ -123,6 +123,8 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
         }
         if(n.token=="graph"){
             if(frame.graph.size()<2)return;
+            const auto graph_color=style.text?style.text:frame.graph_color;
+            const int graph_first=draw->VtxBuffer.Size;
             // Bound each primitive reservation below 16-bit index limits;
             // larger documents use the backend's per-command VtxOffset support.
             std::vector<float> samples;
@@ -142,13 +144,13 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                 points.push_back(point(samples.size()-1,samples.back()));
             }else for(size_t k=0;k<samples.size();++k)points.push_back(point(k,samples[k]));
             draw->PushClipRect(ImVec2(lo.x+n.padding,lo.y+n.padding),ImVec2(hi.x-n.padding,hi.y-n.padding),true);
-            auto alpha=[&](unsigned value){return (frame.graph_color&~IM_COL32_A_MASK)|(ImU32(value*int((frame.graph_color>>IM_COL32_A_SHIFT)&255)/255)<<IM_COL32_A_SHIFT);};
+            auto alpha=[&](unsigned value){return (graph_color&~IM_COL32_A_MASK)|(ImU32(value*int((graph_color>>IM_COL32_A_SHIFT)&255)/255)<<IM_COL32_A_SHIFT);};
             if(frame.graph_style==2){
                 const float bar=std::max(1.f,width/samples.size()*.72f);
-                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-n.padding),baseline),frame.graph_color);
+                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-n.padding),baseline),graph_color);
             }else{
                 if(frame.graph_style==1||frame.graph_style==3||frame.graph_style==5){
-                    const ImU32 fill=frame.graph_style==1?frame.graph_color:alpha(frame.graph_style==3?56:36);
+                    const ImU32 fill=frame.graph_style==1?graph_color:alpha(frame.graph_style==3?56:36);
                     const auto flags=draw->Flags;draw->Flags&=~ImDrawListFlags_AntiAliasedFill;
                     for(size_t k=1;k<points.size();++k)draw->AddQuadFilled(points[k-1],points[k],ImVec2(points[k].x,baseline),ImVec2(points[k-1].x,baseline),fill);
                     draw->Flags=flags;
@@ -158,9 +160,13 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                     for(auto& p:layer){average=.85f*average+.15f*p.y;p.y=average;}
                     draw->AddPolyline(layer.data(),int(layer.size()),alpha(110),0,1.f);
                 }
-                draw->AddPolyline(points.data(),int(points.size()),frame.graph_color,0,1.5f);
+                draw->AddPolyline(points.data(),int(points.size()),graph_color,0,1.5f);
             }
             draw->PopClipRect();
+            if(std::getenv("CLAW_METRICS_VERIFY")&&ImGui::GetFrameCount()%60==0){
+                bool rgb_ok=true;for(int j=graph_first;j<draw->VtxBuffer.Size;++j)rgb_ok&=(draw->VtxBuffer[j].col&~IM_COL32_A_MASK)==(graph_color&~IM_COL32_A_MASK);
+                std::fprintf(stderr,"CLAW_MODULAR_GRAPH_COLOR style=%d override=%d expected=%08x vertices=%d rgb_ok=%d\n",frame.graph_style,style.text?1:0,graph_color,draw->VtxBuffer.Size-graph_first,rgb_ok?1:0);
+            }
         }else{
             const auto& text=frame.readings.at(n.token);
             const float size=frame.font_size*scale;

@@ -37,6 +37,10 @@ with tempfile.TemporaryDirectory() as directory:
             child=copy.deepcopy(metric);child.update(id=f'stress-graph-{row}-{column}',width=80,height=32)
             group['children'].append(child)
         stress['root']['children'].append(group)
+    def set_graph_color(node,color):
+        if node['token']=='graph':node['color']=color
+        for child in node['children']:set_graph_color(child,color)
+    for document in docs.values():set_graph_color(document['root'],'#FF00FF')
     stress['x']=0
     docs['two-rows']['x']=0
     settings();atomic(transport,schema.encode_native(docs['two-rows']))
@@ -103,3 +107,11 @@ with tempfile.TemporaryDirectory() as directory:
         assert matches,('Missing modular TDP style evidence',raised,tdp)
         assert all(item[1:6]==('ff12acff','ffffeedd','1','1','1') for item in matches),('Modular TDP label/value styles leaked',matches)
     print('PASS modular TDP: independent title/value glyph colors and fonts with units off/on; existing layout nodes retained.')
+
+    graph_colors=re.findall(r'CLAW_MODULAR_GRAPH_COLOR style=(\d+) override=(\d) expected=([0-9a-f]+) vertices=(\d+) rgb_ok=(\d)',log)
+    custom=[row for row in graph_colors if row[1]=='1' and int(row[3])>0]
+    assert {int(row[0]) for row in custom}==set(range(6)),('Missing graph override style',custom)
+    assert all(row[2]=='ffff00ff' and row[4]=='1' for row in custom),('Saved graph color ignored by native primitives',custom)
+    inherited=[row for row in graph_colors if row[1]=='0' and int(row[3])>0]
+    assert inherited and all(row[4]=='1' for row in inherited),('Global graph fallback failed',inherited)
+    print('PASS actual Vulkan graph colors: saved/imported magenta override on all six styles, including fills/layers; independent plugin-color fallback.')

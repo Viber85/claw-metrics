@@ -115,6 +115,25 @@ int main(int argc,char**argv){
  catch(const std::invalid_argument&){rejected=true;}
  assert(rejected);
  ImGui::NewFrame();
+ // Verify actual graph primitives: every style honors its node override,
+ // and clearing it returns to the shared plugin color.
+ for(int kind=0;kind<6;++kind)for(ImU32 override_color:{ImU32(0),IM_COL32(255,0,255,255),IM_COL32(255,255,0,255)}){
+  Node root;root.id="graph-color-root";root.children={1,2};
+  Node graph;graph.id="custom-graph";graph.token="graph";graph.group=false;graph.width=200;graph.height=50;
+  Node other=graph;other.id="global-graph";
+  std::vector<Style> appearance(3);appearance[1].text=override_color;
+  auto sample=prepare({root,graph,other},appearance,{}, {8,14,9,5,11},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  sample.graph_style=kind;sample.graph_color=IM_COL32(0,255,255,255);
+  ImDrawList list(ImGui::GetDrawListSharedData());list._ResetForNewFrame();list.PushClipRectFullScreen();paint(sample,&list);
+  assert(list.VtxBuffer.Size>0);bool custom=false,global=false;
+  const auto split=(sample.geometry.boxes[1].x+sample.geometry.boxes[1].w+sample.geometry.boxes[2].x)/2;
+  for(const auto& vertex:list.VtxBuffer){
+   const auto expected=vertex.pos.x<split?(override_color?override_color:sample.graph_color):sample.graph_color;
+   assert((vertex.col&~IM_COL32_A_MASK)==(expected&~IM_COL32_A_MASK));
+   custom|=vertex.pos.x<split;global|=vertex.pos.x>=split;
+  }
+  assert(custom&&global);
+ }
  ImDrawList units(ImGui::GetDrawListSharedData());units._ResetForNewFrame();units.PushClipRectFullScreen();
  paint(elevated,&units);assert(units.VtxBuffer.Size>0);
  // Real glyph vertices must move with a column's start/center/end setting,

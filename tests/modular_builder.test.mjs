@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false,saveStyleHandler,styleSettings={};
+const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false,saveStyleHandler,styleSettings={},picker;
 const ui=Object.fromEntries(['ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
+ui.showModal=value=>{picker=value;return {Close(){},ClosedPromise:Promise.resolve()}};
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
 const styles=load('src/style-presets.ts');
@@ -208,3 +209,17 @@ assert(render().some(n=>n.props?.role==='status'&&text(n.props.children).include
 assert.equal(closed,false);assert.equal(applied,undefined);
 control('DialogButton','Cancel').onClick();assert.equal(closed,true);
 console.log('PASS editor Save style: new/overwrite shared slots, latest draft, names, error/retry and no implicit Apply or close.');
+
+state.length=0;closed=false;applied=undefined;styleSettings={};
+render().find(n=>n.type==='preview').props.onSelect(graph.id);section('Appearance');
+assert(!render().some(n=>n.type==='slider'&&n.props.label==='Element scale (%)'));
+assert(control('slider','Graph width'));assert(control('slider','Graph height'));
+control('DialogButton','Graph color').onClick();picker.props.onConfirm('FF00FF');
+assert.equal(model.find(draft().root,graph.id).color,'#FF00FF');
+control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,graph.id).color,'#FF00FF');
+const style=styles.styleSnapshotFrom({modular_layout:applied,modular_enabled:true});
+assert.equal(model.find(style.modular_layout.root,graph.id).color,'#FF00FF');
+control('DialogButton','Use plugin color').onClick();assert.equal(model.find(draft().root,graph.id).color,'');
+render().find(n=>n.type==='preview').props.onSelect(initial.root.id);section('Appearance');
+assert(control('slider','Element scale (%)'),'group text scaling remains available');
+console.log('PASS graph editor: no ineffective scale slider; width/height retained; selected color survives Apply and style snapshot; reset inherits plugin color.');

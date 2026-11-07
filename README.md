@@ -1,3 +1,7 @@
+# Claw Metrics v0.2.4-test.100 — Graph color override and size controls
+
+Frametime graphs in the editor now hide **Element scale** because their dimensions use **Graph width** and **Graph height**. **Graph color** is retained through Apply and saved styles and now takes priority over the plugin graph palette in the native renderer, including fills and layered styles. **Use plugin color** restores inheritance. Existing saved overrides are honored without recreating the layout.
+
 # Claw Metrics v0.2.4-test.99 — Save styles inside the editor
 
 The editor footer now has **Save style** with **New style** and existing named slots shared with Colors & Fonts. Saves include the current draft layout and appearance. They do not close the editor or publish live renderer files; Cancel keeps an explicitly saved style and Apply activates the current layout. Enter in name fields stays local instead of dismissing the fullscreen editor. Includes snapshot, save/retry, persistence and modal-event regressions; handheld keyboard/controller confirmation remains necessary.
