@@ -11,6 +11,21 @@ library = (root / 'native64/libMangoHud_opengl.so').resolve()
 shim = (root / 'native64/libMangoHud_shim.so').resolve()
 assert library.is_file() and shim.is_file()
 
+
+def process_error(process, stage, env):
+    details = process.stderr.read().decode(errors='replace')
+    if process.returncode == -11:
+        try:
+            debug = subprocess.run(
+                ['gdb', '--batch', '-ex', 'set pagination off', '-ex', 'run',
+                 '-ex', 'thread apply all bt 15', '--args', 'glxgears', '-info'],
+                env=env, capture_output=True, text=True, timeout=25,
+            )
+            details += '\nGDB trace:\n' + (debug.stdout + debug.stderr)[-16000:]
+        except (OSError, subprocess.TimeoutExpired) as error:
+            details += f'\nGDB unavailable: {error}'
+    raise AssertionError(f'OpenGL process exited {stage} (code {process.returncode}): {details}')
+
 with tempfile.TemporaryDirectory(prefix='claw-opengl-ci-') as folder:
     config = pathlib.Path(folder) / 'MangoHud.conf'
     config.write_text('fps=1\nbackground_alpha=0.8\n', encoding='utf-8')
@@ -24,7 +39,7 @@ with tempfile.TemporaryDirectory(prefix='claw-opengl-ci-') as folder:
         deadline = time.monotonic() + 12
         while time.monotonic() < deadline:
             if process.poll() is not None:
-                raise AssertionError(f'GLX process exited before library loaded (code {process.returncode}): {process.stderr.read().decode(errors="replace")}')
+                process_error(process, 'before library loaded', env)
             try:
                 maps = pathlib.Path(f'/proc/{process.pid}/maps').read_text()
             except OSError:
@@ -36,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='claw-opengl-ci-') as folder:
         assert loaded, 'OpenGL shim did not load the modified renderer'
         time.sleep(2)
         if process.poll() is not None:
-            raise AssertionError(f'OpenGL renderer exited after loading (code {process.returncode}): {process.stderr.read().decode(errors="replace")}')
+            process_error(process, 'after library loaded', env)
         print('PASS GLX: modified OpenGL renderer loaded through isolated shim and stayed running')
     finally:
         process.terminate()

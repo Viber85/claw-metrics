@@ -81,7 +81,7 @@ jobs:
             libvulkan-dev glslang-tools libgl-dev libegl-dev \
             libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
             libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
-            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth
+            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth gdb
       - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
@@ -193,7 +193,7 @@ jobs:
           cp "$file" ../native64/libMangoHud.so
           # GLX needs X11, while the existing Vulkan build must retain its
           # already-tested no-X11 configuration to avoid a shutdown crash.
-          meson setup build-gl --prefix=/usr --buildtype=release \
+          meson setup build-gl --prefix=/usr --buildtype=debugoptimized \
             -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
             -Dwith_dbus=disabled -Dwith_x11=enabled -Dwith_wayland=enabled \
             -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
@@ -207,6 +207,8 @@ jobs:
           file ../native64/libMangoHud.so
           readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
           test -s ../native64/libMangoHud.so
+      - name: Exercise OpenGL shim and modified renderer through GLX
+        run: xvfb-run -a python3 tools/test_opengl_injection.py
       - name: Exercise new metrics and live style changes through Vulkan
         run: python3 tools/test_extra_metrics_vulkan.py
       - name: Check modular geometry and document transport
@@ -219,8 +221,6 @@ jobs:
           python3 tools/check_modular_imgui.py --font assets/fonts/BarlowSemiCondensed-Regular.ttf --render-dir modular-fixtures
       - name: Exercise modular renderer through Vulkan
         run: python3 tools/test_modular_vulkan.py
-      - name: Exercise OpenGL shim and modified renderer through GLX
-        run: xvfb-run -a python3 tools/test_opengl_injection.py
       - uses: actions/upload-artifact@v4
         with:
           name: modular-render-fixtures
