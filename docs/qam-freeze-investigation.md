@@ -1,11 +1,11 @@
-# QAM freeze investigation — unreleased source checkpoint
+# QAM freeze investigation — test.101 diagnostic candidate
 
 The observed failure leaves the game and HUD graph running while QAM is blank
 and controller buttons stop responding. It can follow editor exit and changes
 to other plugin options. A fullscreen modal focus issue alone does not explain
 all reported triggers. No device root cause or crash fix has been confirmed.
 
-Prepared mitigations and evidence collection:
+Diagnostic candidate mitigations and evidence collection:
 
 - The editor uses a Decky route instead of a fullscreen QAM modal. QAM closes
   when navigation opens; Apply runs after route unmount, Cancel discards the draft.
@@ -26,9 +26,14 @@ Validation: local backend tests, frontend lifecycle/error tests, type checking,
 frontend build and native geometry checks. SDK navigation calls are mocked in
 tests. These checks do not validate actual Steam controller focus.
 
-Before calling this a fix, inspect the existing device CrashReport ZIP and
-correlate Steam/Decky errors with the last completed settings request.
-No new release ZIP has been published for this checkpoint.
+The inspected test.100 report contains evaluation timeouts and a JS context
+reset, but no actual CEF exception stack or settings lifecycle timeline. The user
+subsequently reproduced the freeze with CSS Loader disabled: CSS Loader is not
+a necessary trigger. Correlate the next report with the last completed settings
+request before claiming a cause or fix.
+
+This candidate is intended as a diagnostic prerelease. Publication requires all
+CI checks and ZIP verification; this document does not establish device stability.
 
 Observed journal evaluation timeouts can establish that a request did not
 receive a response; they do not establish that its requesting plugin caused
