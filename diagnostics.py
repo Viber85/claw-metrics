@@ -1,6 +1,7 @@
 """Opt-in, bounded session evidence; never changes hardware or OS configuration."""
 import asyncio
 import csv
+import collections
 import json
 import os
 import pathlib
@@ -17,6 +18,15 @@ UI_EVENTS = {'editor_open','editor_mount','editor_exit_request','editor_unmount'
              'editor_apply_start','editor_apply_done','editor_dispose','ui_error',
              'settings_queued','settings_save_start','settings_saved','settings_error'}
 _ui_lock = threading.Lock()
+LOG_QUERIES = {
+    'gpu-errors.log': ['--case-sensitive=no', '--grep', r'amdgpu|\bdrm\b|ring.*timeout|gpu.*(hang|reset|fault|timeout)|oom|out of memory'],
+    # journalctl --grep searches MESSAGE, not the printed process prefix.
+    # PluginLoader's MESSAGE can start with [CSS_Loader], with no "decky".
+    'decky.log': ['--case-sensitive=no', '--grep', r'decky|pluginloader|plugin_loader|claw.?metrics|css_loader|css_browserhook|steamwebhelper|segfault|coredump'],
+    'steam-ui-journal.log': ['--case-sensitive=no', '--grep', r'Runtime\.evaluate|css_browserhook|CEF|JS context|Hook.*lost|evaluate failed|Uncaught|TypeError|RangeError|ReferenceError|Maximum update depth|focus.*(error|fail)'],
+    'input-journal.log': ['--case-sensitive=no', '--grep', r'inputplumber::|Loading gamepad profile|Setting target devices|intercept.*mode'],
+    'system-warnings.log': ['--priority', 'warning'],
+}
 
 
 def read_text(path, limit=65536):
@@ -94,6 +104,34 @@ def command_result(args):
     except OSError as error:
         return {'ok': False, 'returncode': None,
                 'text': 'Unavailable: ' + type(error).__name__ + '\n'}
+
+
+def report_summary(meta, results, ui_events):
+    lines=['Claw Metrics diagnostic summary',
+           'Session: '+str(meta.get('id','unknown')),
+           'Plugin version: '+str(meta.get('version','unknown')),
+           'Session state: '+str(meta.get('state','unknown')),
+           'Cause: not determined. Log matches and interrupted sessions do not identify a culprit.',
+           '', 'Collected journal excerpts (same boot/session window):']
+    for name, result in results.items():
+        clipped=result.get('byte_truncated')
+        lines.append(f"- {name}: {'available' if result['ok'] else 'UNAVAILABLE'}; "
+                     f"byte truncation: {'yes' if clipped else 'no' if clipped is False else 'not reported'}")
+    lines += ['', 'Repeated messages in the captured general journal (raw logs retained):']
+    counts=collections.Counter()
+    for line in results['system-journal.log']['text'].splitlines():
+        message=re.sub(r'^\S+\s+\S+\s+', '',line)
+        # Collapse a changing uptime counter, not the actual message content.
+        message=re.sub(r'(:\s+(?:WARNING:\s+)?)\d+\s+(\[)',r'\1<uptime> \2',message)
+        counts[message]+=1
+    repeats=[(message,count) for message,count in counts.most_common(10) if count>1]
+    lines += [f'- {count} times: {message[:400]}' for message,count in repeats] or ['- No repeated messages found in this excerpt.']
+    lines += ['', f'UI events captured for this boot/session: {len(ui_events)}']
+    if not ui_events:lines.append('No matching UI trace. This does not mean that no UI failure occurred.')
+    for event in sorted(ui_events,key=lambda row:row['at'])[-10:]:
+        lines.append(f"- {event['at']}: {event.get('event','unknown')} {event.get('detail','')}")
+    lines += ['', 'SteamUI journal excerpts are not a JavaScript stack trace. Missing/limited logs cannot rule out a fault.']
+    return redact('\n'.join(lines)+'\n')
 
 
 def compatibility_snapshot(sys_root=pathlib.Path('/sys'), os_release=pathlib.Path('/etc/os-release')):
@@ -300,13 +338,8 @@ class SessionRecorder:
                   '--since', '@' + str(int(meta['started_at'])),
                   '--until', '@' + str(int(meta.get('ended_at', meta.get('last_sample_at', meta['started_at']))) + 15),
                   '-b', journal_boot]
-        queries = {
-            'gpu-errors.log': ['--case-sensitive=no', '--grep', r'amdgpu|gpu|drm|ring.*timeout|reset|oom|out of memory'],
-            'decky.log': ['--case-sensitive=no', '--grep', r'decky|pluginloader|plugin_loader|claw.?metrics|steamwebhelper|segfault|coredump'],
-            'system-warnings.log': ['--priority', 'warning'],
-        }
         results = {}
-        for name, filters in queries.items():
+        for name, filters in LOG_QUERIES.items():
             result = command_result(common + filters) if journal_boot else dict(journal_result)
             # journalctl returns 1 for a successful grep with no matches.
             if result['returncode'] == 1 and result['text'].strip() == '-- No entries --':
@@ -353,6 +386,7 @@ class SessionRecorder:
                                      {'support_status': 'Unavailable: session predates capability discovery.'}), indent=2)))
                     archive.writestr('diagnostics.json', json.dumps(details, indent=2))
                     archive.writestr('editor-ui.jsonl', redact(''.join(json.dumps(event)+'\n' for event in ui_events)))
+                    archive.writestr('SUMMARY.txt',report_summary(meta,all_results,ui_events))
                 raw.flush()
                 os.fsync(raw.fileno())
             os.replace(temp, target)

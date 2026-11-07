@@ -55,7 +55,7 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('--until', args)
         with zipfile.ZipFile(result['path']) as report:
             self.assertIsNone(report.testzip())
-            self.assertEqual(len(report.namelist()), 9)
+            self.assertEqual(len(report.namelist()), 12)
             self.assertIn('editor-ui.jsonl',report.namelist())
             self.assertIn(b'amdgpu timeout', report.read('gpu-errors.log'))
             self.assertIn(b'decky error', report.read('decky.log'))
@@ -75,7 +75,7 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
             return {'ok': True, 'returncode': 0, 'text': text}
         with patch('diagnostics.command_result', side_effect=query) as commands:
             result = self.recorder.export(self.recorder.current.name)
-        self.assertEqual(commands.call_count, 4)
+        self.assertEqual(commands.call_count, 6)
         for call in commands.call_args_list:
             self.assertIn(self.recorder.boot_id.replace('-', ''), call.args[0])
         with zipfile.ZipFile(result['path']) as report:
@@ -241,3 +241,20 @@ class UiEventTests(unittest.TestCase):
             self.assertLess(path.stat().st_size,61000)
             self.assertEqual(json.loads(path.read_text().splitlines()[-1])['event'],'editor_exit_request')
             with self.assertRaises(ValueError):record_ui_event(directory,'unknown')
+
+class ReportFilterTests(unittest.TestCase):
+    def test_css_loader_message_is_not_lost_when_process_name_is_separate(self):
+        from diagnostics import LOG_QUERIES
+        message='[CSS_Loader] [FAIL] [css_browserhook.py:272] Request for Runtime.evaluate took more than 5s.'
+        self.assertRegex(message,__import__('re').compile(LOG_QUERIES['decky.log'][-1],__import__('re').I))
+        self.assertRegex(message,__import__('re').compile(LOG_QUERIES['steam-ui-journal.log'][-1],__import__('re').I))
+        self.assertNotRegex('Hook state lost (JS context reset)',__import__('re').compile(LOG_QUERIES['gpu-errors.log'][-1],__import__('re').I))
+
+    def test_summary_counts_noise_without_removing_raw_evidence(self):
+        from diagnostics import report_summary
+        text='2026-11-07T21:00:00+01:00 host launcher[12]: 123 [WARN] Found orphan windows\n2026-11-07T21:00:01+01:00 host launcher[12]: 124 [WARN] Found orphan windows\n'
+        results={'system-journal.log':{'ok':True,'text':text,'byte_truncated':False},'decky.log':{'ok':False,'text':'Unavailable'}}
+        summary=report_summary({'state':'interrupted','version':'test'},results,[])
+        self.assertIn('2 times:',summary);self.assertIn('UNAVAILABLE',summary)
+        self.assertIn('Cause: not determined',summary);self.assertIn('No matching UI trace',summary)
+        self.assertEqual(results['system-journal.log']['text'],text)
