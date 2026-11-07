@@ -24,8 +24,9 @@ int main(int argc,char**argv){
   for(const auto& v:values){ImGui::SetCursorPos(ImVec2(x,y));assert(claw_classic::draw(v.first,v.second,IM_COL32(49,226,165,255),raised,false));y+=39;}
  }
  ImGui::SetCursorPos(ImVec2(20,600));ImGui::TextUnformatted("Non-inline number + unit / Superscript");
- const auto saved=claw_classic::capture_number("12.6");ImGui::TextUnformatted("12.6");claw_classic::commit_number(saved);ImGui::SameLine(0,1);
+ const auto saved=claw_classic::capture_number("12.6",IM_COL32(49,226,165,255));ImGui::TextUnformatted("12.6");claw_classic::commit_number(saved);ImGui::SameLine(0,1);
  assert(claw_classic::finish_unit("GiB",IM_COL32(240,242,245,255),IM_COL32(0,0,0,255),1));
+ bool kept_number_color=false,kept_unit_color=false;for(int i=saved.v0;i<ImGui::GetWindowDrawList()->VtxBuffer.Size;++i){auto col=ImGui::GetWindowDrawList()->VtxBuffer[i].col;kept_number_color|=col==IM_COL32(49,226,165,255);kept_unit_color|=col==IM_COL32(240,242,245,255);}assert(kept_number_color&&kept_unit_color);
  ImGui::SameLine();ImGui::TextUnformatted("indices remain valid after replacing the number");
  ImGui::SetCursorPos(ImVec2(20,680));auto stale=claw_classic::capture_number("27");ImGui::TextUnformatted("27");claw_classic::commit_number(stale);
  ImGui::TextUnformatted("An intervening label must not be replaced");assert(!claw_classic::finish_unit("W",IM_COL32_WHITE));

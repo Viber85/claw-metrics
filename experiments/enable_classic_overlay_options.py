@@ -24,7 +24,7 @@ change('overlay.cpp','void RenderOutlinedText(const char* text, ImU32 textColor)
        return;
    }''')
 change('overlay.cpp','   RenderOutlinedText(buffer, ImGui::ColorConvertFloat4ToU32(col));', '''   const bool classic_units=HUDElements.params->claw_unit_superscript&&!HUDElements.params->claw_inline_metrics;
-   const auto pending_number=classic_units?claw_classic::capture_number(buffer):claw_classic::PendingNumber{};
+   const auto pending_number=classic_units?claw_classic::capture_number(buffer,ImGui::ColorConvertFloat4ToU32(col)):claw_classic::PendingNumber{};
    RenderOutlinedText(buffer, ImGui::ColorConvertFloat4ToU32(col));
    if(classic_units)claw_classic::commit_number(pending_number);''')
 change('hud_elements.cpp','style.CellPadding.x = params.claw_table_padding_x;',
