@@ -7,7 +7,7 @@
 #include <iostream>
 using namespace claw_modular;
 int main(int argc,char**argv){
- if(argc!=7)return 2;
+ if(argc!=7&&argc!=8)return 2;
  const int width=std::stoi(argv[2]),height=std::stoi(argv[3]);
  ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.BackendFlags|=ImGuiBackendFlags_RendererHasVtxOffset;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
  ImFont* font=io.Fonts->AddFontFromFileTTF(argv[1],24);assert(font);
@@ -31,7 +31,8 @@ int main(int argc,char**argv){
   if(appearance.outline)styles[i].outline=IM_COL32(143,184,217,255);
  }
  values["fps.value"].slot="888";
- auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24);
+ const bool superscript=argc==8&&std::string(argv[7])=="1";
+ auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
  if(nodes[1].self_align==SelfAlign::End){auto default_nodes=nodes;default_nodes[1].self_align=SelfAlign::Auto;
   auto baseline=prepare(default_nodes,styles,values,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
   assert(frame.geometry.boxes[1].y>baseline.geometry.boxes[1].y+1);}
@@ -40,6 +41,18 @@ int main(int argc,char**argv){
  auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";
  auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24);
  assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
+ // The unit must be measured at its actual reduced size and raised position.
+ assert(unit_parts("cpu.temp","54°C").first=="54");
+ assert(unit_parts("cpu.clock","3500 MHz").second==" MHz");
+ assert(unit_parts("ram.value","12.6 GiB").second==" GiB");
+ assert(unit_parts("fps.ms","11.9 ms").second==" ms");
+ assert(unit_parts("cpu.temp","--").second.empty());
+ Text temperature;temperature.value="54°C";temperature.font=font;
+ auto normal=reading_size(temperature,"cpu.temp",24,false,temperature.value);
+ auto raised=reading_size(temperature,"cpu.temp",24,true,temperature.value);
+ assert(raised.w<normal.w&&raised.h>normal.h);
+ auto elevated=prepare(nodes,styles,frame.readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,true);
+ assert(elevated.unit_superscript);
  for(size_t i=0;i<nodes.size();++i){const auto& b=frame.geometry.boxes[i];assert(b.visible&&b.w>0&&b.h>0);}
  if(nodes[0].axis==Axis::Column&&nodes.size()>2&&nodes[1].axis==Axis::Row&&nodes.back().token=="graph"){
   const auto& row=frame.geometry.boxes[1];const auto& graph=frame.geometry.boxes.back();
@@ -58,6 +71,8 @@ int main(int argc,char**argv){
  catch(const std::invalid_argument&){rejected=true;}
  assert(rejected);
  ImGui::NewFrame();
+ ImDrawList units(ImGui::GetDrawListSharedData());units._ResetForNewFrame();units.PushClipRectFullScreen();
+ paint(elevated,&units);assert(units.VtxBuffer.Size>0);
  // Real glyph vertices must move with a column's start/center/end setting,
  // while the reserved width remains stable for changing readings.
  auto draw_alignment=[&](Align align,SelfAlign item_alignment=SelfAlign::Auto){

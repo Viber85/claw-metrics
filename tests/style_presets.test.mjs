@@ -92,6 +92,9 @@ assert.equal(styleLayoutFrom({vertical_graph_width:200,vertical_graph_height:40,
 assert.equal(styleModified({...legacy,vertical_value_gap:12},{...live,vertical_value_gap:14}),true);
 assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:280}),false);
 assert.equal(styleModified({...legacy,vertical_width:280},{...live,vertical_width:300}),true);
+assert.equal(styleLayoutFrom({unit_superscript:true}).unit_superscript,true);
+assert.equal(styleLayoutFrom({unit_superscript:'yes'}).unit_superscript,undefined);
+assert.equal(styleModified({...legacy,unit_superscript:true},{...live,unit_superscript:false}),true);
 console.log("Style metric snapshots: save, restore, old styles, dirty state and invalid toggles passed");
 
 // New optional metrics must survive both style slots without affecting legacy slots.

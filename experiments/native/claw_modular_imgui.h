@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include <limits>
 #include <map>
+#include <cstring>
 
 namespace claw_modular {
 struct Text {
@@ -27,25 +28,56 @@ struct Frame {
     ImU32 graph_color=IM_COL32(48,229,160,255);
     ImU32 separator_color=IM_COL32(240,242,245,255);
     int graph_style=0;
+    bool unit_superscript=false;
 };
+inline std::pair<std::string,std::string> unit_parts(const std::string& token,const std::string& value) {
+    const char* suffix=nullptr;
+    const bool temperature=token=="cpu.temp"||token=="gpu.temp"||token=="gpu.junction"||token=="vram.temp";
+    if(temperature)suffix=value.find("°F")!=std::string::npos?"°F":"°C";
+    else if(token=="cpu.clock"||token=="gpu.clock"||token=="vram.clock")suffix=" MHz";
+    else if(token=="ram.value"||token=="vram.value"||token=="ram.game"||token=="ram.swap")suffix=" GiB";
+    else if(token=="fps.ms")suffix=" ms";
+    else if(token=="cpu.power"||token=="gpu.power"||token=="battery.power"||token=="tdp.value")suffix="W";
+    else if(token=="cpu.load"||token=="gpu.load"||token=="battery.value")suffix="%";
+    else if(token=="gpu.voltage")suffix=" mV";
+    else if(token=="gpu.fan")suffix=value.find("RPM")!=std::string::npos?" RPM":"% FAN";
+    if(!suffix)return {value,{}};
+    const size_t length=std::strlen(suffix);
+    if(value.size()<=length||value.compare(value.size()-length,length,suffix)!=0)return {value,{}};
+    auto main=value.substr(0,value.size()-length);
+    if(main.find_first_of("0123456789")==std::string::npos)return {value,{}};
+    return {std::move(main),suffix};
+}
+inline Size reading_size(const Text& text,const std::string& token,float size,bool superscript,const std::string& value) {
+    const auto parts=superscript?unit_parts(token,value):std::make_pair(value,std::string());
+    auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str());
+    if(!parts.second.empty()){
+        extent.x+=text.font->CalcTextSizeA(size*.7f,std::numeric_limits<float>::max(),0,parts.second.c_str()).x;
+        extent.y+=size*.18f;
+    }
+    return {extent.x,extent.y};
+}
 inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
-                     size_t root,Size screen,Anchor anchor,float x,float y,float font) {
+                     size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false) {
     if(styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
     for(const auto& s:styles)if(!range(s.rounding,0,80)||!range(s.outline_width,0,6))throw std::invalid_argument("Invalid drawing style");
     for(float value:graph)if(!range(value,0,1000000))throw std::invalid_argument("Invalid graph sample");
     Frame frame;frame.nodes=std::move(nodes);frame.styles=std::move(styles);
     frame.readings=std::move(readings);frame.graph=std::move(graph);
-    frame.root=root;frame.screen=screen;frame.font_size=font;
+    frame.root=root;frame.screen=screen;frame.font_size=font;frame.unit_superscript=unit_superscript;
     // One immutable reading snapshot supplies both measurement and drawing.
     frame.geometry=layout(frame.nodes,root,screen,anchor,x,y,font,[&](const std::string& token,float size){
         const auto it=frame.readings.find(token);
         if(it==frame.readings.end()||!it->second.font||!it->second.font->IsLoaded()||it->second.value.size()>16384)
             throw std::invalid_argument("Missing font or reading");
         const auto& text=it->second;
-        auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,text.value.c_str());
-        if(!text.slot.empty())extent.x=std::max(extent.x,text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,text.slot.c_str()).x);
-        return Size{extent.x,extent.y};
+        auto extent=reading_size(text,token,size,unit_superscript,text.value);
+        if(!text.slot.empty()){
+            auto slot=reading_size(text,token,size,unit_superscript,text.slot);
+            extent.w=std::max(extent.w,slot.w);extent.h=std::max(extent.h,slot.h);
+        }
+        return extent;
     });
     return frame;
 }
@@ -118,9 +150,16 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             draw->PopClipRect();
         }else{
             const auto& text=frame.readings.at(n.token);
-            const float width=text.font->CalcTextSizeA(frame.font_size*scale,std::numeric_limits<float>::max(),0,text.value.c_str()).x;
+            const float size=frame.font_size*scale;
+            const auto parts=frame.unit_superscript?unit_parts(n.token,text.value):std::make_pair(text.value,std::string());
+            const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
             const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
-            draw->AddText(text.font,frame.font_size*scale,ImVec2(lo.x+n.padding+offset,lo.y+n.padding),style.text?style.text:text.color,text.value.c_str());
+            const auto color=style.text?style.text:text.color;
+            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset,lo.y+n.padding+(parts.second.empty()?0:size*.18f)),color,parts.first.c_str());
+            if(!parts.second.empty()){
+                const float main_width=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str()).x;
+                draw->AddText(text.font,size*.7f,ImVec2(lo.x+n.padding+offset+main_width,lo.y+n.padding),color,parts.second.c_str());
+            }
         }
     };
     visit(frame.root,1,Align::Start);

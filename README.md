@@ -1,3 +1,7 @@
+## v0.2.4-test.92 — Superscript units in the editable overlay
+
+In Layout builder, select **Overlay → Appearance** and toggle **Superscript units** to draw temperature, frequency, memory, frametime, power and percentage units smaller and raised. The sample preview updates immediately; **Apply layout** saves the choice with the current style. Existing layouts stay in normal text until enabled. The same choice is restored when loading a saved style. This applies to the editable modular overlay, while the classic renderer retains its existing labels. Native rendering and gamepad behavior still need a handheld test.
+
 ## v0.2.4-test.91 — One launch command for Vulkan and OpenGL (experimental)
 
 The existing `~/claw-metrics %command%` command now requests the isolated Vulkan layer and, when the packaged 64-bit OpenGL libraries are present, preloads the Claw OpenGL shim. Both paths use the same saved HUD configuration. Missing OpenGL files leave the existing Vulkan launch behavior intact. OpenGL is new and must be tested in an actual game; the GLX CI smoke test only checks loading and a stable process.

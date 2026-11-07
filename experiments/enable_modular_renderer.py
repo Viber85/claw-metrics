@@ -10,12 +10,14 @@ path=root/'overlay_params.h';text=path.read_text()
 anchor='   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\'
 assert text.count(anchor)==1
 text=text.replace(anchor,anchor+'\n   OVERLAY_PARAM_CUSTOM(claw_modular_file)               \\',1)
+text=text.replace('   OVERLAY_PARAM_CUSTOM(claw_modular_file)               \\', '   OVERLAY_PARAM_CUSTOM(claw_modular_file)               \\\n   OVERLAY_PARAM_CUSTOM(claw_unit_superscript)               \\',1)
 text=text.replace('   bool claw_center_horizontal = false;', '   std::string claw_modular_file;\n   bool claw_center_horizontal = false;',1)
+text=text.replace('   std::string claw_modular_file;', '   std::string claw_modular_file;\n   bool claw_unit_superscript = false;',1)
 path.write_text(text)
 path=root/'overlay_params.cpp';text=path.read_text()
 anchor='#define parse_claw_fps_scale(s) parse_unsigned(s)'
 assert text.count(anchor)==1
-path.write_text(text.replace(anchor,anchor+'\n#define parse_claw_modular_file(s) parse_path(s)',1))
+path.write_text(text.replace(anchor,anchor+'\n#define parse_claw_modular_file(s) parse_path(s)\n#define parse_claw_unit_superscript(s) parse_unsigned(s)',1))
 path=root/'hud_elements.h';text=path.read_text()
 assert text.count('#pragma once')==1,'HUD declaration anchor mismatch'
 path.write_text(text+'\nbool ClawTryModular();\nvoid ClawModularBackground(const ImVec4& rectangle, const overlay_params& params,bool custom,ImU32 fill);\n')

@@ -5,6 +5,23 @@ const weights:any={light:300,regular:400,semibold:600,bold:700};
 // do not change when sample values are shorter than live values.
 const slots:Record<string,string>={'fps.value':'888','fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C Jnc','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
 export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,draw:27,tdp:28};
+export function unitParts(token:string,value:string):[string,string]{
+ const temperature=['cpu.temp','gpu.temp','gpu.junction','vram.temp'].includes(token);
+ const suffix=temperature?(value.includes('°F')?'°F':'°C'):
+  ['cpu.clock','gpu.clock','vram.clock'].includes(token)?' MHz':
+  ['ram.value','vram.value','ram.game','ram.swap'].includes(token)?' GiB':
+  token==='fps.ms'?' ms':
+  ['cpu.power','gpu.power','battery.power','tdp.value'].includes(token)?'W':
+  ['cpu.load','gpu.load','battery.value'].includes(token)?'%':
+  token==='gpu.voltage'?' mV':token==='gpu.fan'?(value.includes('RPM')?' RPM':'% FAN'):'';
+ if(!suffix||!value.endsWith(suffix))return [value,''];
+ const main=value.slice(0,-suffix.length);
+ return /\d/.test(main)?[main,suffix]:[value,''];
+}
+export function readingText(token:string,value:string,superscript:boolean){
+ const [main,unit]=superscript?unitParts(token,value):[value,''];
+ return unit?<span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top'}}><span style={{paddingTop:'.18em'}}>{main}</span><span style={{fontSize:'.7em'}}>{unit}</span></span>:value;
+}
 export function rgba(hex:string,opacity:number){const c=(hex||'161820').replace('#','');return `rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${opacity/100})`}
 export function backgroundStyle(s:any):React.CSSProperties{
  const b=s.background,stops=b.stops.map((p:any)=>`${rgba(p.color,s.opacity)} ${p.position}%`).join(',');
@@ -37,7 +54,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
    if(siblingWidth>0){const id=graph.dataset.nodeId;if(id)next[id]=Math.max(0,siblingWidth-2*(Number(graph.dataset.padding)||0));}
   }
   setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
- },[layout,s.fontsize,s.sans,s.font_weight]);
+ },[layout,s.fontsize,s.sans,s.font_weight,s.unit_superscript]);
  const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':'02:15','battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row'):React.ReactNode{
@@ -51,7 +68,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';
   const alignment=parentAxis==='column'&&n.selfAlign!=='auto'?n.selfAlign:parentAlignment;
-  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{slots[n.token]}</span><span style={{position:'absolute',left:n.padding,right:n.padding,textAlign:alignment}}>{value}</span></>:value}</div>
+  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{readingText(n.token,slots[n.token],s.unit_superscript)}</span><span style={{position:'absolute',left:n.padding,right:n.padding,textAlign:alignment}}>{readingText(n.token,String(value),s.unit_superscript)}</span></>:readingText(n.token,String(value),s.unit_superscript)}</div>
  }
  const bottom=layout.anchor.startsWith('bottom'),right=layout.anchor.endsWith('right'),center=layout.anchor.endsWith('center');
  return s.enabled?<div ref={host} className="modular-hud" style={{position:'absolute',top:bottom?undefined:layout.y,bottom:bottom?layout.y:undefined,left:center?'50%':right?undefined:layout.x,right:right?layout.x:undefined,transform:center?`translateX(calc(-50% + ${layout.x}px))`:undefined,fontSize:s.fontsize,fontFamily:s.sans?'ClawPreviewBarlow':'ClawPreviewSans',fontWeight:s.sans?(weights[s.font_weight]||400):400,lineHeight:1.2}}>{render(layout.root,true)}</div>:null;

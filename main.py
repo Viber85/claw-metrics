@@ -140,6 +140,8 @@ def normalize_style_presets(payload):
             "token_weights": normalize_token_weights(item.get("token_weights")),
             "token_colors": normalize_token_colors(item.get("token_colors")),
         }
+        if type(item.get("unit_superscript")) is bool:
+            preset["unit_superscript"] = item["unit_superscript"]
         preset["modular_enabled"] = False
         if item.get("modular_layout") is not None:
             from claw_modular import validate_layout
@@ -260,7 +262,7 @@ DEFAULTS = {
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "separator_height": 100, "separator_thickness": 2,
-    "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line",
+    "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line", "unit_superscript": False,
     "vertical_graph_style": "smooth",
     "colors": COLORS,
     "font_weight": "regular",
@@ -1040,6 +1042,7 @@ def mango_config(settings, native_spacing=False):
             "claw_separator_height=" + str(d["separator_height"]),
             "claw_separator_thickness=" + str(d["separator_thickness"]),
             "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
+            "claw_unit_superscript=" + str(int(d["unit_superscript"])),
             "claw_graph_style=" + str((GRAPH_STYLES.index(d["graph_style"])
                 if d["modular_enabled"] or is_horizontal else VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"]))),
             "claw_inner_gap=" + str(d["inner_gap"]),

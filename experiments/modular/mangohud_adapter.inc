@@ -110,7 +110,7 @@ bool ClawTryModular() {
     try {
         const auto size=ImGui::GetIO().DisplaySize;
         const ImU32 root_fill=styles[0].fill;styles[0].fill=0;
-        auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale);
+        auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale,p.claw_unit_superscript);
         frame.graph_style=int(p.claw_graph_style);
         const auto& box=frame.geometry.boxes[0];
         if(!box.visible||box.w<=0||box.h<=0)return true;

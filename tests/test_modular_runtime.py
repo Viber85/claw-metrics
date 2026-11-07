@@ -35,6 +35,18 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.doc['root']['children'])
         self.assertTrue(d['style_presets']['1']['modular_layout']['root']['children'])
 
+    def test_unit_superscript_defaults_and_style_roundtrip(self):
+        self.assertFalse(main.normalize({})['unit_superscript'])
+        raw={'modular_enabled':True,'modular_layout':self.doc,'unit_superscript':True,
+             'style_presets':{'1':{'unit_superscript':True},'2':{'unit_superscript':'yes'}}}
+        saved=main.normalize(raw)
+        self.assertTrue(saved['unit_superscript'])
+        self.assertTrue(saved['style_presets']['1']['unit_superscript'])
+        self.assertNotIn('unit_superscript',saved['style_presets']['2'])
+        self.assertIn('claw_unit_superscript=1\n',main.mango_config(saved,native_spacing=True))
+        self.assertNotIn('claw_unit_superscript=',main.mango_config(saved,native_spacing=False))
+        self.assertEqual(main.normalize(saved),saved)
+
     def test_modular_tree_requests_its_sources_without_mutating_settings(self):
         raw={'modular_enabled':True,'modular_layout':self.doc,'cpu':False,'gpu':False,'tdp':False,'draw':False}
         before=copy.deepcopy(raw)
