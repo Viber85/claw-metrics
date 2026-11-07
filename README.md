@@ -6,22 +6,6 @@
 
 > **Experimental build.** The latest release's separator changes and editor exit behavior still need confirmation on a device running Bazzite 45.
 
-## Preview
-
-![Illustration of the Layout Builder based on its current controls](docs/previews/layout-builder.svg)
-
-*Layout Builder illustration based on the current editor source. It shows the persistent preview and zoom control above the collapsible element tree and appearance controls. This is a schematic, not a device screenshot.*
-
-The images below are **actual output of the bundled native ImGui renderer** from the `v0.2.4-test.90` render-fixture job, using sample sensor values on a 1280 × 800 canvas. They show the layout and font without a photographed game in the background.
-
-| Horizontal overlay | Vertical overlay |
-| --- | --- |
-| ![Native horizontal overlay fixture](docs/previews/horizontal-native.png) | ![Native vertical overlay fixture](docs/previews/vertical-native.png) |
-
-![Native horizontal overlay with frametime graph underneath](docs/previews/graph-below-native.png)
-
-*Graph below the readings, rendered by the same native fixture. In the editor you can reorder readings, nest groups, place the graph, and save the result as a style in **Colors & Font**.*
-
 ## What you can customize
 
 | Area | Options |
