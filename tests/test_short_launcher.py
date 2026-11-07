@@ -89,6 +89,51 @@ class ShortLauncherTests(unittest.TestCase):
                 self.assertIn("missing renderer assets", fallback_result.stderr)
                 self.assertFalse(main.short_launcher_ready())
 
+    def test_one_launcher_adds_opengl_shim_without_losing_vulkan_or_existing_preloads(self):
+        with tempfile.TemporaryDirectory(prefix="Claw's GL test ") as folder:
+            base = Path(folder)
+            binary = base / "libMangoHud.so"
+            binary.write_bytes(b"x" * 110001)
+            gl = base / "libMangoHud_opengl.so"
+            shim = base / "libMangoHud_shim.so"
+            gl.write_bytes(b"x" * 110001)
+            shim.write_bytes(b"x" * 11001)
+            with patch.object(main, "BASE", base), \
+                 patch.object(main, "experimental_library", return_value=binary), \
+                 patch.object(main, "opengl_library", return_value=gl), \
+                 patch.object(main, "opengl_shim", return_value=shim):
+                self.assertTrue(main.opengl_renderer_available())
+                main.experimental_manifest().parent.mkdir(parents=True)
+                main.write_atomic(main.experimental_manifest(), "{}")
+                main.write_atomic(main.native_hud_path(), "fps=1\n")
+                main.install_short_launcher()
+                probe = ("import json,os;print(json.dumps({"
+                         "'gl':os.getenv('MANGOHUD_OPENGL_LIBS'),"
+                         "'preload':os.getenv('LD_PRELOAD'),"
+                         "'vk':os.getenv('VK_INSTANCE_LAYERS'),"
+                         "'config':os.getenv('MANGOHUD_CONFIGFILE')}))")
+                env = {**os.environ, "LD_PRELOAD": "/existing/library.so"}
+                result = subprocess.run([str(main.short_launcher_path()), sys.executable,
+                                         "-c", probe], capture_output=True, text=True,
+                                        check=True, env=env)
+                payload = json.loads(result.stdout)
+                self.assertEqual(payload["gl"], str(gl))
+                self.assertEqual(payload["preload"], "/existing/library.so:" + str(shim))
+                self.assertEqual(payload["vk"], main.EXPERIMENTAL_LAYER_NAME)
+                self.assertEqual(payload["config"], str(main.native_hud_path()))
+                # Repeated wrapper invocation must not prepend the shim twice.
+                nested = subprocess.run([str(main.short_launcher_path()),
+                                         str(main.short_launcher_path()), sys.executable,
+                                         "-c", probe], capture_output=True, text=True,
+                                        check=True, env=env)
+                self.assertEqual(json.loads(nested.stdout)["preload"], payload["preload"])
+                gl.unlink()
+                no_gl = subprocess.run([str(main.short_launcher_path()), sys.executable,
+                                        "-c", probe], capture_output=True, text=True,
+                                       check=True, env={**os.environ, "LD_PRELOAD": ""})
+                self.assertIsNone(json.loads(no_gl.stdout)["gl"])
+                self.assertEqual(json.loads(no_gl.stdout)["vk"], main.EXPERIMENTAL_LAYER_NAME)
+
     def test_existing_home_file_is_preserved(self):
         alias = main.home_launcher_path()
         alias.write_text('user file')

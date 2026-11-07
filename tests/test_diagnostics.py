@@ -142,6 +142,9 @@ class OverlayDetectionTests(unittest.TestCase):
             self.assertFalse(overlay_loaded('/plugin/native64/libMangoHud.so', root))
             maps.write_text('100-200 r-xp 0 00:00 0 /plugin/native64/libMangoHud.so (deleted)\n')
             self.assertTrue(overlay_loaded('/plugin/native64/libMangoHud.so', root))
+            maps.write_text('100-200 r-xp 0 00:00 0 /plugin/native64/libMangoHud_opengl.so\n')
+            self.assertTrue(overlay_loaded(('/plugin/native64/libMangoHud.so',
+                                            '/plugin/native64/libMangoHud_opengl.so'), root))
 
 
 class AutomaticLifecycleTests(unittest.IsolatedAsyncioTestCase):

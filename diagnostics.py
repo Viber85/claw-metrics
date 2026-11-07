@@ -324,7 +324,8 @@ def overlay_loaded(library, proc=pathlib.Path('/proc')):
 
     None means inspection is restricted, so it must not end a recording.
     """
-    expected = str(pathlib.Path(library).resolve())
+    libraries = library if isinstance(library, (list, tuple, set)) else (library,)
+    expected = {str(pathlib.Path(path).resolve()) for path in libraries}
     restricted = False
     try:
         processes = list(proc.iterdir())
@@ -337,7 +338,7 @@ def overlay_loaded(library, proc=pathlib.Path('/proc')):
             with (process / 'maps').open(encoding='utf-8', errors='replace') as stream:
                 for line in stream:
                     fields = line.rstrip('\n').split(None, 5)
-                    if len(fields) == 6 and fields[5].removesuffix(' (deleted)') == expected:
+                    if len(fields) == 6 and fields[5].removesuffix(' (deleted)') in expected:
                         return True
         except PermissionError:
             restricted = True

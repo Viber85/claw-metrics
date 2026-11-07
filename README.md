@@ -1,3 +1,9 @@
+## v0.2.4-test.91 — One launch command for Vulkan and OpenGL (experimental)
+
+The existing `~/claw-metrics %command%` command now requests the isolated Vulkan layer and, when the packaged 64-bit OpenGL libraries are present, preloads the Claw OpenGL shim. Both paths use the same saved HUD configuration. Missing OpenGL files leave the existing Vulkan launch behavior intact. OpenGL is new and must be tested in an actual game; the GLX CI smoke test only checks loading and a stable process.
+
+In Brotato on Bazzite 45, keep the same launch option, fully restart the game, then use **Advanced → Diagnostics → Check game renderer**. The new OpenGL counts distinguish a propagated launch request from the modified GL library actually loading. If the game does not render the HUD, remove the launch option to return to normal game startup and report the diagnostic counts. The QAM editor exit issue still needs on-device verification.
+
 ## v0.2.4-test.75 — Horizontal / Vertical starter templates
 
 Layout → Layout builder now offers exactly two editable starting templates: **Horizontal** and **Vertical**. Selecting either shows a confirmation before replacing the active modular layout. Open Layout builder to modify groups and individual readings, then Apply or Cancel. Export JSON to back up custom edits. Existing classic horizontal/vertical renderers remain as a fallback using the "Use editable renderer (test)" switch. Color/font/sensor controls remain separate.

@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.90 ZIP
+name: Build Claw Metrics v0.2.4 test.91 ZIP
 on:
   push:
-    branches: [test/separator-controls]
+    branches: [test/unified-launch-91]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.90
+  group: claw-metrics-v0.2.4-test.91
   cancel-in-progress: true
 
 jobs:
@@ -81,8 +81,8 @@ jobs:
             libvulkan-dev glslang-tools libgl-dev libegl-dev \
             libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
             libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
-            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools xvfb xauth
-      - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan)
+            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth
+      - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
             https://github.com/flightlessmango/MangoHud.git native-source
@@ -184,13 +184,19 @@ jobs:
           grep -q 'ImGuiTableFlags_BordersInnerH' src/overlay.cpp
           meson setup build --prefix=/usr --buildtype=release \
             -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
-            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
+            -Dwith_dbus=disabled -Dwith_x11=enabled -Dwith_wayland=enabled \
             -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
           ninja -C build -j 2
           mkdir -p ../native64
           file=$(find build -type f -name 'libMangoHud.so' -size +100k | head -1)
           test -n "$file"
           cp "$file" ../native64/libMangoHud.so
+          for name in libMangoHud_opengl.so libMangoHud_shim.so; do
+            file=$(find build -type f -name "$name" -size +10k | head -1)
+            test -n "$file"
+            cp "$file" "../native64/$name"
+            readelf -h "../native64/$name" | grep -q 'Machine:.*X86-64'
+          done
           file ../native64/libMangoHud.so
           readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
           test -s ../native64/libMangoHud.so
@@ -206,6 +212,8 @@ jobs:
           python3 tools/check_modular_imgui.py --font assets/fonts/BarlowSemiCondensed-Regular.ttf --render-dir modular-fixtures
       - name: Exercise modular renderer through Vulkan
         run: python3 tools/test_modular_vulkan.py
+      - name: Exercise OpenGL shim and modified renderer through GLX
+        run: xvfb-run -a python3 tools/test_opengl_injection.py
       - uses: actions/upload-artifact@v4
         with:
           name: modular-render-fixtures
@@ -222,14 +230,14 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.90.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.91.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so',
+              for p in ['claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -238,18 +246,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.90', package['version']
+              assert package['version'] == '0.2.4-test.91', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.90
-          path: ClawMetrics-v0.2.4-test.90.zip
+          name: ClawMetrics-v0.2.4-test.91
+          path: ClawMetrics-v0.2.4-test.91.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.90 ClawMetrics-v0.2.4-test.90.zip \
+          gh release create v0.2.4-test.91 ClawMetrics-v0.2.4-test.91.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.90 – Separator alignment and controls" \
-            --notes "Experimental test.90: classic horizontal separators share a stable baseline, with height and thickness controls alongside color; modular separator color inherits the global palette and its controls open when selected. CI covers Python, frontend, ImGui, Vulkan and ZIP checks. Test on Bazzite 45; QAM responsiveness after Apply still needs device confirmation."
+            --title "Claw Metrics v0.2.4-test.91 – Unified Vulkan and OpenGL launcher" \
+            --notes "Experimental test.91: the existing ~/claw-metrics %command% launcher adds an isolated 64-bit OpenGL shim to the modified Vulkan renderer. Brotato on Bazzite 45 requires device validation. Check Advanced > Diagnostics > Check game renderer for OpenGL load status. Native Vulkan behavior and editor exit still need on-device confirmation."

@@ -321,6 +321,7 @@ export function readActivePdcProfileKey(): string | null | undefined {
 
 export type RendererStatus = {
   native_loaded: boolean; native_processes: number; stock_processes: number;
+  opengl_processes: number; opengl_requests: number;
   layer_requests: number; config_requests: number; path_requests: number;
   processes_seen: number; environments_read: number;
   manifest_in_user_location: boolean; reason: string;
@@ -521,6 +522,8 @@ export function useClawController() {
       setRendererStatus(
         (result.native_loaded ? "ACTIVE" : "NIJE ACTIVE") +
         " · native: " + result.native_processes +
+        " · OpenGL: " + (result.opengl_processes ?? 0) +
+        " · OpenGL requests: " + (result.opengl_requests ?? 0) +
         " · stock MangoHud: " + result.stock_processes +
         " · layer requests: " + result.layer_requests +
         " · test config: " + result.config_requests +
