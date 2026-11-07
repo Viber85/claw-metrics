@@ -28,7 +28,7 @@ class ExtraMetricsTests(unittest.TestCase):
 
     def test_append_only_font_color_token_migration(self):
         self.assertEqual(main.TOKEN_SLOTS[27],'tdp.value')
-        self.assertEqual(main.TOKEN_SLOTS[28:],['fps.average','fps.low1','ram.game','ram.swap'])
+        self.assertEqual(main.TOKEN_SLOTS[28:32],['fps.average','fps.low1','ram.game','ram.swap'])
         data=main.normalize({'token_weights':{'fps.average':'bold','ram.game':'light'},
                              'token_colors':{'fps.low1':'AA1122','ram.swap':'00FF00'}})
         cfg=main.mango_config(data,native_spacing=True)

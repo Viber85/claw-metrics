@@ -60,3 +60,15 @@ for(const anchor of ['center-left','center-right'])for(const y of [-25,0,25]){
  assert.equal(host.props.style[anchor==='center-left'?'left':'right'],18);
  assert.equal(host.props.style.bottom,undefined);
 }
+
+const tdpNode=(function find(n){return n.token==='tdp.value'?n:n.children.map(find).find(Boolean)})(layout.root);
+const tdpSettings={...settings,sans:true,token_colors:{'tdp.label':'FFAC12','tdp.value':'DDEEFF'},token_weights:{'tdp.label':'bold','tdp.value':'light'},custom_labels:{tdp:'Power Limit'}};
+for(const enabled of [false,true]){
+ const output=walk(ModularHud({layout,settings:{...tdpSettings,unit_superscript:enabled},data:{tdp:20},selected:'none',onSelect:()=>{}}));
+ const row=output.find(n=>n.props?.['data-node-id']===tdpNode.id);
+ assert.equal(row.props.style.color,'#DDEEFF');assert.equal(row.props.style.fontWeight,300);
+ const title=walk(row).find(n=>n.props?.['data-tdp-part']==='label');
+ assert.equal(title.props.style.color,'#FFAC12');assert.equal(title.props.style.fontWeight,700);assert.equal(title.props.children,'Power Limit');
+ assert.equal(walk(row).filter(n=>n.props?.children==='Power Limit').length,1);
+}
+console.log('PASS modular TDP preview: independent category/value colors and weights, custom title and both unit modes.');

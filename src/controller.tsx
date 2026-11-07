@@ -83,7 +83,7 @@ export {GamepadGrid} from "./components/GamepadGrid";
 
 export type WeightSelection = "inherit" | FontWeight;
 export type StyleCategory = "global" | "fps" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "time" | "tdp" | "draw" | "values";
-export type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value" | "fps.average" | "fps.low1" | "ram.game" | "ram.swap";
+export type TokenKey = "fps.label" | "fps.value" | "fps.ms" | "cpu.label" | "cpu.load" | "cpu.temp" | "cpu.clock" | "cpu.power" | "gpu.label" | "gpu.load" | "gpu.temp" | "gpu.clock" | "gpu.power" | "gpu.junction" | "gpu.fan" | "gpu.voltage" | "ram.label" | "ram.value" | "vram.label" | "vram.value" | "vram.temp" | "vram.clock" | "battery.label" | "battery.value" | "battery.time" | "battery.power" | "time.value" | "tdp.value" | "fps.average" | "fps.low1" | "ram.game" | "ram.swap" | "tdp.label";
 export type MetricToken = {key: TokenKey; label: string; defaultColor: ColorKey};
 export const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]> = {
   fps: [{key:"fps.label", label:"FPS label", defaultColor:"fps_label"}, {key:"fps.value", label:"FPS value", defaultColor:"fps_value"}, {key:"fps.ms", label:"Frametime (ms)", defaultColor:"text"}, {key:"fps.average",label:"Average FPS",defaultColor:"text"}, {key:"fps.low1",label:"1% low FPS",defaultColor:"text"}],
@@ -94,7 +94,7 @@ export const tokenGroups: Record<Exclude<StyleCategory, "global">, MetricToken[]
   battery: [{key:"battery.label", label:"Battery label", defaultColor:"battery"}, {key:"battery.value", label:"Battery (%) / icon", defaultColor:"text"}, {key:"battery.time", label:"Remaining time", defaultColor:"text"}],
   time: [{key:"time.value", label:"Clock", defaultColor:"time"}],
   draw: [{key:"battery.power",label:"DRAW",defaultColor:"draw"}],
-  tdp: [{key:"tdp.value",label:"TDP limit (W)",defaultColor:"tdp"}],
+  tdp: [{key:"tdp.label",label:"TDP label",defaultColor:"tdp"}, {key:"tdp.value",label:"TDP limit (W)",defaultColor:"text"}],
   values: [],
 };
 tokenGroups.values=Object.entries(tokenGroups).filter(([key])=>!["time","draw","tdp","values"].includes(key)).flatMap(([,tokens])=>tokens.filter(token=>!token.key.endsWith(".label")));
@@ -709,6 +709,7 @@ export function useClawController() {
   const tokenTitle=(token:MetricToken)=>{
     const group=token.key==="battery.power"?"draw":token.key.split(".")[0];
     const key=group==="time"?"time":group;
+    if(group==="tdp")return named("tdp")+(token.key.endsWith(".label")?" · Label":" · Value (W)");
     if(token.key.endsWith(".label")||token.key.endsWith(".value")||token.key==="battery.power")return named(key);
     return (styleCategory==="values"?named(key)+" · ":"")+relatedLabel(settings,token.label).replace(/\s+(label|value)\b/gi,"");
   };

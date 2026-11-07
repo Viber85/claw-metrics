@@ -4,6 +4,8 @@
 #include <limits>
 #include <map>
 #include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 namespace claw_modular {
 struct Text {
@@ -11,6 +13,11 @@ struct Text {
     ImFont* font=nullptr; // Borrowed from a live atlas; never rebuilt by this adapter.
     ImU32 color=IM_COL32(240,242,245,255);
     std::string slot{};
+    // Optional category prefix with an independent font and color. Existing
+    // layout nodes remain valid; their explicit color still overrides both.
+    std::string prefix{};
+    ImFont* prefix_font=nullptr;
+    ImU32 prefix_color=IM_COL32(240,242,245,255);
 };
 struct Style {
     ImU32 fill=0,outline=0,text=0;
@@ -51,6 +58,9 @@ inline std::pair<std::string,std::string> unit_parts(const std::string& token,co
     return {std::move(main),std::move(unit)};
 }
 inline float unit_gap(float size) { return size*.14f; }
+inline float prefix_width(const Text& text,float size){
+    return text.prefix.empty()?0:(text.prefix_font?text.prefix_font:text.font)->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,text.prefix.c_str()).x+size*.25f;
+}
 inline Size reading_size(const Text& text,const std::string& token,float size,bool superscript,const std::string& value) {
     const auto parts=unit_parts(token,value);
     auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str());
@@ -58,7 +68,7 @@ inline Size reading_size(const Text& text,const std::string& token,float size,bo
         extent.x+=unit_gap(size)+text.font->CalcTextSizeA(size*(superscript?.7f:1.f),std::numeric_limits<float>::max(),0,parts.second.c_str()).x;
         if(superscript)extent.y+=size*.18f;
     }
-    return {extent.x,extent.y};
+    return {prefix_width(text,size)+extent.x,extent.y};
 }
 inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
@@ -158,10 +168,21 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
             const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
             const auto color=style.text?style.text:text.color;
-            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset,lo.y+n.padding+(!parts.second.empty()&&frame.unit_superscript?size*.18f:0)),color,parts.first.c_str());
+            const float prefix=prefix_width(text,size);
+            const float baseline=lo.y+n.padding+(!parts.second.empty()&&frame.unit_superscript?size*.18f:0);
+            const int prefix_first=draw->VtxBuffer.Size;
+            if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+n.padding+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
+            const int number_first=draw->VtxBuffer.Size;
+            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset+prefix,baseline),color,parts.first.c_str());
             if(!parts.second.empty()){
                 const float main_width=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str()).x;
-                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+n.padding+offset+main_width+unit_gap(size),lo.y+n.padding),color,parts.second.c_str());
+                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+n.padding+offset+prefix+main_width+unit_gap(size),lo.y+n.padding),color,parts.second.c_str());
+            }
+            if(!text.prefix.empty()&&std::getenv("CLAW_METRICS_VERIFY")&&ImGui::GetFrameCount()%60==0){
+                bool label_ok=true,value_ok=true;const auto label_color=style.text?style.text:text.prefix_color;
+                for(int j=prefix_first;j<number_first;++j)label_ok&=draw->VtxBuffer[j].col==label_color;
+                for(int j=number_first;j<draw->VtxBuffer.Size;++j)value_ok&=draw->VtxBuffer[j].col==color;
+                std::fprintf(stderr,"CLAW_TDP_MODULAR raised=%d label_color=%08x value_color=%08x label_ok=%d value_ok=%d separate_fonts=%d label_vertices=%d value_vertices=%d\n",frame.unit_superscript?1:0,label_color,color,label_ok?1:0,value_ok?1:0,text.prefix_font!=text.font?1:0,number_first-prefix_first,draw->VtxBuffer.Size-number_first);
             }
         }
     };

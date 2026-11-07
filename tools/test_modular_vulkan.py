@@ -18,13 +18,14 @@ schema=importlib.util.module_from_spec(spec);spec.loader.exec_module(schema)
 icds=sorted(Path('/usr/share/vulkan/icd.d').glob('lvp_icd*.json'));assert icds
 with tempfile.TemporaryDirectory() as directory:
     tmp=Path(directory);main.BASE=tmp/'profile';main.install_font();main.install_condensed_fonts()
+    main.tdp_path().write_text('Power Limit 20W\n')
     config=tmp/'MangoHud.conf';transport=main.BASE/'modular.layout'
     manifest={'file_format_version':'1.0.0','layer':{'name':'VK_LAYER_CLAW_METRICS_modular_ci','type':'GLOBAL','api_version':'1.3.0','implementation_version':'1','description':'Modular renderer CI','library_path':str(ROOT/'native64/libMangoHud.so'),'functions':{'vkGetInstanceProcAddr':'overlay_GetInstanceProcAddr','vkGetDeviceProcAddr':'overlay_GetDeviceProcAddr'}}}
     (tmp/'modular.json').write_text(json.dumps(manifest))
     def atomic(path,text):
         staging=path.with_suffix('.tmp');staging.write_text(text);os.replace(staging,path)
     def settings(size=24, style="line", background="linear", enabled=True, units=False):
-        value=main.normalize({'unit_superscript':units,'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
+        value=main.normalize({'unit_superscript':units,'token_colors':{'tdp.label':'FFAC12','tdp.value':'DDEEFF'},'token_weights':{'tdp.label':'bold','tdp.value':'light'},'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         atomic(config,main.mango_config(value,native_spacing=True)+'fps_limit=60\n')
     docs={name:schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text()) for name in ('two-rows','graph-focus')}
     docs['graph-focus'].update(anchor='center-left',x=16,y=-12)
@@ -95,3 +96,10 @@ with tempfile.TemporaryDirectory() as directory:
     for mode in (1,2): assert f'CLAW_BACKGROUND mode={mode}' in log,('Missing modular gradient',mode)
     assert 'CLAW_OUTLINE mode=0' in log,'Transparent solid background lost its outline'
     print('PASS actual Vulkan: live FPS/text/graph geometry, two imported layouts, rejected partial file, font reload, restored layout and clean exit. Sensors are lavapipe/host fixtures, not handheld validation.')
+
+    tdp=re.findall(r'CLAW_TDP_MODULAR raised=(\d) label_color=([0-9a-f]+) value_color=([0-9a-f]+) label_ok=(\d) value_ok=(\d) separate_fonts=(\d) label_vertices=(\d+) value_vertices=(\d+)',log)
+    for raised in ('0','1'):
+        matches=[item for item in tdp if item[0]==raised and int(item[-1])>=12]
+        assert matches,('Missing modular TDP style evidence',raised,tdp)
+        assert all(item[1:6]==('ff12acff','ffffeedd','1','1','1') for item in matches),('Modular TDP label/value styles leaked',matches)
+    print('PASS modular TDP: independent title/value glyph colors and fonts with units off/on; existing layout nodes retained.')

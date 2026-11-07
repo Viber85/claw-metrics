@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.97 ZIP
+name: Build Claw Metrics v0.2.4 test.98 ZIP
 on:
   push:
-    branches: [test/classic-superscript-baseline-97]
+    branches: [test/tdp-independent-styles-98]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.97
+  group: claw-metrics-v0.2.4-test.98
   cancel-in-progress: true
 
 jobs:
@@ -131,6 +131,7 @@ jobs:
           python3 ../experiments/enable_classic_overlay_options.py src
           python3 ../experiments/fix_classic_spacing_alignment.py src
           python3 ../experiments/verify_classic_superscript_baseline.py src
+          python3 ../experiments/split_tdp_styles.py src
           python3 ../experiments/guard_glx_swap_interval.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
@@ -242,7 +243,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.97.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.98.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -258,18 +259,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.97', package['version']
+              assert package['version'] == '0.2.4-test.98', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.97
-          path: ClawMetrics-v0.2.4-test.97.zip
+          name: ClawMetrics-v0.2.4-test.98
+          path: ClawMetrics-v0.2.4-test.98.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.97 ClawMetrics-v0.2.4-test.97.zip \
+          gh release create v0.2.4-test.98 ClawMetrics-v0.2.4-test.98.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.97 – Classic superscript label alignment" \
-            --notes "Experimental test.97: Superscript units keep classic category labels and numbers on the same baseline. Unit fonts are reduced and their baseline raised without moving numbers or changing row height. Preserves test.96 spacing. Regression fixtures compare actual number glyphs with units off/on at 12, 18 and 26 px; Vulkan verifies label/number/unit geometry at FPS 100/200%. Includes OpenGL, native layout and ZIP checks. Handheld confirmation remains necessary."
+            --title "Claw Metrics v0.2.4-test.98 – Independent TDP label and value styles" \
+            --notes "Experimental test.98: Colors & Fonts TDP now has separate Label and Value controls for color and font weight. The classic horizontal/vertical renderer draws separate tokens. Existing modular TDP nodes retain their position and use independently styled title/value runs; explicit editor node overrides still apply. Existing token IDs and saved style overrides are preserved. CI checks independent glyph colors/fonts, normal/superscript alignment, Vulkan, OpenGL and ZIP contents. Handheld confirmation remains necessary."

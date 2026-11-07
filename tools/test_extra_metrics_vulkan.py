@@ -21,6 +21,7 @@ with tempfile.TemporaryDirectory() as directory:
     main.BASE=tmp/'profile'
     main.install_font()
     main.install_condensed_fonts()
+    main.tdp_path().write_text('Power Limit 20W\n')
     config=tmp/'MangoHud.conf'
     manifest={'file_format_version':'1.0.0','layer':{
         'name':'VK_LAYER_CLAW_METRICS_ci','type':'GLOBAL','api_version':'1.3.0',
@@ -31,7 +32,9 @@ with tempfile.TemporaryDirectory() as directory:
     def write(mode):
         settings=main.normalize({
             'fps':True,'frametime':True,'cpu':True,'gpu':False,'ram':True,'vram':False,
-            'battery':False,'time':False,'draw':False,'tdp':False,
+            'battery':False,'time':False,'draw':False,'tdp':True,
+            'token_colors':{'tdp.label':'FFAC12','tdp.value':'DDEEFF'},
+            'token_weights':{'tdp.label':'bold','tdp.value':'light'},
             'hud_orientation':'vertical' if mode in (1,3) else 'horizontal',
             'hud_position':'top-center' if mode==2 else 'center-right' if mode in (1,4) else 'center-left',
             'offset_x':8,'offset_y':0,'unit_superscript':mode in (1,2,7,8),
@@ -184,3 +187,10 @@ with tempfile.TemporaryDirectory() as directory:
         checked.add((vertical,raised,scale))
     assert {(0,0,100),(0,0,200),(0,1,100),(0,1,200)}<=checked,('Missing normal/superscript baseline comparisons',checked)
     print('PASS production glyph baselines: classic labels and numbers align with units off/on at FPS 100/200%; only unit baselines are raised.')
+    tdp=re.findall(r'CLAW_TDP_STYLE vertical=(\d) raised=(\d) token=(\d+) color=([0-9a-f]+) color_ok=(\d) custom_font=(\d) separate_fonts=(\d) vertices=(\d+)',log)
+    for vertical,raised in (('0','0'),('0','1'),('1','1')):
+        for token,color in (('32','ff12acff'),('27','ffffeedd')):
+            matches=[item for item in tdp if item[:3]==(vertical,raised,token) and int(item[-1])>=12]
+            assert matches,('Missing separately styled native TDP',vertical,raised,token,tdp)
+            assert all(item[3]==color and item[4:7]==('1','1','1') for item in matches),('TDP color/font leaked between label and value',matches)
+    print('PASS classic TDP: independent label/value glyph colors and different selected fonts in horizontal/vertical and normal/superscript modes.')

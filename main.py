@@ -44,7 +44,7 @@ METRICS = {
     "gpu_fan": False, "gpu_voltage": False,
     "battery_icon": False, "battery_time": True,
 }
-TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value","fps.average","fps.low1","ram.game","ram.swap"]
+TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value","fps.average","fps.low1","ram.game","ram.swap","tdp.label"]
 FONT_WEIGHTS = ("inherit", "light", "regular", "semibold", "bold")
 FONT_DIGITS = {name: str(index) for index, name in enumerate(FONT_WEIGHTS)}
 
@@ -1066,7 +1066,7 @@ def mango_config(settings, native_spacing=False):
             "claw_color_map=" + ":".join(
                 d["token_colors"].get(slot, c["time"] if slot == "time.value" else
                                       c["draw"] if slot == "battery.power" else
-                                      c["tdp"] if slot == "tdp.value" else "------")
+                                      c["tdp"] if slot == "tdp.label" else "------")
                 for slot in TOKEN_SLOTS
             ),
         ])

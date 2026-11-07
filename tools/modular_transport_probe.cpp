@@ -9,6 +9,9 @@
 using namespace claw_modular;
 int main(int argc,char**argv){
  if(argc!=2)return 2;
+ assert(power_parts("Power Limit 20 W","TDP")==std::make_pair(std::string("Power Limit"),std::string("20W")));
+ assert(power_parts("Limit --","TDP")==std::make_pair(std::string("Limit"),std::string("--")));
+ assert(power_parts("nanW","TDP")==std::make_pair(std::string("TDP"),std::string("--")));
  assert(power_text("TDP 28W","TDP")=="TDP 28W");
  assert(power_text("Total draw 12.3 W","DRAW")=="Total draw 12.3 W");
  assert(power_text("Discharge --","DRAW")=="Discharge --");

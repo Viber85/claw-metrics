@@ -1,3 +1,7 @@
+# Claw Metrics v0.2.4-test.98 — Independent TDP label and value styles
+
+**Colors & Fonts → TDP** now provides separate **Label** and **Value (W)** controls. Each has its own color and font weight; the unit follows the value. The original token IDs and saved overrides are retained. Classic horizontal/vertical HUDs draw separate text items. Existing modular TDP elements keep their layout and use independently styled title/value runs; explicit editor node colors retain priority.
+
 # Claw Metrics v0.2.4-test.97 — Classic superscript label alignment
 
 Superscript units now keep category labels and metric numbers on their normal baseline. Only the smaller unit uses a raised baseline; toggling it does not change row height. Keeps the spacing fixes from test.96. CI compares real glyph geometry in both unit modes and at FPS 100/200%; handheld appearance still needs confirmation.
