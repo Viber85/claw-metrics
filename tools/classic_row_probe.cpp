@@ -26,11 +26,16 @@ int main(int argc,char**argv){
   ImGui::SameLine(0,4);ImGui::SetCursorPosY(center);assert(claw_classic::draw(2,"8.3 ms",IM_COL32_WHITE,raised,true));
   auto group=[&](const char* name,int token,const std::vector<std::pair<int,std::string>>& values){
    ImGui::SameLine(0,16);ImGui::SetCursorPosY(center);
+   auto* draw=ImGui::GetWindowDrawList();const int first=draw->VtxBuffer.Size;
    ImGui::TextUnformatted(name);
+   float label_bottom=-1e10f;for(int i=first;i<draw->VtxBuffer.Size;++i)label_bottom=std::max(label_bottom,draw->VtxBuffer[i].pos.y);
    for(const auto& value:values){
     const float previous=ImGui::GetItemRectMax().x;ImGui::SameLine(0,4);
     assert(std::abs(ImGui::GetCursorScreenPos().x-previous-4)<.001f);
-    assert(claw_classic::draw(value.first,value.second,IM_COL32_WHITE,raised,true));
+    claw_classic::DrawInk ink;
+    assert(claw_classic::draw(value.first,value.second,IM_COL32_WHITE,raised,true,0,0,0,&ink));
+    assert(std::abs(label_bottom-ink.number_bottom)<=1);
+    if(raised)assert(ink.unit_bottom<ink.number_bottom);
    }
   };
   group("AVG",28,{{28,"103.5 FPS"}});group("1% LOW",29,{{29,"8.0 FPS"}});

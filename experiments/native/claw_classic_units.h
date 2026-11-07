@@ -59,9 +59,19 @@ inline ImVec2 extent(int token,const std::string& value,ImFont* font,float size,
     const auto base=font->CalcTextSizeA(size,1e10f,0,p.first.c_str());
     if(p.second.empty())return base;
     const auto unit=font->CalcTextSizeA(size*(raised?.7f:1.f),1e10f,0,p.second.c_str());
-    return ImVec2(number_width(font,size,p.first,tabular)+claw_modular::unit_gap(size)+unit.x,base.y+(raised?size*.18f:0));
+    // Superscript changes the unit's baseline through its smaller font only.
+    // Keep the number and the measured row height identical to ordinary text,
+    // so adjacent category labels and following SameLine items never move.
+    return ImVec2(number_width(font,size,p.first,tabular)+claw_modular::unit_gap(size)+unit.x,base.y);
 }
-inline bool draw(int token,const std::string& value,ImU32 color,bool raised,bool stable,ImU32 outline=0,float thickness=0,ImU32 unit_color=0) {
+struct DrawInk {
+    float number_top=1e10f,number_bottom=-1e10f,unit_top=1e10f,unit_bottom=-1e10f;
+    void capture(const ImDrawList* list,int first,bool unit){
+        auto& top=unit?unit_top:number_top;auto& bottom=unit?unit_bottom:number_bottom;
+        for(int i=first;i<list->VtxBuffer.Size;++i){top=std::min(top,list->VtxBuffer[i].pos.y);bottom=std::max(bottom,list->VtxBuffer[i].pos.y);}
+    }
+};
+inline bool draw(int token,const std::string& value,ImU32 color,bool raised,bool stable,ImU32 outline=0,float thickness=0,ImU32 unit_color=0,DrawInk* ink=nullptr) {
     const auto p=parts(token,value);if(p.second.empty())return false;
     auto* font=ImGui::GetFont();const float size=ImGui::GetFontSize();
     const auto origin=ImGui::GetCursorScreenPos();auto box=extent(token,value,font,size,raised,stable);
@@ -72,9 +82,13 @@ inline bool draw(int token,const std::string& value,ImU32 color,bool raised,bool
             number_text(list,font,scale,ImVec2(pos.x+offset.x,pos.y+offset.y),outline,value,tabular);
         number_text(list,font,scale,pos,foreground,value,tabular);
     };
-    text(size,ImVec2(origin.x,origin.y+(raised?size*.18f:0)),p.first,color,stable);
+    int first=list->VtxBuffer.Size;
+    text(size,origin,p.first,color,stable);
+    if(ink)ink->capture(list,first,false);
     const float width=number_width(font,size,p.first,stable);
+    first=list->VtxBuffer.Size;
     text(size*(raised?.7f:1.f),ImVec2(origin.x+width+claw_modular::unit_gap(size),origin.y),p.second,unit_color?unit_color:color,false);
+    if(ink)ink->capture(list,first,true);
     return true;
 }
 // Legacy non-inline rows submit a right-aligned number and a separate unit.

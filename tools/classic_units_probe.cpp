@@ -3,6 +3,14 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+struct Ink {
+ float top=1e10f,bottom=-1e10f;
+ void add(const ImDrawList* list,int first,ImU32 color){
+  for(int i=first;i<list->VtxBuffer.Size;++i)if(list->VtxBuffer[i].col==color){
+   top=std::min(top,list->VtxBuffer[i].pos.y);bottom=std::max(bottom,list->VtxBuffer[i].pos.y);
+  }
+ }
+};
 int main(int argc,char**argv){
  if(argc!=3)return 2;const int width=1280,height=800;
  ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
@@ -12,6 +20,25 @@ int main(int argc,char**argv){
  ImGui::NewFrame();ImGui::SetNextWindowPos(ImVec2(10,10));ImGui::SetNextWindowSize(ImVec2(1260,780));
  ImGui::Begin("Classic HUD unit fixtures",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoSavedSettings);
  const std::vector<std::pair<int,std::string>> values={{4,"36%"},{5,"54°C"},{6,"3500 MHz"},{7,"8.6 W"},{17,"12.6 GiB"},{2,"11.9 ms"},{27,"TDP 28W"},{25,"DRAW 27W"}};
+ // Compare actual normal/superscript number glyphs, not just item boxes.
+ // Run at small, default and large fonts, including zero vertical padding.
+ for(float size:{12.f,18.f,26.f})for(bool stable:{false,true})for(const auto& value:values){
+  ImGui::SetWindowFontScale(size/24.f);
+  const float actual=ImGui::GetFontSize();Ink numbers[2],units[2];ImVec2 boxes[2];
+  for(int raised=0;raised<2;++raised){
+   ImGui::SetCursorPos(ImVec2(20,730));auto* draw=ImGui::GetWindowDrawList();const int first=draw->VtxBuffer.Size;
+   assert(claw_classic::draw(value.first,value.second,IM_COL32(1,2,3,255),raised,stable,0,0,IM_COL32(4,5,6,255)));
+   numbers[raised].add(draw,first,IM_COL32(1,2,3,255));units[raised].add(draw,first,IM_COL32(4,5,6,255));
+   boxes[raised]=ImGui::GetItemRectSize();
+  }
+  assert(numbers[0].bottom>numbers[0].top&&numbers[1].bottom>numbers[1].top);
+  assert(std::abs(numbers[0].top-numbers[1].top)<.001f&&std::abs(numbers[0].bottom-numbers[1].bottom)<.001f);
+  assert(std::abs(boxes[0].y-boxes[1].y)<.001f);
+  assert(units[1].bottom<numbers[1].bottom&&units[1].bottom-units[1].top<numbers[1].bottom-numbers[1].top);
+  assert(units[1].top>=730+ImGui::GetWindowPos().y); // no ink above the logical row
+  assert(std::abs(boxes[1].y-actual)<.001f);
+ }
+ ImGui::SetWindowFontScale(1);
  for(bool raised:{false,true}){
   ImGui::SetCursorPos(ImVec2(20,raised?105:20));ImGui::TextUnformatted(raised?"Classic horizontal / Superscript":"Classic horizontal / Normal");
   for(size_t i=0;i<values.size();++i){if(i)ImGui::SameLine(0,18);

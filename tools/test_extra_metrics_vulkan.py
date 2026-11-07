@@ -34,10 +34,10 @@ with tempfile.TemporaryDirectory() as directory:
             'battery':False,'time':False,'draw':False,'tdp':False,
             'hud_orientation':'vertical' if mode in (1,3) else 'horizontal',
             'hud_position':'top-center' if mode==2 else 'center-right' if mode in (1,4) else 'center-left',
-            'offset_x':8,'offset_y':0,'unit_superscript':mode in (1,2),
+            'offset_x':8,'offset_y':0,'unit_superscript':mode in (1,2,7,8),
             'group_gap_x':24 if mode==5 else 0,
             'inline_metrics':mode!=2,'fontsize':26 if mode==1 else 18,
-            'fps_scale':200 if mode in (1,5,6) else 100,
+            'fps_scale':200 if mode in (1,5,6,8) else 100,
             'opacity':0 if mode==4 else 80,
             'background':{'mode':'solid' if mode==4 else 'linear' if mode in (0,3,5,6) else 'radial', 'angle':45,
                 'outline_enabled':True,'outline_color':'FFFFFF','outline_width':2,'outline_opacity':60,
@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory() as directory:
         os.replace(staging,config)
     write(0)
     stop=threading.Event()
-    observed={mode:threading.Event() for mode in range(7)}
+    observed={mode:threading.Event() for mode in range(9)}
     errors=[]
     def switch():
         try:
@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory() as directory:
             # Wait for real drawn readings before advancing each live mode.
             if not observed[0].wait(60):
                 raise RuntimeError('Initial Vulkan reading did not appear')
-            for mode in (1,2,3,4,6,5,0):
+            for mode in (1,2,3,4,6,5,7,8,0):
                 if stop.wait(2): return
                 write(mode)
                 if mode!=0 and not observed[mode].wait(15):
@@ -80,6 +80,8 @@ with tempfile.TemporaryDirectory() as directory:
             if 'CLAW_OUTLINE mode=0 vertical=0' in line: observed[4].set()
             if 'CLAW_CLASSIC vertical=0 units=0 center=1 right=0 gap=24.0 inline=1' in line: observed[5].set()
             if 'CLAW_CLASSIC vertical=0 units=0 center=1 right=0 gap=0.0 inline=1' in line and 'scale=200' in line: observed[6].set()
+            if 'CLAW_CLASSIC_BASELINE ' in line and 'vertical=0 raised=1' in line and 'kind=number' in line:
+                observed[8 if 'scale=200' in line else 7].set()
     try:
         process=subprocess.Popen(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
                                   'vkcube','--c','6000','--width','1280','--height','720'],
@@ -163,3 +165,22 @@ with tempfile.TemporaryDirectory() as directory:
             compared.append(scale)
     assert 200 in compared,('No large-FPS alignment evidence',alignment)
     print('PASS actual glyph geometry: AVG, 1% LOW and CPU share a vertical center at 100% and 200% FPS scale.')
+
+    # The previous check compared labels only. Also compare the separately
+    # captured production number/unit ink against each label in the same frame.
+    baselines={}
+    pattern=r'CLAW_CLASSIC_BASELINE frame=(\d+) token=(\d+) vertical=(\d) raised=(\d) scale=(\d+) kind=(label|number|unit) top=([\d.-]+) bottom=([\d.-]+)'
+    for frame,token,vertical,raised,scale,kind,top,bottom in re.findall(pattern,log):
+        baselines.setdefault((int(frame),int(vertical),int(raised),int(scale)),{})[(int(token),kind)]=(float(top),float(bottom))
+    checked=set()
+    for (_,vertical,raised,scale),ink in baselines.items():
+        if not all((token,kind) in ink for token in (28,29) for kind in ('label','number','unit')) or (3,'label') not in ink or (4,'number') not in ink:continue
+        for label_token,number_token in ((3,4),(28,28),(29,29)):
+            label=ink[(label_token,'label')];number=ink[(number_token,'number')]
+            assert abs(label[1]-number[1])<=1,('Classic label and number baselines differ',vertical,raised,scale,label_token,label,number)
+            if raised:
+                unit=ink[(number_token,'unit')]
+                assert unit[1]<number[1],('Superscript unit baseline was not raised',label_token,unit,number)
+        checked.add((vertical,raised,scale))
+    assert {(0,0,100),(0,0,200),(0,1,100),(0,1,200)}<=checked,('Missing normal/superscript baseline comparisons',checked)
+    print('PASS production glyph baselines: classic labels and numbers align with units off/on at FPS 100/200%; only unit baselines are raised.')

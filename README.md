@@ -1,3 +1,7 @@
+# Claw Metrics v0.2.4-test.97 — Classic superscript label alignment
+
+Superscript units now keep category labels and metric numbers on their normal baseline. Only the smaller unit uses a raised baseline; toggling it does not change row height. Keeps the spacing fixes from test.96. CI compares real glyph geometry in both unit modes and at FPS 100/200%; handheld appearance still needs confirmation.
+
 ## v0.2.4-test.96 — Classic spacing and FPS summary alignment
 
 Classic horizontal readings now use equal-width digit cells for the digits actually displayed. Oversized placeholders no longer insert invisible extra digits between metrics. Fixed-fit table columns preserve the configured internal and group gaps; the outside background retains its largest measured width until settings or styles change. AVG and 1% LOW use the same vertical centering as CPU/GPU, including an enlarged main FPS number. Existing fonts, colors, units, padding and saved settings are retained.
