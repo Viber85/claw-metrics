@@ -23,7 +23,8 @@ with tempfile.TemporaryDirectory(prefix='claw-opengl-ci-') as folder:
         loaded = False
         deadline = time.monotonic() + 12
         while time.monotonic() < deadline:
-            assert process.poll() is None, 'GLX process exited before library loaded'
+            if process.poll() is not None:
+                raise AssertionError(f'GLX process exited before library loaded (code {process.returncode}): {process.stderr.read().decode(errors="replace")}')
             try:
                 maps = pathlib.Path(f'/proc/{process.pid}/maps').read_text()
             except OSError:
@@ -34,7 +35,8 @@ with tempfile.TemporaryDirectory(prefix='claw-opengl-ci-') as folder:
             time.sleep(.1)
         assert loaded, 'OpenGL shim did not load the modified renderer'
         time.sleep(2)
-        assert process.poll() is None, 'OpenGL renderer crashed after loading'
+        if process.poll() is not None:
+            raise AssertionError(f'OpenGL renderer exited after loading (code {process.returncode}): {process.stderr.read().decode(errors="replace")}')
         print('PASS GLX: modified OpenGL renderer loaded through isolated shim and stayed running')
     finally:
         process.terminate()
