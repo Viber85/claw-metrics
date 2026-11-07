@@ -317,7 +317,7 @@ class GroupedQamTests(unittest.TestCase):
         for token in ("claw_vertical_category_gap","ImGuiStyleVar_CellPadding",
                       "ImGui::PushStyleVar","ImGui::PopStyleVar"):
             self.assertIn(token,source)
-        self.assertIn('Vertical category gap (px)',layout)
+        self.assertIn('Vertical group spacing (px)',layout)
         self.assertIn('value={settings.vertical_category_gap}',layout)
         self.assertIn('vertical_category_gap:defaults.vertical_category_gap',layout)
 
@@ -377,7 +377,7 @@ class GroupedQamTests(unittest.TestCase):
                     "bottom-left", "bottom-center", "bottom-right"):
             self.assertIn(f'id:"{pos}"', SOURCE)
         self.assertIn('<Focusable flow-children="column" style={{display:"flex"', SOURCE)
-        self.assertIn('(["top","bottom"] as const).map((edge)', SOURCE)
+        self.assertIn('(["top","center","bottom"] as const).map((edge)', SOURCE)
         self.assertIn('<Focusable key={edge} flow-children="row" style={{display:"grid"', SOURCE)
         self.assertIn('gridTemplateColumns:"repeat(3,minmax(0,1fr))"', SOURCE)
         self.assertNotIn('<Focusable flow-children="row" style={{display:"grid",', SOURCE)
@@ -726,8 +726,8 @@ class GroupedQamTests(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         component = (root / "src/components/LayoutSliderField.tsx").read_text()
         layout = (root / "src/pages/LayoutCard.tsx").read_text()
-        self.assertEqual(layout.count('className="claw-layout-slider"'), 17)
-        self.assertEqual(layout.count('<LayoutSliderField'), 17)
+        self.assertEqual(layout.count('className="claw-layout-slider"'), 18)
+        self.assertEqual(layout.count('<LayoutSliderField'), 18)
         self.assertNotIn('<SliderField', layout)
         self.assertIn('<SliderField {...props} label="" showValue={false} layout="below" childrenContainerWidth="max"/>', component)
         self.assertIn('<output className="claw-slider-number">{String(props.value)}</output>', component)

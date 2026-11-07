@@ -48,7 +48,7 @@ class VerticalHudPreview(unittest.TestCase):
                     }, native)
                     self.assertEqual(cfg["horizontal"], "0")
                     self.assertEqual(cfg["table_columns"], "2" if native else "3")
-                    self.assertEqual(cfg["position"], anchor)
+                    self.assertEqual(cfg["position"], {"center-left":"top-left","center-right":"top-right"}.get(anchor,anchor))
                     self.assertEqual(cfg["hud_compact"], "0")
                     self.assertEqual(cfg["fps"], "1")
                     self.assertEqual(cfg["cpu_stats"], "1")
@@ -81,7 +81,7 @@ class VerticalHudPreview(unittest.TestCase):
                 cfg = options_for({"hud_orientation": "vertical",
                                    "vertical_width": 280, "hud_position": edge}, native)
                 self.assertEqual(cfg["width"], "280")
-                self.assertEqual(cfg["position"], edge)
+                self.assertEqual(cfg["position"], {"center-left":"top-left","center-right":"top-right"}.get(edge,edge))
 
     def test_native_vertical_stack_and_stock_fallback(self):
         d = {"hud_orientation": "vertical", "vertical_width": 0}

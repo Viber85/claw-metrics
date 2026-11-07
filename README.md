@@ -1,3 +1,7 @@
+## v0.2.4-test.95 — Classic HUD overlay options
+
+The classic Horizontal and Vertical HUDs now expose **Superscript units** under **Layout → Size & appearance**, **Horizontal / Vertical group spacing** under **Layout → Spacing**, and **Center left / Center right** under **Layout → Position**. These use the existing classic renderer without a Layout Builder document. Horizontal group spacing adds space between table groups independently of internal value gaps and column padding. Existing settings keep a zero additional gap. Center anchors follow the measured HUD height; Y=0 centers vertically, negative Y moves up and positive Y moves down. Custom renderer controls are disabled when the native bundle is unavailable. Normal and superscript readings retain per-token fonts, colors and text outlines.
+
 ## v0.2.4-test.94 — Center left and Center right
 
 In **Layout builder → Position on screen → Anchor**, choose **Center left** or **Center right** to center the overlay vertically against either screen edge. Horizontal offset sets the inward margin. Vertical offset from center accepts negative (up) and positive (down) values; selecting a center anchor from a top/bottom anchor starts at zero. Centering follows the measured overlay height when fonts, groups or layout change. Existing six anchor IDs and saved layouts are preserved.

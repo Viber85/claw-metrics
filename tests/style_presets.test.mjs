@@ -117,3 +117,6 @@ layout.background.stops[0].color='FFFFFF';
 assert.equal(bgPreset.background.stops[0].color,'000000');
 assert.equal(module.exports.styleLayoutFrom(slot1).background,undefined);
 assert.equal(styleModified(bgPreset,{...bgCurrent,background:{...background,angle:90}}),true);
+
+for(const hud_position of ['center-left','center-right'])assert.equal(styleLayoutFrom({hud_position,group_gap_x:24}).hud_position,hud_position);
+assert.equal(styleLayoutFrom({group_gap_x:24}).group_gap_x,24);

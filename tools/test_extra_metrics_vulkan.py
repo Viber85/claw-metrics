@@ -33,22 +33,24 @@ with tempfile.TemporaryDirectory() as directory:
             'fps':True,'frametime':True,'cpu':False,'gpu':False,'ram':True,'vram':False,
             'battery':False,'time':False,'draw':False,'tdp':False,
             'hud_orientation':'vertical' if mode in (1,3) else 'horizontal',
-            'hud_position':'top-center' if mode==2 else 'top-left',
+            'hud_position':'top-center' if mode==2 else 'center-right' if mode in (1,4) else 'center-left',
+            'offset_x':8,'offset_y':0,'unit_superscript':mode in (1,2),
+            'group_gap_x':24 if mode==5 else 0,
             'inline_metrics':mode!=2,'fontsize':26 if mode==1 else 18,
             'fps_scale':200 if mode==1 else 100,
             'opacity':0 if mode==4 else 80,
-            'background':{'mode':'solid' if mode==4 else 'linear' if mode in (0,3) else 'radial', 'angle':45,
+            'background':{'mode':'solid' if mode==4 else 'linear' if mode in (0,3,5) else 'radial', 'angle':45,
                 'outline_enabled':True,'outline_color':'FFFFFF','outline_width':2,'outline_opacity':60,
                 'stops':[{'position':0,'color':'FF0000'},{'position':50,'color':'00FF00'},{'position':100,'color':'0000FF'}]},
-            'graph_style':'area' if mode in (0,1) else 'dual',
-            'vertical_graph_style':'area' if mode in (0,1) else 'dual',
+            'graph_style':'area' if mode in (0,1,5) else 'dual',
+            'vertical_graph_style':'area' if mode in (0,1,5) else 'dual',
             'metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         staging=config.with_suffix('.tmp')
         staging.write_text(main.mango_config(settings,native_spacing=True)+'fps_limit=60\n')
         os.replace(staging,config)
     write(0)
     stop=threading.Event()
-    observed={mode:threading.Event() for mode in range(5)}
+    observed={mode:threading.Event() for mode in range(6)}
     errors=[]
     def switch():
         try:
@@ -56,7 +58,7 @@ with tempfile.TemporaryDirectory() as directory:
             # Wait for real drawn readings before advancing each live mode.
             if not observed[0].wait(60):
                 raise RuntimeError('Initial Vulkan reading did not appear')
-            for mode in (1,2,3,4,0):
+            for mode in (1,2,3,4,5,0):
                 if stop.wait(2): return
                 write(mode)
                 if mode!=0 and not observed[mode].wait(15):
@@ -76,6 +78,7 @@ with tempfile.TemporaryDirectory() as directory:
             if match: observed[int(match.group(1))].set()
             if 'CLAW_GRAPH layout=vertical style=3' in line: observed[3].set()
             if 'CLAW_OUTLINE mode=0 vertical=0' in line: observed[4].set()
+            if 'CLAW_CLASSIC vertical=0 units=0 center=1 right=0 gap=24.0 inline=1' in line: observed[5].set()
     try:
         process=subprocess.Popen(['xvfb-run','-a','-s','-screen 0 1920x1080x24',
                                   'vkcube','--c','6000','--width','1280','--height','720'],
@@ -130,3 +133,21 @@ with tempfile.TemporaryDirectory() as directory:
             assert float(width)==2 and int(alpha)==153 and int(vertices)>8 and int(inside)==1,matches
             if mode==0: assert float(background_alpha)==0,'Outline must survive fully transparent background'
     print('PASS native rounded outlines: color/width/opacity, both layouts, all backgrounds including 0% fill, vertices inside HUD bounds.')
+
+    boxes=re.findall(r'CLAW_CLASSIC vertical=(\d) units=(\d) center=(\d) right=(\d) gap=([\d.]+) inline=(\d) x=([\d.-]+) y=([\d.-]+) w=([\d.]+) h=([\d.]+) sw=([\d.]+) sh=([\d.]+) ox=(-?\d+) oy=(-?\d+)',log)
+    assert boxes,'Classic native branch did not report its actual windows'
+    settled=[]
+    for vertical,units,center,right,gap,inline,x,y,w,h,sw,sh,ox,oy in boxes:
+        x,y,w,h,sw,sh,ox,oy=map(float,(x,y,w,h,sw,sh,ox,oy))
+        if center=='1':
+            assert abs(y+h/2-sh/2-oy)<2,('Classic vertical centering drift',boxes)
+            assert abs(x-(sw-w+ox if right=='1' else ox))<2,('Classic edge anchor drift',boxes)
+            settled.append((vertical,right))
+    assert set(settled)=={('0','0'),('0','1'),('1','0'),('1','1')},('Both center edges in both orientations were not drawn',settled)
+    assert 'CLAW_CLASSIC_UNIT vertical=0 raised=0' in log and 'CLAW_CLASSIC_UNIT vertical=1 raised=1' in log
+    assert 'CLAW_CLASSIC_LEGACY unit=' in log,'Non-inline superscript unit path was not drawn'
+    widths={}
+    for b in boxes:
+        if b[0]=='0' and b[1]=='0' and b[2]=='1' and b[3]=='0' and b[5]=='1':widths.setdefault(float(b[4]),[]).append(float(b[8]))
+    assert 0 in widths and 24 in widths and max(widths[24])>min(widths[0])+20,('Horizontal group spacing did not change native width',widths)
+    print('PASS classic native options: normal/superscript, non-inline units, both center edges in both orientations and independent group spacing.')

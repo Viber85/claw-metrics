@@ -103,7 +103,7 @@ def run(args):
             font=tmp/'ClawSans.ttf';font.write_bytes(gzip.decompress(base64.b64decode((ROOT/'assets/ClawSans.ttf.gz.b64').read_bytes())))
             import main
             assert hashlib.sha256(font.read_bytes()).hexdigest()==main.FONT_SHA256
-        for name in ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right'):
+        for name in (() if args.classic_only else ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right')):
             source='vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
             preset=ROOT/('tests/fixtures' if source=='graph-below' else 'assets/modular' if source in ('horizontal','vertical') else 'experiments/modular')/(source+'.json')
             document=schema.load_layout(preset.read_text())
@@ -127,6 +127,12 @@ def run(args):
                     subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['1'] if name=='superscript' else [])],check=True)
                     raster(target.with_suffix('.json'))
 
+        binary=tmp/'classic-probe'
+        subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(ROOT/'experiments/native'),str(ROOT/'tools/classic_units_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
+        target=output/'classic-units'
+        subprocess.run([str(binary),str(font),str(target)],check=True)
+        raster(target.with_suffix('.json'))
+
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--render-dir',required=True);run(parser.parse_args())
+    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())

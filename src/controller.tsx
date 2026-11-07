@@ -24,14 +24,16 @@ export type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "batt
 export type FontWeight = "light" | "regular" | "semibold" | "bold";
 export type GraphStyle = "area" | "line" | "bars" | "dual" | "smooth" | "dual_layer";
 export type HudOrientation = "horizontal" | "vertical";
-export type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+export type HudPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right" | "center-left" | "center-right";
 export const hudPositions: {id:HudPosition; label:string; icon:string; column:number; row:number}[] = [
   {id:"top-left",label:"Top left",icon:"↖",column:1,row:1},
   {id:"top-center",label:"Top center",icon:"↑",column:2,row:1},
   {id:"top-right",label:"Top right",icon:"↗",column:3,row:1},
-  {id:"bottom-left",label:"Bottom left",icon:"↙",column:1,row:2},
-  {id:"bottom-center",label:"Bottom center",icon:"↓",column:2,row:2},
-  {id:"bottom-right",label:"Bottom right",icon:"↘",column:3,row:2},
+  {id:"center-left",label:"Center left",icon:"←",column:1,row:2},
+  {id:"center-right",label:"Center right",icon:"→",column:3,row:2},
+  {id:"bottom-left",label:"Bottom left",icon:"↙",column:1,row:3},
+  {id:"bottom-center",label:"Bottom center",icon:"↓",column:2,row:3},
+  {id:"bottom-right",label:"Bottom right",icon:"↘",column:3,row:3},
 ];
 
 // Actual silhouettes of the four native frametime render modes.
@@ -104,7 +106,7 @@ export const styleTabs: [StyleCategory,string][] = [
   ["global","Global"],["fps","FPS"],["cpu","CPU"],["gpu","GPU"],
   ["ram","RAM"],["vram","VRAM"],["battery","Battery"],["time","Clock"],["tdp","TDP"],["draw","DRAW"],["values","Values"],
 ];
-export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"inner_gap"|"graph_width"|"separator_height"|"separator_thickness"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
+export type SavedStyle = Partial<Record<"fontsize"|"opacity"|"rounding"|"padding_x"|"padding_y"|"offset_x"|"offset_y"|"element_gap"|"table_gap"|"group_gap_x"|"inner_gap"|"graph_width"|"separator_height"|"separator_thickness"|"vertical_width"|"vertical_value_gap"|"vertical_category_gap"|"vertical_graph_width"|"vertical_graph_height",number>> & {
   background?:OverlayBackground; sans?:boolean; inline_metrics?:boolean; unit_superscript?:boolean; graph_style?:GraphStyle; vertical_graph_style?:GraphStyle; hud_orientation?:HudOrientation; version?:number;
   groups?: Partial<Record<Group, boolean>>; metrics?: Record<string, boolean>;
   colors: ColorSettings; font_weight: FontWeight; fps_bold: boolean;
@@ -242,7 +244,7 @@ export type Settings = Record<Group, boolean> & {
   enabled: boolean; fontsize: number; fps_scale: number; center_horizontal: boolean; hud_position: HudPosition; hud_orientation: HudOrientation; vertical_width: number; vertical_value_gap: number; vertical_category_gap: number; vertical_graph_width: number; vertical_graph_height: number; vertical_graph_style: GraphStyle; opacity: number; power: boolean; tdp: boolean;
   sans: boolean; rounding: number; offset_x: number; offset_y: number; padding_y: number;
   padding_x: number; element_gap: number; table_gap: number; graph_width: number; separator_height:number; separator_thickness:number; graph_style: GraphStyle;
-  inner_gap: number; inline_metrics: boolean; unit_superscript:boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
+  group_gap_x: number; inner_gap: number; inline_metrics: boolean; unit_superscript:boolean; fps_bold: boolean; font_weight: FontWeight; order: Group[];
   metrics: Record<string, boolean>;
   colors: ColorSettings;
   token_weights: Partial<Record<TokenKey, FontWeight>>;
@@ -288,7 +290,7 @@ export const defaults: Settings = {
   cpu: true, gpu: true, ram: true, vram: true, battery: true, draw: true,
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, separator_height:100, separator_thickness:2, graph_style: "line",
-  inner_gap: 4, inline_metrics: true, unit_superscript:false, fps_bold: true, font_weight: "regular", order,
+  group_gap_x: 0, inner_gap: 4, inline_metrics: true, unit_superscript:false, fps_bold: true, font_weight: "regular", order,
   metrics: {fps_average:false, fps_low1:false, ram_game:false, ram_swap:false, fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,

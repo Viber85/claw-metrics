@@ -55,16 +55,16 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
             <Field label="Vertical preview"
               description="Uses native Claw Stacked layout: FPS at top, compact two-column metric rows with automatic value wrapping and a frametime graph at the bottom. Stock MangoHud keeps its original three-column fallback. FPS scaling and graph styles are available in this native preview; Both orientations support all six graph modes; Vertical also has independent graph width and height."/>
           </PanelSectionRow>}
-          <ControlGroup title="Position" summary="6 anchors · X / Y offsets"
+          <ControlGroup title="Position" summary="8 anchors · X / Y offsets"
             open={layoutPanel==="position"} onToggle={()=>toggleLayoutPanel("position")}>
         <PanelSectionRow><Field label="HUD position"
-          description="Choose one of six screen-edge anchors."/></PanelSectionRow>
-        {/* Steam's navigation tree must match the visual 3×2 grid: column
-            movement between two horizontal rows, row movement within each.
+          description="Choose a screen-edge anchor, including the vertical center of the left or right edge."/></PanelSectionRow>
+        {/* Steam's navigation tree must match the visual 3×3 anchor grid: column
+            movement between horizontal rows, row movement within each.
             A single flow-children="row" prevents D-pad up/down navigation. */}
         <Focusable flow-children="column" style={{display:"flex",flexDirection:"column",
           gap:5,padding:"0 4px 12px",maxWidth:"100%",boxSizing:"border-box"}}>
-          {(["top","bottom"] as const).map((edge)=>
+          {(["top","center","bottom"] as const).map((edge)=>
             <Focusable key={edge} flow-children="row" style={{display:"grid",
               gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:5,
               width:"100%",minWidth:0,maxWidth:"100%",boxSizing:"border-box"}}>
@@ -72,9 +72,9 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
                 const selected=settings.hud_position===anchor.id;
                 return <DialogButton key={anchor.id} className="claw-hud-anchor" data-anchor-position={anchor.id}
                   aria-label={anchor.label} aria-pressed={selected}
-                  disabled={!ready || (settings.hud_orientation==="horizontal" && anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
+                  disabled={!ready || (anchor.id.startsWith("center-") && !info?.layout_spacing_supported) || (settings.hud_orientation==="horizontal" && anchor.id.endsWith("center") && !info?.layout_spacing_supported)}
                   onClick={()=>update({hud_position:anchor.id,center_horizontal:anchor.id.endsWith("center")})}
-                  style={{margin:0,padding:"4px 2px",minWidth:0,minHeight:54,
+                  style={{gridColumn:anchor.column,margin:0,padding:"4px 2px",minWidth:0,minHeight:54,
                     border:selected?"2px solid #31cefa":"1px solid #43607a",
                     borderRadius:8,background:selected?"#0b4c70":"#162b40",
                     color:selected?"#f6fcff":"#bfd5e7",outline:"none",boxShadow:"none"}}>
@@ -102,6 +102,8 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           </ControlGroup>
           <ControlGroup title="Size & appearance" summary="Text · FPS scale · background"
             open={layoutPanel==="size"} onToggle={()=>toggleLayoutPanel("size")}>
+        <PanelSectionRow><ToggleField label="Superscript units" checked={settings.unit_superscript}
+          disabled={!ready || !info?.layout_spacing_supported} onChange={unit_superscript=>update({unit_superscript})}/></PanelSectionRow>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
           ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><div className="claw-layout-slider"><LayoutSliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
@@ -140,7 +142,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 
             <PanelSectionRow><Field label="Preview" description="Illustrative only: native game rendering may differ." /></PanelSectionRow>
           </ControlGroup>
-          <ControlGroup title="Spacing" summary="Padding · element and column gaps"
+          <ControlGroup title="Spacing" summary="Group spacing · padding · readings"
             open={layoutPanel==="spacing"} onToggle={()=>toggleLayoutPanel("spacing")}>
         <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical padding (px)"
           value={settings.padding_y} min={0} max={24} step={1} showValue disabled={!ready}
@@ -149,6 +151,9 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           value={settings.padding_x} min={0} max={24} step={1} showValue
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={v=>update({padding_x:v})}/></div></PanelSectionRow>
+        {settings.hud_orientation==="horizontal"&&<PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Horizontal group spacing (px)"
+          value={settings.group_gap_x} min={0} max={60} step={1} showValue disabled={!ready || !info?.layout_spacing_supported}
+          onChange={group_gap_x=>update({group_gap_x})}/></div></PanelSectionRow>}
         <PanelSectionRow><Field label="Element spacing" description={info?.layout_spacing_supported
           ? "Custom Claw renderer is available. Restart the game to apply spacing changes."
           : "The custom renderer is unavailable. Spacing controls are disabled."} /></PanelSectionRow>
@@ -166,11 +171,11 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           disabled={!ready || !info?.layout_spacing_supported}
           onChange={(value: number) => update({vertical_value_gap: value})} /></div></PanelSectionRow>}
         {settings.hud_orientation==="vertical" && <>
-          <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical category gap (px)"
+          <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Vertical group spacing (px)"
             value={settings.vertical_category_gap} min={0} max={20} step={1} showValue
             disabled={!ready || !info?.layout_spacing_supported}
             onChange={(value:number)=>update({vertical_category_gap:value})}/></div></PanelSectionRow>
-          <PanelSectionRow><Field label="Category spacing"
+          <PanelSectionRow><Field label="Group spacing"
             description="Adds space between FPS, CPU, GPU and other categories. Wrapped readings within a category stay together." /></PanelSectionRow>
         </>}
 
@@ -245,7 +250,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
            center_horizontal:defaults.center_horizontal,hud_position:defaults.hud_position,
           opacity:defaults.opacity,rounding:defaults.rounding,
           padding_y:defaults.padding_y,padding_x:defaults.padding_x,offset_x:defaults.offset_x,offset_y:defaults.offset_y,
-          element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,
+          element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,group_gap_x:defaults.group_gap_x,unit_superscript:defaults.unit_superscript,
           vertical_value_gap:defaults.vertical_value_gap,vertical_category_gap:defaults.vertical_category_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
           graph_width:defaults.graph_width,separator_height:defaults.separator_height,separator_thickness:defaults.separator_thickness,
           graph_style:defaults.graph_style,vertical_graph_style:defaults.vertical_graph_style,inline_metrics:defaults.inline_metrics

@@ -74,7 +74,7 @@ STYLE_LAYOUT_RANGES = {
     "fontsize": (12, 28), "fps_scale": (100, 200), "opacity": (0, 100), "rounding": (0, 20),
     "padding_x": (0, 24), "padding_y": (0, 24),
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
-    "element_gap": (0, 20), "table_gap": (0, 12),
+    "element_gap": (0, 20), "table_gap": (0, 12), "group_gap_x": (0, 60),
     "inner_gap": (0, 16), "graph_width": (80, 200),
     "separator_height": (50, 150), "separator_thickness": (1, 6),
     "vertical_value_gap": (0, 16), "vertical_category_gap": (0, 20),
@@ -83,7 +83,7 @@ STYLE_LAYOUT_RANGES = {
     "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
 }
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
-HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right")
+HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "center-left", "center-right")
 HUD_ORIENTATIONS = ("horizontal", "vertical")
 GRAPH_STYLES = ("line", "area", "bars", "dual", "smooth", "dual_layer")
 VERTICAL_GRAPH_STYLES = GRAPH_STYLES
@@ -262,7 +262,7 @@ DEFAULTS = {
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "separator_height": 100, "separator_thickness": 2,
-    "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line", "unit_superscript": False,
+    "group_gap_x": 0, "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line", "unit_superscript": False,
     "vertical_graph_style": "smooth",
     "colors": COLORS,
     "font_weight": "regular",
@@ -757,7 +757,7 @@ def normalize(payload):
                            ("rounding", 0, 20), ("offset_x", -1920, 1920),
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
-                           ("table_gap", 0, 12), ("graph_width", 80, 200),
+                           ("table_gap", 0, 12), ("group_gap_x", 0, 60), ("graph_width", 80, 200),
                            ("separator_height", 50, 150), ("separator_thickness", 1, 6),
                            ("inner_gap", 0, 16), ("vertical_width", 0, 420),
                            ("vertical_value_gap", 0, 16), ("vertical_category_gap", 0, 20),
@@ -957,6 +957,7 @@ def mango_config(settings, native_spacing=False):
         {"top-center": "top-left", "bottom-center": "bottom-left"}.get(position, position)
         if is_horizontal else position
     )
+    native_position={"center-left":"top-left","center-right":"top-right"}.get(native_position,native_position)
     # Offsets are distances IN from the selected corner.
     hud_x = -d["offset_x"] if position.endswith("right") else d["offset_x"]
     hud_y = -d["offset_y"] if position.startswith("bottom") else d["offset_y"]
@@ -1043,6 +1044,8 @@ def mango_config(settings, native_spacing=False):
             "claw_separator_thickness=" + str(d["separator_thickness"]),
             "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
             "claw_unit_superscript=" + str(int(d["unit_superscript"])),
+            "claw_center_vertical=" + str(int(position.startswith("center-"))),
+            "claw_group_gap_x=" + str(d["group_gap_x"]),
             "claw_graph_style=" + str((GRAPH_STYLES.index(d["graph_style"])
                 if d["modular_enabled"] or is_horizontal else VERTICAL_GRAPH_STYLES.index(d["vertical_graph_style"]))),
             "claw_inner_gap=" + str(d["inner_gap"]),
