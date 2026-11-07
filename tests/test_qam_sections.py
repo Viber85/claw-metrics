@@ -196,8 +196,8 @@ class GroupedQamTests(unittest.TestCase):
     def test_styles_save_and_restore_enabled_metric_groups_and_submetrics(self):
         helpers=(pathlib.Path(__file__).resolve().parents[1] /
                  "src/style-presets.ts").read_text()
-        self.assertIn('version:3, ...styleLayoutFrom(d)', SOURCE)
-        self.assertIn('...styleMetricSnapshotFrom(d)', SOURCE)
+        self.assertIn('styleSnapshotFrom({...d,...draft})', SOURCE)
+        self.assertIn('...styleMetricSnapshotFrom(current)', (pathlib.Path(__file__).resolve().parents[1] / 'src/style-presets.ts').read_text())
         self.assertIn('...styleMetricUpdatesFrom(preset,current.current)', SOURCE)
         self.assertIn('styleMetricSnapshotFrom, styleMetricUpdatesFrom', SOURCE)
         for name in ("styleMetricSnapshotFrom", "styleMetricUpdatesFrom",

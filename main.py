@@ -1318,6 +1318,19 @@ class Plugin:
             install_short_launcher()
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
+    async def save_style_settings(self, settings: dict):
+        # Saving an editor draft must not republish the live layout or touch
+        # renderer config files while the fullscreen modal owns QAM focus.
+        current = getattr(self, "_current_settings", None)
+        if current is None:
+            current = await self.get_settings()
+        data = normalize({**current,
+            "style_presets": settings.get("style_presets", {}),
+            "style_names": settings.get("style_names", {})})
+        write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
+        self._current_settings = data
+        return {"ok": True}
+
     async def set_tdp_game_context(self, appid=None):
         """Steam Router reports the stable PDC game key, even with QAM closed."""
         if appid is not None:

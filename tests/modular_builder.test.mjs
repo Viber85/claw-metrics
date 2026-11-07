@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false;
+const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false,saveStyleHandler,styleSettings={};
 const ui=Object.fromEntries(['ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
+const styles=load('src/style-presets.ts');
 const {Builder}=load('src/modular/Builder.tsx',name=>{
  if(name==='react')return {useEffect:()=>{},useRef:()=>({current:null}),useState:initial=>{const i=cursor++;if(!(i in state))state[i]=typeof initial==='function'?initial():initial;return[state[i],next=>state[i]=typeof next==='function'?next(state[i]):next]}};
  if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
  if(name==='@decky/ui')return ui;
  if(name==='./model')return model;
+ if(name==='../style-presets')return styles;
  if(name==='./Hud')return {ModularHud:'preview',initialData:{}};
  if(name==='./preview-fonts')return {previewFontCSS:'@font-face{font-family:ClawPreviewBarlow}'};
  if(name.includes('LayoutSliderField'))return {LayoutSliderField:p=>jsx('slider',p)};
@@ -19,14 +21,14 @@ const {Builder}=load('src/modular/Builder.tsx',name=>{
 });
 const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
-function render(){cursor=0;return walk(Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line'},onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true}))}
+function render(){cursor=0;return walk(Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true}))}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
 assert(render().find(n=>n.type==='ModalRoot'));
-assert.equal(render().find(n=>n.type==='ModalRoot').props.onOK,undefined,'only the explicit Apply button saves');
+render().find(n=>n.type==='ModalRoot').props.onOK();assert.equal(closed,false);assert.equal(applied,undefined,'implicit modal OK cannot close or apply the builder');
 assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own right-panel actions');
 assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
@@ -164,3 +166,45 @@ control('DialogButton','Redo').onClick();assert.equal(draft().anchor,'center-rig
 control('DropdownItem','Anchor').onChange({data:'top-left'});
 assert.equal(draft().y,0,'legacy edge margins stay non-negative');
 console.log('PASS center-edge anchors: both choices, exact initial center, signed offsets, save and undo/redo.');
+
+// Text Enter stays inside the editor for both a group and a reading.
+state.length=0;closed=false;applied=undefined;
+for(const id of [initial.root.id,graph.id]){
+ render().find(n=>n.type==='preview').props.onSelect(id);
+ control('TextField','Name').onChange({target:{value:'Renamed '+id}});
+ for(const handler of ['onKeyDownCapture','onKeyUpCapture']){
+  let prevented=false,stopped=false;
+  render().find(n=>n.props?.className==='claw-builder').props[handler]({key:'Enter',target:{tagName:'INPUT',type:'text'},preventDefault(){prevented=true},stopPropagation(){stopped=true}});
+  assert(prevented&&stopped);assert.equal(closed,false);assert.equal(applied,undefined);
+ }
+ assert.equal(model.find(draft().root,id).name,'Renamed '+id);
+}
+console.log('PASS editor Enter: group/reading names remain edited without closing or applying.');
+
+state.length=0;closed=false;applied=undefined;
+styleSettings={style_presets:{'1':{}},style_names:{'1':'Existing'}};
+let styleCalls=[];
+saveStyleHandler=async(slot,doc,appearance,name)=>{
+ styleCalls.push({slot,doc:structuredClone(doc),appearance:{...appearance},name});
+ return {presets:{'1':{},[slot]:{}},names:{'1':'Existing',[slot]:name}};
+};
+control('TextField','Name').onChange({target:{value:'Unsaved editor draft'}});
+control('DialogButton','Save style').onClick();
+assert.equal(control('DropdownItem','Style slot').selectedOption,'new');
+assert(control('DropdownItem','Style slot').rgOptions.some(x=>x.data==='1'&&x.label==='Existing'));
+control('TextField','Style name').onChange({target:{value:'From editor'}});
+control('DialogButton','Save new style').onClick();await new Promise(setImmediate);
+assert.equal(styleCalls[0].slot,'2');assert.equal(styleCalls[0].doc.root.name,'Unsaved editor draft');
+assert.equal(styleCalls[0].name,'From editor');assert.equal(closed,false);assert.equal(applied,undefined);
+assert.equal(control('DropdownItem','Style slot').selectedOption,'2');
+assert(render().some(n=>n.props?.role==='status'&&text(n.props.children)==='Saved: From editor'));
+control('DropdownItem','Style slot').onChange({data:'1'});
+assert.equal(control('TextField','Style name').value,'Existing');
+control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
+assert.equal(styleCalls[1].slot,'1');assert.equal(styleCalls[1].doc.root.name,'Unsaved editor draft');
+saveStyleHandler=async()=>{throw new Error('Offline')};
+control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
+assert(render().some(n=>n.props?.role==='status'&&text(n.props.children).includes('Offline')));
+assert.equal(closed,false);assert.equal(applied,undefined);
+control('DialogButton','Cancel').onClick();assert.equal(closed,true);
+console.log('PASS editor Save style: new/overwrite shared slots, latest draft, names, error/retry and no implicit Apply or close.');

@@ -15,7 +15,7 @@ export function ModularEditor({vm}:{vm:ClawController}){
  const canEdit=ready&&vm.info?.layout_spacing_supported!==false;
  const doc=settings.modular_layout;
  const openBuilder=(layout:Layout)=>{
-  let closing=false,pending:{modular_layout:Layout;modular_enabled:true}&BuilderAppearance|undefined;
+  let closing=false,pending:({modular_layout:Layout;modular_enabled:true;active_style?:string}&BuilderAppearance)|undefined;
   const close=()=>{
    if(closing)return;
    closing=true;editor.Close();
@@ -24,7 +24,14 @@ export function ModularEditor({vm}:{vm:ClawController}){
    // Wait for the close transition before triggering the backend settings save.
    void editor.ClosedPromise.then(()=>window.setTimeout(()=>{if(pending)update(pending)},350));
   };
-  const editor=showModal(<Builder initial={layout} settings={settings} onApply={(value,appearance)=>{pending={modular_layout:value,modular_enabled:true,...appearance};close()}} closeModal={close}/>,undefined,{bNeverPopOut:true});
+  const editor=showModal(<Builder initial={layout} settings={settings}
+   onSaveStyle={async(slot,value,appearance,name)=>{
+    const ok=await vm.savePreset(slot,{modular_layout:value,modular_enabled:true,...appearance},name);
+    if(!ok)throw new Error('Style was not saved. Try again.');
+    const current=vm.current.current;
+    return {presets:current.style_presets,names:current.style_names};
+   }}
+   onApply={(value,appearance,slot)=>{pending={modular_layout:value,modular_enabled:true,...appearance,...(slot?{active_style:slot}:{})};close()}} closeModal={close}/>,undefined,{bNeverPopOut:true});
  };
  const chooseTemplate=(id:'horizontal'|'vertical')=>{
   const label=id==='horizontal'?'Horizontal':'Vertical';

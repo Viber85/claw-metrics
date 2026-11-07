@@ -50,6 +50,11 @@ export function styleMetricSnapshotFrom(current:any){
  }
  return {groups,metrics};
 }
+export function styleSnapshotFrom(current:any){
+ return {version:3,...styleLayoutFrom(current),...styleMetricSnapshotFrom(current),
+  colors:{...current.colors},font_weight:current.font_weight,fps_bold:current.fps_bold,
+  token_weights:{...current.token_weights},token_colors:{...current.token_colors}};
+}
 export function styleMetricUpdatesFrom(preset:any,current:any){
  const saved=styleMetricSelectionsFrom(preset);
  return {...saved.groups,...(Object.keys(saved.metrics).length

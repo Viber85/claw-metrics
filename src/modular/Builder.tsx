@@ -5,15 +5,20 @@ import {LayoutSliderField} from '../components/LayoutSliderField';
 import {ModularHud,initialData} from './Hud';
 import {previewFontCSS} from './preview-fonts';
 import {anchors,catalog,find,flatten,group,isHorizontalLayout,metric,move,parent,placeGraphBelow,validate,type Layout,type Node} from './model';
+import {styleSlotIds} from '../style-presets';
 
 export type BuilderAppearance={rounding:number;opacity:number;graph_style:GraphStyle;unit_superscript:boolean};
-export function Builder({initial,settings,onApply,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance)=>void;closeModal?:()=>void}) {
+export type BuilderStyleStore={presets:Record<string,unknown>;names:Record<string,string>};
+export function Builder({initial,settings,onApply,onSaveStyle,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;closeModal?:()=>void}) {
  const [open,O]=useState<'element'|'spacing'|'appearance'|'position'|null>('element');
  const [layout,L]=useState(()=>validate(initial)),[selected,S]=useState(initial.root.id),[token,T]=useState('fps.average'),[past,P]=useState<Layout[]>([]),[future,F]=useState<Layout[]>([]),[error,E]=useState('');
  const stage=useRef<HTMLDivElement>(null),[zoom,Z]=useState(isHorizontalLayout(initial)?.45:.5);
  const [structureOpen,SO]=useState(true),[collapsed,C]=useState<Set<string>>(()=>new Set(flatten(initial.root).filter(n=>n.kind==='group'&&n.id!==initial.root.id).map(n=>n.id)));
  const [appearance,A]=useState<BuilderAppearance>(()=>({rounding:settings.rounding??10,opacity:settings.opacity??80,graph_style:settings.graph_style??'line',unit_superscript:settings.unit_superscript??false}));
  const [appearancePast,AP]=useState<BuilderAppearance[]>([]),[appearanceFuture,AF]=useState<BuilderAppearance[]>([]);
+ const [styleStore,SS]=useState<BuilderStyleStore>(()=>({presets:settings.style_presets||{},names:settings.style_names||{}}));
+ const [saveOpen,SaveOpen]=useState(false),[saveSlot,SaveSlot]=useState('new'),[styleName,StyleName]=useState(''),[saving,Saving]=useState(false),[saveMessage,SaveMessage]=useState('');
+ const [saved,Saved]=useState<{slot:string;snapshot:string}|null>(null);
  useEffect(()=>{if(!stage.current)return;const element=stage.current;element.scrollLeft=layout.anchor.endsWith('right')?1280*zoom:layout.anchor.endsWith('center')?(1280*zoom-element.clientWidth)/2:0;element.scrollTop=layout.anchor.startsWith('center-')?Math.max(0,(800*zoom-element.clientHeight)/2):layout.anchor.startsWith('bottom')?800*zoom:0},[layout.anchor,zoom]);
  const active=find(layout.root,selected)||layout.root,all=flatten(layout.root),owner=parent(layout.root,active.id);
  const commit=(next:Layout)=>{try{const valid=validate(next);if(JSON.stringify(valid)===JSON.stringify(layout))return;P([...past.slice(-39),layout]);AP([...appearancePast.slice(-39),appearance]);F([]);AF([]);L(valid);E('')}catch(e){E(String(e))}};
@@ -29,9 +34,29 @@ export function Builder({initial,settings,onApply,closeModal}:{initial:Layout;se
  const colors=(label:string,key:'color'|'background')=><Focusable flow-children="row" className="claw-builder-tools">{button(label,()=>{const dialog=showModal(<OpaqueColorPicker title={label} hex={(active[key]||(key==='color'&&active.token==='separator'?'#'+(settings.colors?.separator||'777C87'):'#ffffff')).replace('#','')} closeModal={()=>dialog.Close()} onConfirm={hex=>patch({[key]:'#'+hex.replace('#','')})}/>,undefined,{bNeverPopOut:true});})}{button(key==='color'?'Use plugin color':active.id===layout.root.id?'Use plugin background':'Transparent',()=>patch({[key]:''}),!active[key])}</Focusable>;
  const tree=(n:Node,depth=0):ReactNode=><div key={n.id}><Focusable flow-children="row" className="claw-builder-tree-row" style={{paddingLeft:depth*12}}><DialogButton aria-pressed={active.id===n.id} aria-expanded={n.kind==='group'?!collapsed.has(n.id):undefined} onClick={()=>{choose(n.id);if(n.kind==='group')C(previous=>{const next=new Set(previous);next.has(n.id)?next.delete(n.id):next.add(n.id);return next})}} className="claw-builder-tree-select" style={{background:active.id===n.id?'#233d5d':'transparent'}}>{n.kind==='group'?(collapsed.has(n.id)?'› ':'⌄ '):'· '}{n.name}{!n.visible?' · hidden':''}</DialogButton></Focusable>{n.kind==='group'&&!collapsed.has(n.id)&&n.children.map(c=>tree(c,depth+1))}</div>;
  const card=(id:'structure'|Exclude<typeof open,null>,title:string,subtitle:string,icon:string,body:ReactNode)=>{const expanded=id==='structure'?structureOpen:open===id;return <div className="claw-builder-accordion" data-selected={expanded}><DialogButton aria-pressed={expanded} onClick={()=>id==='structure'?SO(!structureOpen):O(open===id?null:id)} className="claw-builder-accordion-button"><span className="claw-builder-icon">{icon}</span><span className="claw-builder-card-title"><strong>{title}</strong><small>{subtitle}</small></span><span aria-hidden="true">{expanded?'⌄':'›'}</span></DialogButton>{expanded&&<Focusable flow-children="column" className="claw-builder-card-body">{body}</Focusable>}</div>};
- const apply=()=>onApply(validate(layout),appearance);
+ const snapshot=()=>JSON.stringify([layout,appearance]);
+ const apply=()=>onApply(validate(layout),appearance,saved?.snapshot===snapshot()?saved.slot:undefined);
+ const freeSlot=styleSlotIds.find(id=>!styleStore.presets[id]);
+ const saveStyle=async()=>{
+  const slot=saveSlot==='new'?freeSlot:saveSlot;
+  if(!slot||!onSaveStyle||saving)return;
+  Saving(true);SaveMessage('');
+  try{
+   const doc=validate(layout),look={...appearance},captured=JSON.stringify([doc,look]);
+   const store=await onSaveStyle(slot,doc,look,styleName);
+   SS(store);SaveSlot(slot);Saved({slot,snapshot:captured});
+   SaveMessage('Saved: '+(store.names[slot]||'Style '+slot));
+  }catch(error){SaveMessage('Save failed: '+String(error))}finally{Saving(false)}
+ };
+ const close=()=>{if(!saving)closeModal?.()};
+ const guardTextEnter=(event:any)=>{
+  const target=event.target;
+  if(event.key==='Enter'&&(target?.tagName==='INPUT'||target?.tagName==='TEXTAREA')&&!['range','checkbox','button'].includes(target.type)){
+   event.preventDefault();event.stopPropagation();
+  }
+ };
  const setAnchor=(anchor:string)=>commit({...layout,anchor,y:anchor.startsWith('center-')?(layout.anchor.startsWith('center-')?layout.y:0):Math.max(0,layout.y)});
- return <ModalRoot bAllowFullSize className="claw-builder-modal" modalClassName="claw-builder-modal" onCancel={closeModal} closeModal={closeModal}>
+ return <ModalRoot bAllowFullSize bOKDisabled onOK={()=>{}} className="claw-builder-modal" modalClassName="claw-builder-modal" onCancel={close} closeModal={close}>
  <style>{previewFontCSS}</style>
  <style>{`
  .claw-builder-modal{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;height:calc(100vh - 16px)!important;max-height:calc(100vh - 16px)!important;box-sizing:border-box}
@@ -55,7 +80,7 @@ export function Builder({initial,settings,onApply,closeModal}:{initial:Layout;se
  .claw-builder-tools{margin:3px 0}.claw-builder-tools button{min-height:30px!important;padding:3px 6px!important;font-size:12px!important}.claw-builder-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;align-items:start}.claw-builder-fields>*{min-width:0;max-width:100%}.claw-builder-fields .claw-slider-heading{padding:3px 0}.claw-builder-properties .claw-builder-card-body :is(input,select){min-height:30px!important}.claw-builder-properties .claw-builder-card-body :is([class*="DialogButton"],[class*="dropdown"]){min-height:32px!important}
  @media(max-width:800px){.claw-builder{grid-template-columns:minmax(0,1fr) 300px;gap:8px}.claw-builder-preview-tools{flex-wrap:wrap}}
  `}</style>
- <div className="claw-builder" data-orientation={isHorizontalLayout(layout)?'horizontal':'vertical'}>
+ <div className="claw-builder" onKeyDownCapture={guardTextEnter} onKeyUpCapture={guardTextEnter} data-orientation={isHorizontalLayout(layout)?'horizontal':'vertical'}>
  <div className="claw-builder-preview"><div className="claw-builder-preview-head"><Focusable flow-children="row" className="claw-builder-preview-controls"><LayoutSliderField label="Zoom (%)" value={Math.round(zoom*200)} min={20} max={100} step={10} onChange={value=>Z(value/200)}/></Focusable></div>
  <div ref={stage} className="claw-builder-stage" aria-label="Overlay preview"><div className="claw-builder-screen" style={{width:1280*zoom,height:800*zoom}}><div style={{position:'relative',width:1280,height:800,transform:`scale(${zoom})`,transformOrigin:'top left'}}><ModularHud layout={layout} settings={{...settings,...appearance,enabled:true}} data={initialData} selected={active.id} onSelect={choose}/></div></div></div>
  </div>
@@ -67,6 +92,12 @@ export function Builder({initial,settings,onApply,closeModal}:{initial:Layout;se
  {active.kind==='group'&&card('spacing','Group spacing','Separate groups or adjust readings inside a group','↔',<>{owner&&owner.children.length>1&&<><small>Between groups / elements in {owner.name}. Applies to all siblings.</small>{slider(owner.axis==='row'?'Horizontal spacing to sibling groups (px)':'Vertical spacing to sibling groups (px)',owner.gap,0,80,patchOwnerGap)}</>}<small>{active.children.some(n=>n.kind==='group')?'Between child groups':'Between readings'} in {active.name}.</small>{slider(`${active.axis==='row'?'Horizontal':'Vertical'} spacing ${active.children.some(n=>n.kind==='group')?'between groups':'inside group'} (px)`,active.gap,0,80,gap=>patch({gap}))}</>)}
  {card('appearance','Appearance','Scale, spacing, color and background','◉',<>{active.id===layout.root.id&&<><Focusable flow-children="row" className="claw-builder-fields">{slider('Corner radius',appearance.rounding,0,20,rounding=>patchAppearance({rounding}))}{slider('Overlay background opacity (%)',active.background?active.opacity:appearance.opacity,0,100,opacity=>active.background?patch({opacity}):patchAppearance({opacity}))}</Focusable><ToggleField label="Superscript units (°C, MHz, GiB, ms, W, %)" checked={appearance.unit_superscript} onChange={unit_superscript=>patchAppearance({unit_superscript})}/></>}{active.kind==='group'&&<Focusable flow-children="row" className="claw-builder-fields">{slider('Group padding',active.padding,0,80,padding=>patch({padding}))}</Focusable>}{active.kind==='metric'&&<>{active.token==='graph'&&<>{owner?.axis==='column'&&<ToggleField label="Match readings width" checked={active.width===0} onChange={checked=>patch({width:checked?0:180})}/>}<Focusable flow-children="row" className="claw-builder-fields">{(active.width!==0||owner?.axis!=='column')&&slider('Graph width',active.width||180,40,1000,width=>patch({width}))}{slider('Graph height',active.height,16,240,height=>patch({height}))}</Focusable></>}{active.token==='graph'&&select('Graph style',appearance.graph_style,graphStyleChoices.map(({id,label})=>({data:id,label})),graph_style=>patchAppearance({graph_style:graph_style as GraphStyle}))}{active.token==='separator'&&<Focusable flow-children="row" className="claw-builder-fields">{slider('Line length',active.width,40,1000,width=>patch({width}))}{slider('Line thickness',active.height,1,20,height=>patch({height}))}</Focusable>}{colors(active.token==='separator'?'Separator color':'Color override','color')}</>}{slider('Element scale (%)',active.scale,50,250,scale=>patch({scale}))}{colors('Group / element background','background')}{active.background&&active.id!==layout.root.id&&slider('Background opacity (%)',active.opacity,0,100,opacity=>patch({opacity}))}<ToggleField label="Outline" checked={active.outline} onChange={outline=>patch({outline})}/></>)}
  {card('position','Position on screen','Anchor and horizontal / vertical offset','⌖',<>{select('Anchor',layout.anchor,anchors.map(data=>({data,label:data==='center-left'?'Center left':data==='center-right'?'Center right':data})),setAnchor)}<Focusable flow-children="row" className="claw-builder-fields">{slider('Horizontal offset',layout.x,0,2000,x=>commit({...layout,x}))}{slider(layout.anchor.startsWith('center-')?'Vertical offset from center':'Vertical offset',layout.y,layout.anchor.startsWith('center-')?-2000:0,2000,y=>commit({...layout,y}))}</Focusable></>)}
- </div><Focusable flow-children="row" className="claw-builder-actions">{button('Apply layout',apply)}{button('Cancel',()=>closeModal?.())}</Focusable></div></div>{error&&<div role="alert" className="claw-builder-error">{error}</div>}</div>
+ </div>{saveOpen&&<div className="claw-builder-save-style" style={{padding:'5px 7px',borderTop:'1px solid #2b3643'}}>
+ {select('Style slot',saveSlot,[...(freeSlot?[{data:'new',label:'+ New style'}]:[]),...styleSlotIds.filter(id=>styleStore.presets[id]).map(id=>({data:id,label:styleStore.names[id]||'Style '+id}))],slot=>{SaveSlot(slot);StyleName(slot==='new'?'':styleStore.names[slot]||'');SaveMessage('')})}
+ <TextField label="Style name" value={styleName} disabled={saving} onChange={event=>StyleName(event.target.value.slice(0,24))}/>
+ {saveSlot!=='new'&&<small>Replaces this style with the current editor draft.</small>}
+ {button(saving?'Saving…':saveSlot==='new'?'Save new style':'Overwrite style',()=>void saveStyle(),saving||!onSaveStyle||(saveSlot==='new'&&!freeSlot))}
+ {saveMessage&&<div role="status" style={{fontSize:12,padding:'4px 0'}}>{saveMessage}</div>}
+ </div>}<Focusable flow-children="row" className="claw-builder-actions">{button('Save style',()=>{if(!saveOpen&&saveSlot==='new'&&!freeSlot){const slot=styleSlotIds.find(id=>styleStore.presets[id])!;SaveSlot(slot);StyleName(styleStore.names[slot]||'');}SaveOpen(!saveOpen)},saving||!onSaveStyle)}{button('Apply layout',apply,saving)}{button('Cancel',close,saving)}</Focusable></div></div>{error&&<div role="alert" className="claw-builder-error">{error}</div>}</div>
  </div></ModalRoot>;
 }

@@ -120,3 +120,14 @@ assert.equal(styleModified(bgPreset,{...bgCurrent,background:{...background,angl
 
 for(const hud_position of ['center-left','center-right'])assert.equal(styleLayoutFrom({hud_position,group_gap_x:24}).hud_position,hud_position);
 assert.equal(styleLayoutFrom({group_gap_x:24}).group_gap_x,24);
+
+const editorDoc=JSON.parse(readFileSync('assets/modular/horizontal.json'));
+const editorLive={...current,modular_enabled:false,modular_layout:editorDoc,opacity:80};
+const editorDraft=structuredClone(editorDoc);editorDraft.root.name='Unsaved editor layout';
+const editorSnapshot=module.exports.styleSnapshotFrom({...editorLive,modular_enabled:true,modular_layout:editorDraft,opacity:55});
+assert.equal(editorSnapshot.modular_layout.root.name,'Unsaved editor layout');
+assert.equal(editorSnapshot.modular_enabled,true);assert.equal(editorSnapshot.opacity,55);
+assert.equal(editorSnapshot.groups.cpu,current.cpu);assert.equal(editorSnapshot.font_weight,current.font_weight);
+editorDraft.root.name='Later edit';assert.equal(editorSnapshot.modular_layout.root.name,'Unsaved editor layout');
+assert.equal(editorLive.modular_layout.root.name,editorDoc.root.name);
+console.log('PASS shared style snapshot: editor draft and main-menu appearance/metrics use one detached preset format.');

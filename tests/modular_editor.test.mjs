@@ -68,3 +68,15 @@ assert.equal(vm.settings.modular_layout.root.axis,'column');
 assert.equal(modal.type,'Builder');assert.equal(modal.props.initial.root.axis,'column','Vertical opens its own template in the editor');
 const toggle=render().find(n=>n.type==='ToggleField'&&n.props.label==='Use editable renderer (test)');toggle.props.onChange(false);assert(!vm.settings.modular_enabled);
 console.log('PASS modular UI: preset selection, group edit, compact actions, rejected import retention, valid import and legacy toggle. Mock controls do not establish gamepad navigation.');
+
+button('Edit overlay').props.onClick();
+vm.current={current:vm.settings};
+let savedStyle;
+vm.savePreset=async(slot,draft,name)=>{savedStyle={slot,draft,name};vm.current.current={...vm.settings,style_presets:{[slot]:draft},style_names:{[slot]:name}};return true};
+const beforeSaveClose=closeCalls,liveLayout=JSON.stringify(vm.settings.modular_layout);
+const saved=await modal.props.onSaveStyle('2',draft,appearance,'My overlay');
+assert.equal(saved.names['2'],'My overlay');assert.equal(savedStyle.draft.modular_layout.root.gap,13);assert.equal(savedStyle.draft.opacity,67);
+assert.equal(closeCalls,beforeSaveClose);assert.equal(JSON.stringify(vm.settings.modular_layout),liveLayout);
+vm.savePreset=async()=>false;
+await assert.rejects(()=>modal.props.onSaveStyle('2',draft,appearance,'Retry'),/not saved/);
+console.log('PASS editor style bridge: current unsaved draft/appearance reaches shared style store without closing or applying; failed saves reject.');

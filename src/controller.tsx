@@ -16,7 +16,7 @@ import {
 } from "@decky/ui";
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds} from "./style-presets";
+import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds, styleSnapshotFrom} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 import type {SectionKey} from "./components/AccordionCard";
 
@@ -300,6 +300,7 @@ export const defaults: Settings = {
 
 // Callable methods are provided by the Decky Python backend.
 export const load = callable<[], Settings>("get_settings");
+const saveStyleSettings = callable<[Settings], {ok:boolean}>("save_style_settings");
 export const save = callable<[Settings], { ok: boolean; config_path: string }>("save_settings");
 export const getInfo = callable<[], Info>("get_info");
 export const getTdpStatus = callable<[], TdpStatus>("get_tdp_status");
@@ -636,7 +637,9 @@ export function useClawController() {
     return ()=>{cancelled=true;};
   },[ready]);
 
-  const update = (patch: Partial<Settings>) => {
+  const update = (patch: Partial<Settings>, stylesOnly=false):Promise<boolean> => {
+    let complete!:(ok:boolean)=>void;
+    const completion=new Promise<boolean>(resolve=>{complete=resolve});
     const next = { ...current.current, ...patch };
     current.current = next;
     const id = ++revision.current;
@@ -644,13 +647,16 @@ export function useClawController() {
     setStatus("Saving…");
     queue.current = queue.current.then(async () => {
       try {
-        const result = await withTimeout(save(next));
+        const result = await withTimeout(stylesOnly?saveStyleSettings(next):save(next));
         if (!result.ok) throw new Error("Backend did not confirm the save.");
-        if (id === revision.current) setStatus("Saved. Restart the game to apply changes.");
+        if (id === revision.current) setStatus(stylesOnly?"Style saved.":"Saved. Restart the game to apply changes.");
+        complete(true);
       } catch (error) {
         if (id === revision.current) setStatus("Save failed: " + String(error));
+        complete(false);
       }
     });
+    return completion;
   };
 
   // Copy synchronously from a button click: SteamOS Game Mode often does
@@ -760,16 +766,14 @@ export function useClawController() {
     delete next[key];
     update({token_colors: next});
   };
-  const savePreset = (slot: string) => {
-    const d = current.current;
-    const preset: SavedStyle = {
-      version:3, ...styleLayoutFrom(d),
-      // Save BOTH the main cards and individual sensor switches per style.
-      ...styleMetricSnapshotFrom(d),
-      colors: {...d.colors}, font_weight: d.font_weight, fps_bold: d.fps_bold,
-      token_weights: {...d.token_weights}, token_colors: {...d.token_colors},
-    };
-    update({style_presets: {...d.style_presets, [slot]: preset},active_style:slot});
+  const savePreset = (slot: string, draft?:Partial<Settings>, name?:string) => {
+    const d=current.current;
+    if(!styleSlotIds.includes(slot))return Promise.resolve(false);
+    const preset=styleSnapshotFrom({...d,...draft}) as SavedStyle;
+    const style_names={...d.style_names};
+    if(name!==undefined){const title=cleanName(name);if(title)style_names[slot]=title;else delete style_names[slot];}
+    return update({style_presets:{...d.style_presets,[slot]:preset},style_names,
+      ...(!draft?{active_style:slot}:{})},Boolean(draft));
   };
   const addPreset=()=>{const slot=styleSlotIds.find(id=>!current.current.style_presets[id]);if(slot)savePreset(slot);};
   const deletePreset=(slot:string)=>{const d=current.current;if(!d.style_presets[slot])return;const presets={...d.style_presets},names={...d.style_names};delete presets[slot];delete names[slot];update({style_presets:presets,style_names:names,active_style:d.active_style===slot?null:d.active_style});};
