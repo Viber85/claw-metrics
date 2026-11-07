@@ -1,3 +1,7 @@
+## v0.2.4-test.96 — Classic spacing and FPS summary alignment
+
+Classic horizontal readings now use equal-width digit cells for the digits actually displayed. Oversized placeholders no longer insert invisible extra digits between metrics. Fixed-fit table columns preserve the configured internal and group gaps; the outside background retains its largest measured width until settings or styles change. AVG and 1% LOW use the same vertical centering as CPU/GPU, including an enlarged main FPS number. Existing fonts, colors, units, padding and saved settings are retained.
+
 ## v0.2.4-test.95 — Classic HUD overlay options
 
 The classic Horizontal and Vertical HUDs now expose **Superscript units** under **Layout → Size & appearance**, **Horizontal / Vertical group spacing** under **Layout → Spacing**, and **Center left / Center right** under **Layout → Position**. These use the existing classic renderer without a Layout Builder document. Horizontal group spacing adds space between table groups independently of internal value gaps and column padding. Existing settings keep a zero additional gap. Center anchors follow the measured HUD height; Y=0 centers vertically, negative Y moves up and positive Y moves down. Custom renderer controls are disabled when the native bundle is unavailable. Normal and superscript readings retain per-token fonts, colors and text outlines.

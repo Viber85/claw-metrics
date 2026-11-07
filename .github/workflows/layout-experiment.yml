@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.95 ZIP
+name: Build Claw Metrics v0.2.4 test.96 ZIP
 on:
   push:
-    branches: [test/classic-overlay-options-95]
+    branches: [test/classic-spacing-alignment-96]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.95
+  group: claw-metrics-v0.2.4-test.96
   cancel-in-progress: true
 
 jobs:
@@ -129,6 +129,7 @@ jobs:
           python3 ../tools/check_extra_metrics.py src
           python3 ../experiments/enable_modular_renderer.py src
           python3 ../experiments/enable_classic_overlay_options.py src
+          python3 ../experiments/fix_classic_spacing_alignment.py src
           python3 ../experiments/guard_glx_swap_interval.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
@@ -240,7 +241,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.95.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.96.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -256,18 +257,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.95', package['version']
+              assert package['version'] == '0.2.4-test.96', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.95
-          path: ClawMetrics-v0.2.4-test.95.zip
+          name: ClawMetrics-v0.2.4-test.96
+          path: ClawMetrics-v0.2.4-test.96.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.95 ClawMetrics-v0.2.4-test.95.zip \
+          gh release create v0.2.4-test.96 ClawMetrics-v0.2.4-test.96.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.95 – Classic HUD units, spacing and center anchors" \
-            --notes "Experimental test.95: Classic horizontal and vertical HUDs now expose Superscript units, independent group spacing and Center left/right anchors in Layout. Native classic rendering supports compact and non-inline unit paths. Existing layouts and style settings are preserved. CI checks frontend callbacks, ImGui glyphs/indices, live Vulkan layout/anchor/spacing transitions, OpenGL and packaged fonts. Handheld/gamepad behavior still requires device confirmation."
+            --title "Claw Metrics v0.2.4-test.96 – Classic HUD spacing and FPS summary alignment" \
+            --notes "Experimental test.96: Classic horizontal readings use tabular digit cells and natural widths instead of oversized numeric placeholders. AVG and 1% LOW use the same vertical centering as CPU/GPU. Fixed-fit table columns avoid stretched gaps; the outer background retains its maximum width until settings change. CI verifies production glyph alignment at 100/200% FPS scale, Vulkan transitions, OpenGL, ImGui and ZIP contents. Handheld confirmation remains necessary."

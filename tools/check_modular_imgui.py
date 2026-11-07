@@ -133,6 +133,12 @@ def run(args):
         subprocess.run([str(binary),str(font),str(target)],check=True)
         raster(target.with_suffix('.json'))
 
+        binary=tmp/'classic-row-probe'
+        subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(ROOT/'experiments/native'),str(ROOT/'tools/classic_row_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
+        target=output/'classic-row'
+        subprocess.run([str(binary),str(font),str(target)],check=True)
+        raster(target.with_suffix('.json'))
+
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())

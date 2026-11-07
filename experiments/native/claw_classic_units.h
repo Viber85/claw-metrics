@@ -14,33 +14,67 @@ inline std::pair<std::string,std::string> parts(int token,const std::string& val
         return {value.substr(0,value.size()-4),"FPS"};
     return claw_modular::unit_parts(key(token),value);
 }
-inline std::string reference(int token,const std::string& value) {
-    const auto p=parts(token,value);if(p.second.empty())return value;
-    if(token==25||token==27){const auto at=p.first.find_last_of(' ');return (at==std::string::npos?std::string():p.first.substr(0,at+1))+"888.8 "+p.second;}
-    return std::string(token==6||token==11||token==21?"8888":token==4||token==9||token==23?"100":"888.8")+" "+p.second;
+// Equal-width digit cells stabilize changing values without reserving
+// invisible extra digits between a reading and the next reading.
+inline float digit_advance(ImFont* font,float size){
+    float width=0;for(char ch='0';ch<='9';++ch)width=std::max(width,font->GetCharAdvance(ch));
+    return width*size/font->FontSize;
 }
-inline ImVec2 extent(int token,const std::string& value,ImFont* font,float size,bool raised) {
+inline float number_width(ImFont* font,float size,const std::string& value,bool tabular){
+    if(!tabular)return font->CalcTextSizeA(size,1e10f,0,value.c_str()).x;
+    const float digit=digit_advance(font,size);float width=0;
+    for(size_t i=0;i<value.size();){
+        if(value[i]>='0'&&value[i]<='9'){width+=digit;++i;}
+        else{const auto end=value.find_first_of("0123456789",i);const auto part=value.substr(i,end==std::string::npos?end:end-i);width+=font->CalcTextSizeA(size,1e10f,0,part.c_str()).x;i=end==std::string::npos?value.size():end;}
+    }return width;
+}
+inline void number_text(ImDrawList* draw,ImFont* font,float size,ImVec2 pos,ImU32 color,const std::string& value,bool tabular){
+    if(!tabular){draw->AddText(font,size,pos,color,value.c_str());return;}
+    const float digit=digit_advance(font,size);
+    for(size_t i=0;i<value.size();){
+        if(value[i]>='0'&&value[i]<='9'){
+            const char text[]={value[i],0};const float advance=font->GetCharAdvance(value[i])*size/font->FontSize;
+            draw->AddText(font,size,ImVec2(pos.x+(digit-advance)*.5f,pos.y),color,text);pos.x+=digit;++i;
+        }else{const auto end=value.find_first_of("0123456789",i);const auto part=value.substr(i,end==std::string::npos?end:end-i);draw->AddText(font,size,pos,color,part.c_str());pos.x+=font->CalcTextSizeA(size,1e10f,0,part.c_str()).x;i=end==std::string::npos?value.size():end;}
+    }
+}
+inline float& width_floor(){static float value=0;return value;}
+inline float hold_width(float value){
+    static ImVec2 viewport;const auto screen=ImGui::GetIO().DisplaySize;auto& width=width_floor();
+    if(screen.x!=viewport.x||screen.y!=viewport.y){width=0;viewport=screen;}
+    width=std::max(width,value);return width;
+}
+inline ImGuiTableFlags table_flags(bool compact){return ImGuiTableFlags_NoClip|(compact?ImGuiTableFlags_SizingFixedFit:0);}
+inline bool draw_number(const std::string& value,ImU32 color,ImU32 outline=0,float thickness=0){
+    if(value.empty()||value.find_first_not_of("0123456789.-+")!=std::string::npos)return false;
+    auto* font=ImGui::GetFont();const float size=ImGui::GetFontSize();const auto origin=ImGui::GetCursorScreenPos();
+    ImGui::Dummy(ImVec2(number_width(font,size,value,true),font->CalcTextSizeA(size,1e10f,0,value.c_str()).y));
+    auto* draw=ImGui::GetWindowDrawList();
+    if((outline&IM_COL32_A_MASK)&&thickness>0)for(auto shift:{ImVec2(-thickness,0),ImVec2(thickness,0),ImVec2(0,-thickness),ImVec2(0,thickness)})
+        number_text(draw,font,size,ImVec2(origin.x+shift.x,origin.y+shift.y),outline,value,true);
+    number_text(draw,font,size,origin,color,value,true);return true;
+}
+inline ImVec2 extent(int token,const std::string& value,ImFont* font,float size,bool raised,bool tabular=false) {
     const auto p=parts(token,value);
     const auto base=font->CalcTextSizeA(size,1e10f,0,p.first.c_str());
     if(p.second.empty())return base;
     const auto unit=font->CalcTextSizeA(size*(raised?.7f:1.f),1e10f,0,p.second.c_str());
-    return ImVec2(base.x+claw_modular::unit_gap(size)+unit.x,base.y+(raised?size*.18f:0));
+    return ImVec2(number_width(font,size,p.first,tabular)+claw_modular::unit_gap(size)+unit.x,base.y+(raised?size*.18f:0));
 }
 inline bool draw(int token,const std::string& value,ImU32 color,bool raised,bool stable,ImU32 outline=0,float thickness=0,ImU32 unit_color=0) {
     const auto p=parts(token,value);if(p.second.empty())return false;
     auto* font=ImGui::GetFont();const float size=ImGui::GetFontSize();
-    const auto origin=ImGui::GetCursorScreenPos();auto box=extent(token,value,font,size,raised);
-    if(stable)box.x=std::max(box.x,extent(token,reference(token,value),font,size,raised).x)+1;
+    const auto origin=ImGui::GetCursorScreenPos();auto box=extent(token,value,font,size,raised,stable);
     ImGui::Dummy(box);
     auto* list=ImGui::GetWindowDrawList();
-    auto text=[&](float scale,ImVec2 pos,const std::string& value,ImU32 foreground){
+    auto text=[&](float scale,ImVec2 pos,const std::string& value,ImU32 foreground,bool tabular){
         if((outline&IM_COL32_A_MASK)&&thickness>0)for(auto offset:{ImVec2(-thickness,0),ImVec2(thickness,0),ImVec2(0,-thickness),ImVec2(0,thickness)})
-            list->AddText(font,scale,ImVec2(pos.x+offset.x,pos.y+offset.y),outline,value.c_str());
-        list->AddText(font,scale,pos,foreground,value.c_str());
+            number_text(list,font,scale,ImVec2(pos.x+offset.x,pos.y+offset.y),outline,value,tabular);
+        number_text(list,font,scale,pos,foreground,value,tabular);
     };
-    text(size,ImVec2(origin.x,origin.y+(raised?size*.18f:0)),p.first,color);
-    const float width=font->CalcTextSizeA(size,1e10f,0,p.first.c_str()).x;
-    text(size*(raised?.7f:1.f),ImVec2(origin.x+width+claw_modular::unit_gap(size),origin.y),p.second,unit_color?unit_color:color);
+    text(size,ImVec2(origin.x,origin.y+(raised?size*.18f:0)),p.first,color,stable);
+    const float width=number_width(font,size,p.first,stable);
+    text(size*(raised?.7f:1.f),ImVec2(origin.x+width+claw_modular::unit_gap(size),origin.y),p.second,unit_color?unit_color:color,false);
     return true;
 }
 // Legacy non-inline rows submit a right-aligned number and a separate unit.
