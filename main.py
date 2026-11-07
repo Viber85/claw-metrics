@@ -1278,6 +1278,11 @@ class Plugin:
     async def get_modular_info(self):
         return {"home": str(user_home()), "export_path": str(BASE / "modular-layout-export.json")}
 
+    async def record_ui_event(self, event: str, detail: str = ''):
+        from diagnostics import record_ui_event
+        await asyncio.to_thread(record_ui_event, BASE, event, detail)
+        return {"ok": True}
+
     async def get_modular_preset(self, name: str):
         if name not in ("horizontal", "vertical"):
             raise ValueError("Unknown modular preset")

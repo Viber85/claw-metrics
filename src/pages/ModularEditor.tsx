@@ -3,7 +3,7 @@ import {callable,openFilePicker,FileSelectionType} from '@decky/api';
 import {ConfirmModal,DialogButton,Field,PanelSectionRow,ToggleField,showModal} from '@decky/ui';
 import {GamepadGrid} from '../components/GamepadGrid';
 import {ControlGroup} from '../components/ControlGroup';
-import {Builder,type BuilderAppearance} from '../modular/Builder';
+import {openEditorPage,editorRouteAvailable} from '../modular/editor-page';
 import {isHorizontalLayout,validate, type Layout} from '../modular/model';
 import type {ClawController} from '../controller';
 const preset=callable<[string],any>('get_modular_preset');
@@ -12,26 +12,17 @@ const getInfo=callable<[],{home:string}>('get_modular_info');
 export function ModularEditor({vm}:{vm:ClawController}){
  const {settings,ready,update}=vm;const [busy,Busy]=useState(false),[message,Message]=useState(''),[home,Home]=useState('/home'),[open,Open]=useState(true);
  useEffect(()=>{if(ready)void getInfo().then(v=>Home(v.home)).catch(()=>{});},[ready]);
- const canEdit=ready&&vm.info?.layout_spacing_supported!==false;
+ const canEdit=ready&&vm.info?.layout_spacing_supported!==false&&editorRouteAvailable();
  const doc=settings.modular_layout;
  const openBuilder=(layout:Layout)=>{
-  let closing=false,pending:({modular_layout:Layout;modular_enabled:true;active_style?:string}&BuilderAppearance)|undefined;
-  const close=()=>{
-   if(closing)return;
-   closing=true;editor.Close();
-   // Let Steam's modal manager restore QAM focus; forcing DOM focus here can
-   // desynchronize controller navigation after this full-screen modal closes.
-   // Wait for the close transition before triggering the backend settings save.
-   void editor.ClosedPromise.then(()=>window.setTimeout(()=>{if(pending)update(pending)},350));
-  };
-  const editor=showModal(<Builder initial={layout} settings={settings}
-   onSaveStyle={async(slot,value,appearance,name)=>{
+  openEditorPage({initial:layout,settings,
+   onSaveStyle:async(slot,value,appearance,name)=>{
     const ok=await vm.savePreset(slot,{modular_layout:value,modular_enabled:true,...appearance},name);
     if(!ok)throw new Error('Style was not saved. Try again.');
     const current=vm.current.current;
     return {presets:current.style_presets,names:current.style_names};
-   }}
-   onApply={(value,appearance,slot)=>{pending={modular_layout:value,modular_enabled:true,...appearance,...(slot?{active_style:slot}:{})};close()}} closeModal={close}/>,undefined,{bNeverPopOut:true});
+   },
+   onApply:(value,appearance,slot)=>update({modular_layout:value,modular_enabled:true,...appearance,...(slot?{active_style:slot}:{})})});
  };
  const chooseTemplate=(id:'horizontal'|'vertical')=>{
   const label=id==='horizontal'?'Horizontal':'Vertical';
@@ -39,13 +30,14 @@ export function ModularEditor({vm}:{vm:ClawController}){
    strDescription="Replace the current editable layout with a fresh template? Save the current overlay as a style first if you want to keep it."
    strOKButtonText="Use template" strCancelButtonText="Cancel"
    onCancel={()=>dialog.Close()}
-   onOK={()=>{dialog.Close();void dialog.ClosedPromise.then(()=>action(async()=>{const value=validate(await preset(id));if(value.root.axis!==(id==='horizontal'?'row':'column'))throw new Error(label+' template has the wrong direction.');update({modular_layout:value,modular_enabled:true});Message(label+' template loaded.');openBuilder(value);}));}}/>);
+   onOK={()=>{dialog.Close();void dialog.ClosedPromise.then(()=>action(async()=>{const value=validate(await preset(id));if(value.root.axis!==(id==='horizontal'?'row':'column'))throw new Error(label+' template has the wrong direction.');openBuilder(value);}));}}/>);
  };
 
  const action=async(fn:()=>Promise<void>)=>{Busy(true);Message('');try{await fn()}catch(error){Message(String(error))}finally{Busy(false)}};
  return <ControlGroup open={open} onToggle={()=>Open(!open)} title="Layout builder" summary={settings.modular_enabled?'Customizable layout enabled':'Classic renderer active'}>
   <PanelSectionRow><Field label="TEMPLATES" description="Choose a starting layout, then edit its groups and readings."/></PanelSectionRow>
-  {!canEdit&&ready&&<PanelSectionRow><Field label="Native renderer unavailable" description="Reinstall this plugin version to restore its bundled renderer."/></PanelSectionRow>}
+  {!editorRouteAvailable()&&<PanelSectionRow><Field label="Editor navigation unavailable" description="Decky could not register the editor page. Restart Decky Loader before opening the editor."/></PanelSectionRow>}
+  {vm.info?.layout_spacing_supported===false&&ready&&<PanelSectionRow><Field label="Native renderer unavailable" description="Reinstall this plugin version to restore its bundled renderer."/></PanelSectionRow>}
   <PanelSectionRow><ToggleField label="Use editable renderer (test)" checked={settings.modular_enabled} disabled={!canEdit||busy||!doc} onChange={value=>update({modular_enabled:value})}/></PanelSectionRow>
   <PanelSectionRow><GamepadGrid className="claw-tiles claw-modular-templates" columns={2} items={([['horizontal','↔ Horizontal'],['vertical','↕ Vertical']] as Array<['horizontal'|'vertical',string]>)} renderItem={([id,label])=><DialogButton key={id} aria-label={id+' template'} disabled={!canEdit||busy} style={{minWidth:0,minHeight:38,padding:'5px 4px',fontSize:12,background:"#1c3450",border:"1px solid #456987",borderRadius:8}} onClick={()=>chooseTemplate(id)}>{label}</DialogButton>}/></PanelSectionRow>
   <PanelSectionRow><Field label="CURRENT OVERLAY" description={doc?`${isHorizontalLayout(doc)?'Horizontal':'Vertical'} · Save it in Colors & Font → Styles to keep it for later.`:'Choose a template to begin.'}/></PanelSectionRow>

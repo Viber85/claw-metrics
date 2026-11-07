@@ -8,10 +8,15 @@ import platform
 import re
 import subprocess
 import time
+import threading
 import uuid
 import zipfile
 
 MAX_BYTES = 8 * 1024 * 1024
+UI_EVENTS = {'editor_open','editor_mount','editor_exit_request','editor_unmount',
+             'editor_apply_start','editor_apply_done','editor_dispose','ui_error',
+             'settings_queued','settings_save_start','settings_saved','settings_error'}
+_ui_lock = threading.Lock()
 
 
 def read_text(path, limit=65536):
@@ -46,6 +51,24 @@ def redact(text):
     return text
 
 
+def record_ui_event(base, event, detail=''):
+    if event not in UI_EVENTS:
+        raise ValueError('Unknown UI event')
+    root = pathlib.Path(base) / 'diagnostics'
+    entry = json.dumps({'at': time.time(), 'monotonic': time.monotonic(),
+                        'boot_id': read_text('/proc/sys/kernel/random/boot_id',128).strip(), 'event': event,
+                        'detail': redact(str(detail))[:400]}, ensure_ascii=True) + '\n'
+    with _ui_lock:
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        target = root / 'editor-ui.jsonl'
+        if target.exists() and target.stat().st_size > 60000:
+            lines = target.read_bytes()[-30000:].splitlines()[1:]
+            target.write_bytes(b'\n'.join(lines) + b'\n')
+        with target.open('a', encoding='utf-8') as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            stream.write(entry);stream.flush();os.fsync(stream.fileno())
+
+
 def command_result(args):
     """Bound memory, wall time and output, including when journald is absent."""
     try:
@@ -58,9 +81,16 @@ def command_result(args):
                 process.kill()
                 process.wait()
                 return {'ok': False, 'returncode': None, 'text': 'Unavailable: command timed out\n'}
-            output.seek(0)
+            total = output.seek(0, os.SEEK_END)
+            # Preserve the newest evidence. Reading the first 512 KiB of a
+            # large journal excerpt can lose the actual error at its end.
+            offset = max(0, total - 512 * 1024)
+            output.seek(offset)
+            payload = output.read(512 * 1024)
             return {'ok': process.returncode == 0, 'returncode': process.returncode,
-                    'text': redact(output.read(512 * 1024).decode('utf-8', 'replace'))}
+                    'text': redact(payload.decode('utf-8', 'replace')),
+                    'queried_output_bytes': total, 'captured_bytes': len(payload),
+                    'byte_truncated': offset > 0}
     except OSError as error:
         return {'ok': False, 'returncode': None,
                 'text': 'Unavailable: ' + type(error).__name__ + '\n'}
@@ -282,11 +312,27 @@ class SessionRecorder:
             if result['returncode'] == 1 and result['text'].strip() == '-- No entries --':
                 result = {**result, 'ok': True}
             results[name] = result
-        details = {'format_version': 3, 'journal_ok': journal_result['ok'],
+        all_results = {'system-journal.log':journal_result, **results}
+        start = float(meta['started_at'])
+        end = float(meta.get('ended_at',meta.get('last_sample_at',start))) + 15
+        ui_events=[]
+        for line in read_text(self.root / 'editor-ui.jsonl',65536).splitlines():
+            try:
+                entry=json.loads(line)
+                if entry.get('boot_id')==boot and start-1<=float(entry['at'])<=end:
+                    ui_events.append(entry)
+            except (ValueError,TypeError,KeyError):
+                continue
+        details = {'format_version': 4, 'journal_ok': journal_result['ok'],
                    'journal_returncode': journal_result['returncode'],
                    'log_queries': {name: {'ok': result['ok'], 'returncode': result['returncode'],
-                                         'line_limit': 2500, 'byte_limit': 512 * 1024}
-                                   for name, result in results.items()},
+                                         'line_limit': 2500, 'byte_limit': 512 * 1024,
+                                         'line_limit_reached':None if result.get('byte_truncated') else len(result['text'].splitlines())>=2500,
+                                         'queried_output_bytes':result.get('queried_output_bytes'),
+                                         'captured_bytes':result.get('captured_bytes'),
+                                         'byte_truncated':result.get('byte_truncated')}
+                                   for name, result in all_results.items()},
+                   'ui_event_count':len(ui_events),
                    'journal_boot_id': journal_boot, 'exported_at': time.time(), 'session_boot_id': boot,
                    'current_boot_id': self.boot_id, 'journal_scope': 'Recorded boot and session time window. Each log is independently queried and bounded; logs may be incomplete or unavailable.',
                    'privacy': 'Home usernames, common credentials and IPv4 redacted. Review logs before sharing. No automatic upload.',
@@ -306,6 +352,7 @@ class SessionRecorder:
                     archive.writestr('compatibility.json', redact(json.dumps(meta.get('compatibility',
                                      {'support_status': 'Unavailable: session predates capability discovery.'}), indent=2)))
                     archive.writestr('diagnostics.json', json.dumps(details, indent=2))
+                    archive.writestr('editor-ui.jsonl', redact(''.join(json.dumps(event)+'\n' for event in ui_events)))
                 raw.flush()
                 os.fsync(raw.fileno())
             os.replace(temp, target)

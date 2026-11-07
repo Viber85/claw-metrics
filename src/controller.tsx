@@ -17,6 +17,7 @@ import {
 import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds, styleSnapshotFrom} from "./style-presets";
+import {traceEditor} from "./modular/editor-page";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 import type {SectionKey} from "./components/AccordionCard";
 
@@ -643,16 +644,20 @@ export function useClawController() {
     const next = { ...current.current, ...patch };
     current.current = next;
     const id = ++revision.current;
+    traceEditor("settings_queued",String(id)+" "+Object.keys(patch).sort().join(","));
     setSettings(next);
     setStatus("Saving…");
     queue.current = queue.current.then(async () => {
+      traceEditor("settings_save_start",String(id));
       try {
         const result = await withTimeout(stylesOnly?saveStyleSettings(next):save(next));
         if (!result.ok) throw new Error("Backend did not confirm the save.");
         if (id === revision.current) setStatus(stylesOnly?"Style saved.":"Saved. Restart the game to apply changes.");
+        traceEditor("settings_saved",String(id));
         complete(true);
       } catch (error) {
         if (id === revision.current) setStatus("Save failed: " + String(error));
+        traceEditor("settings_error",String(id)+" "+String(error));
         complete(false);
       }
     });

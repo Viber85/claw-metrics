@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
+import { callable, definePlugin, routerHook } from "@decky/api";
 import {
   ButtonItem,
   ConfirmModal,
@@ -19,6 +19,9 @@ import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle,
 import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "./style-presets";
 import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 import {useClawController,readActivePdcProfileKey,setTdpGameContext} from "./controller";
+import {EditorPage} from "./pages/EditorPage";
+import {UiBoundary} from "./components/UiBoundary";
+import {EDITOR_PATH,disposeEditorPage,setEditorRouteAvailable,traceEditor} from "./modular/editor-page";
 import {OverlayCard} from "./pages/OverlayCard";
 import {LayoutCard} from "./pages/LayoutCard";
 import {MetricsCard} from "./pages/MetricsCard";
@@ -314,6 +317,9 @@ function Content(){
 }
 
 export default definePlugin(() => {
+  let editorRouteRegistered=false;
+  try{routerHook.addRoute(EDITOR_PATH,EditorPage,{exact:true});editorRouteRegistered=true;setEditorRouteAvailable(true)}
+  catch(error){setEditorRouteAvailable(false);traceEditor('ui_error','Route registration: '+String(error))}
   let stopped = false;
   let pending = false;
   const report = async () => {
@@ -330,9 +336,9 @@ export default definePlugin(() => {
   return {
     name: "Claw Metrics",
     titleView: <div>Claw Metrics</div>,
-    content: <Content />,
+    content: <UiBoundary><Content /></UiBoundary>,
     icon: <FaChartLine />,
-    onDismount() { stopped = true; clearInterval(timer); },
+    onDismount() { stopped = true; clearInterval(timer); disposeEditorPage(); setEditorRouteAvailable(false); if(editorRouteRegistered)routerHook.removeRoute(EDITOR_PATH); },
   };
 });
 

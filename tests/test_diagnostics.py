@@ -6,7 +6,7 @@ import unittest
 import zipfile
 from unittest.mock import patch
 
-from diagnostics import SessionRecorder, redact, MAX_BYTES
+from diagnostics import SessionRecorder, redact, MAX_BYTES, record_ui_event
 
 
 class RecorderTests(unittest.IsolatedAsyncioTestCase):
@@ -55,7 +55,8 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('--until', args)
         with zipfile.ZipFile(result['path']) as report:
             self.assertIsNone(report.testzip())
-            self.assertEqual(len(report.namelist()), 8)
+            self.assertEqual(len(report.namelist()), 9)
+            self.assertIn('editor-ui.jsonl',report.namelist())
             self.assertIn(b'amdgpu timeout', report.read('gpu-errors.log'))
             self.assertIn(b'decky error', report.read('decky.log'))
         self.assertEqual(pathlib.Path(result['path']).stat().st_mode & 0o777, 0o600)
@@ -95,6 +96,23 @@ class RecorderTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(details['journal_returncode'], 1)
             self.assertIn(b'collection failed', report.read('gpu-errors.log'))
             self.assertIn(b'collection failed', report.read('decky.log'))
+
+    async def test_ui_export_uses_only_the_recorded_boot_and_time_window(self):
+        await self.recorder.start();await self.recorder.stop()
+        meta=self.recorder.meta
+        entries=[{'at':meta['started_at'],'boot_id':self.recorder.boot_id,'event':'settings_save_start'},
+                 {'at':meta['started_at']-100,'boot_id':self.recorder.boot_id,'event':'editor_open'},
+                 {'at':meta['started_at'],'boot_id':'other-boot','event':'ui_error'}]
+        (self.recorder.root/'editor-ui.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in entries))
+        with patch('diagnostics.command_result',return_value={'ok':True,'returncode':0,'text':'','byte_truncated':True,'queried_output_bytes':700000,'captured_bytes':524288}):
+            result=self.recorder.export(self.recorder.current.name)
+        with zipfile.ZipFile(result['path']) as report:
+            rows=[json.loads(line) for line in report.read('editor-ui.jsonl').splitlines()]
+            self.assertEqual(rows,[entries[0]])
+            details=json.loads(report.read('diagnostics.json'))
+            self.assertEqual(details['ui_event_count'],1)
+            self.assertTrue(details['log_queries']['system-journal.log']['byte_truncated'])
+            self.assertIsNone(details['log_queries']['system-journal.log']['line_limit_reached'])
 
     async def test_invalid_boot_does_not_query_unrelated_current_boot(self):
         await self.recorder.start()
@@ -199,3 +217,27 @@ class CompatibilityTests(unittest.TestCase):
             self.assertEqual(found['hwmon'][0]['channels'][0]['label'], 'Tctl')
             self.assertTrue(found['hwmon'][0]['channels'][0]['readable'])
             self.assertIn('Unverified', found['support_status'])
+
+class UiEventTests(unittest.TestCase):
+    def test_command_output_keeps_last_error_after_rgb_flood(self):
+        import sys
+        from diagnostics import command_result
+        result=command_result([sys.executable,'-c',"import sys;sys.stdout.write('RGB config spam\\n'*40000+'CRITICAL_STEAM_UI_ERROR\\n')"])
+        self.assertTrue(result['ok'])
+        self.assertTrue(result['byte_truncated'])
+        self.assertEqual(result['captured_bytes'],512*1024)
+        self.assertIn('CRITICAL_STEAM_UI_ERROR',result['text'])
+
+    def test_ui_trace_survives_reopen_is_bounded_and_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record_ui_event(directory,'editor_open')
+            record_ui_event(directory,'ui_error','/home/alice/file token=secret 192.168.1.1')
+            path=pathlib.Path(directory)/'diagnostics/editor-ui.jsonl'
+            text=path.read_text();self.assertIn('editor_open',text)
+            self.assertNotIn('alice',text);self.assertNotIn('192.168.1.1',text);self.assertNotIn('token=secret',text)
+            self.assertEqual(path.stat().st_mode&0o777,0o600)
+            with patch('diagnostics.os.fsync'):
+                for _ in range(220):record_ui_event(directory,'editor_exit_request','x'*400)
+            self.assertLess(path.stat().st_size,61000)
+            self.assertEqual(json.loads(path.read_text().splitlines()[-1])['event'],'editor_exit_request')
+            with self.assertRaises(ValueError):record_ui_event(directory,'unknown')

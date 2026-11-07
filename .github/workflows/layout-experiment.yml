@@ -62,6 +62,8 @@ jobs:
           node tests/style_presets.test.mjs
           node tests/slider_field.test.mjs
           node tests/session_reports.test.mjs
+          node tests/editor_page.test.mjs
+          node tests/ui_boundary.test.mjs
           node tests/modular_editor.test.mjs
           node tests/modular_builder.test.mjs
           node tests/modular_preview.test.mjs

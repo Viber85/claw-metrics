@@ -28,8 +28,9 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
-assert(render().find(n=>n.type==='ModalRoot'));
-render().find(n=>n.type==='ModalRoot').props.onOK();assert.equal(closed,false);assert.equal(applied,undefined,'implicit modal OK cannot close or apply the builder');
+assert(!render().some(n=>n.type==='ModalRoot'),'the editor is a routed page, not a Steam modal');
+assert(render().some(n=>n.props?.className==='claw-builder-page'));
+assert.equal(applied,undefined);
 assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own right-panel actions');
 assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));

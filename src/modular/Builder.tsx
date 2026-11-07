@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState, type ReactNode} from 'react';
-import {ModalRoot,DialogButton,DropdownItem,Focusable,TextField,ToggleField,showModal} from '@decky/ui';
+import {DialogButton,DropdownItem,Focusable,TextField,ToggleField,showModal} from '@decky/ui';
 import {OpaqueColorPicker,graphStyleChoices,type GraphStyle} from '../controller';
 import {LayoutSliderField} from '../components/LayoutSliderField';
 import {ModularHud,initialData} from './Hud';
@@ -56,11 +56,10 @@ export function Builder({initial,settings,onApply,onSaveStyle,closeModal}:{initi
   }
  };
  const setAnchor=(anchor:string)=>commit({...layout,anchor,y:anchor.startsWith('center-')?(layout.anchor.startsWith('center-')?layout.y:0):Math.max(0,layout.y)});
- return <ModalRoot bAllowFullSize bOKDisabled onOK={()=>{}} className="claw-builder-modal" modalClassName="claw-builder-modal" onCancel={close} closeModal={close}>
+ return <Focusable flow-children="column" className="claw-builder-page" onCancelButton={event=>{event.preventDefault();event.stopPropagation();close()}}>
  <style>{previewFontCSS}</style>
  <style>{`
- .claw-builder-modal{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;height:calc(100vh - 16px)!important;max-height:calc(100vh - 16px)!important;box-sizing:border-box}
- :is([class*="ModalDialogPopup"],[class*="ModalPosition"],[class*="ModalRoot"]):has(.claw-builder){width:100vw!important;max-width:100vw!important;height:100vh!important;max-height:100vh!important}
+ .claw-builder-page{width:100%;height:100vh;padding:8px;background:#0b1016;box-sizing:border-box;overflow:hidden}
  .claw-builder{width:100%;height:calc(100vh - 24px);min-height:320px;display:grid;grid-template-columns:minmax(0,1fr) clamp(330px,30vw,420px);gap:8px;color:#e9eef5;box-sizing:border-box}
  .claw-builder[data-orientation="horizontal"]{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(145px,19vh,175px) minmax(0,1fr)}
  .claw-builder[data-orientation="vertical"]{grid-template-columns:clamp(310px,29vw,380px) minmax(0,1fr)}
@@ -99,5 +98,5 @@ export function Builder({initial,settings,onApply,onSaveStyle,closeModal}:{initi
  {button(saving?'Saving…':saveSlot==='new'?'Save new style':'Overwrite style',()=>void saveStyle(),saving||!onSaveStyle||(saveSlot==='new'&&!freeSlot))}
  {saveMessage&&<div role="status" style={{fontSize:12,padding:'4px 0'}}>{saveMessage}</div>}
  </div>}<Focusable flow-children="row" className="claw-builder-actions">{button('Save style',()=>{if(!saveOpen&&saveSlot==='new'&&!freeSlot){const slot=styleSlotIds.find(id=>styleStore.presets[id])!;SaveSlot(slot);StyleName(styleStore.names[slot]||'');}SaveOpen(!saveOpen)},saving||!onSaveStyle)}{button('Apply layout',apply,saving)}{button('Cancel',close,saving)}</Focusable></div></div>{error&&<div role="alert" className="claw-builder-error">{error}</div>}</div>
- </div></ModalRoot>;
+ </div></Focusable>;
 }
