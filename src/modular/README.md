@@ -25,3 +25,11 @@ formatter and a vector charger icon. The HTML preview uses simulated readings.
 Tests cover schema/style persistence, native geometry, actual glyph/outline
 vertices, imported layouts and Vulkan/OpenGL. These are not handheld/controller
 focus or QAM stability validation.
+
+FPS value uses a tight digit-ink box. It no longer reserves three digits or
+full-em/superscript line height. Fixed digit cells preserve width for values
+with the same digit count; 99 to 100 grows the box. The native adapter uses
+baked glyph bounds; the editor uses the pinned font's SVG outlines and generated
+metrics from tools/generate_fps_metrics.py (fontTools required for regeneration).
+Selection outlines follow actual boxes without an added visual offset. Explicit
+padding remains independent. Other metrics retain their shared unit baselines.

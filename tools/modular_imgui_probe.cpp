@@ -12,6 +12,11 @@ int main(int argc,char**argv){
  ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.BackendFlags|=ImGuiBackendFlags_RendererHasVtxOffset;io.DisplaySize=ImVec2(width,height);io.DeltaTime=1.f/60;
  ImFont* font=io.Fonts->AddFontFromFileTTF(argv[1],24);assert(font);
  ImFont* large=io.Fonts->AddFontFromFileTTF(argv[1],48);assert(large);
+ std::vector<ImFont*> fps_faces={font,large};
+ const std::string regular_path=argv[1];const auto suffix=regular_path.rfind("Regular.ttf");
+ if(suffix!=std::string::npos)for(const auto weight:{"Light.ttf","SemiBold.ttf","Bold.ttf"}){
+  auto* face=io.Fonts->AddFontFromFileTTF((regular_path.substr(0,suffix)+weight).c_str(),24);assert(face);fps_faces.push_back(face);
+ }
  io.FontDefault=font;io.Fonts->Build();unsigned char* atlas;int aw,ah;io.Fonts->GetTexDataAsAlpha8(&atlas,&aw,&ah);
  std::ofstream pgm(std::string(argv[4])+"-atlas.pgm",std::ios::binary);pgm<<"P5\n"<<aw<<" "<<ah<<"\n255\n";pgm.write((char*)atlas,aw*ah);pgm.close();
  std::ifstream layout_file(argv[5]);
@@ -30,7 +35,7 @@ int main(int argc,char**argv){
   styles[i].text=packed(appearance.color,100);
   if(appearance.outline){styles[i].outline=packed(appearance.outline_color,appearance.outline_opacity);styles[i].outline_width=appearance.outline_width;styles[i].rounding=i?6:styles[i].rounding;}
  }
- values["fps.value"].slot="888";
+ values["fps.value"].slot="";
  values["battery.time"].slot="88:88";
  const bool charging=argc==8&&std::string(argv[7])=="charging";
  if(charging){values["battery.time"].value="";values["battery.time"].plugged=true;}
@@ -50,7 +55,7 @@ int main(int argc,char**argv){
   assert(std::abs(changed.y+changed.h/2-height/2.f-document.y)<.001f);
  }
 
- auto lower_readings=frame.readings;lower_readings["fps.value"].value="9";
+ auto lower_readings=frame.readings;lower_readings["fps.value"].value="99";
  // Compare changing readings with the same unit mode to isolate width stability.
  auto lower=prepare(nodes,styles,lower_readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
  assert(std::abs(lower.geometry.boxes[0].w-frame.geometry.boxes[0].w)<.001f);
@@ -128,7 +133,7 @@ int main(int argc,char**argv){
  for(bool raised:{false,true})for(auto align:{Align::Start,Align::Center,Align::End}){
   const std::vector<std::pair<std::string,std::string>> all={
    {"fps.label","88"},{"cpu.label","88"},{"gpu.label","88"},{"ram.label","88"},{"vram.label","88"},{"battery.label","88"},
-   {"fps.value","88"},{"fps.average","88"},{"fps.low1","88"},{"fps.ms","88 ms"},
+   {"fps.average","88"},{"fps.low1","88"},{"fps.ms","88 ms"},
    {"cpu.load","88%"},{"cpu.temp","88°C"},{"cpu.clock","88 MHz"},{"cpu.power","88 W"},
    {"gpu.load","88%"},{"gpu.temp","88°C"},{"gpu.clock","88 MHz"},{"gpu.power","88 W"},{"gpu.junction","88°C"},{"gpu.fan","88 RPM"},{"gpu.voltage","88 mV"},
    {"ram.value","88 GiB"},{"ram.game","88 GiB"},{"ram.swap","88 GiB"},{"vram.value","88 GiB"},{"vram.temp","88°C"},{"vram.clock","88 MHz"},
@@ -186,6 +191,25 @@ int main(int argc,char**argv){
   assert(ink.VtxBuffer.Size>0);unsigned max_alpha=0;
   for(const auto& v:ink.VtxBuffer){assert((v.col&~IM_COL32_A_MASK)==(styles[1].outline&~IM_COL32_A_MASK));max_alpha=std::max(max_alpha,unsigned(v.col>>IM_COL32_A_SHIFT));}
   assert(max_alpha==alpha);
+ }
+ // Tight FPS: no third-digit reservation or full-em/superscript line padding.
+ for(ImFont* face:fps_faces)for(float scale:{1.f,2.01f})for(bool raised:{false,true})for(const std::string number:{"11","84","99","100","378"}){
+  Node root;root.id="fps-tight";root.children={1};Node value;value.id="fps-value";value.group=false;value.token="fps.value";value.scale=scale;
+  Text reading;reading.font=face;reading.value=number;reading.slot="888"; // Obsolete reservation must not affect FPS.
+  auto tight=prepare({root,value},std::vector<Style>(2),{{value.token,reading}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+  const auto box=tight.geometry.boxes[1];const auto bounds=fps_ink(face,24*scale);
+  assert(std::abs(box.w-(float(number.size()-1)*bounds.advance+bounds.right-bounds.left))<.01f);
+  assert(std::abs(box.h-(bounds.bottom-bounds.top))<.01f);assert(box.h<24*scale);
+  auto plain=reading;plain.value=number.size()==2?"88":"888";
+  const auto stable=prepare({root,value},std::vector<Style>(2),{{value.token,plain}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+  assert(std::abs(stable.geometry.boxes[1].w-box.w)<.01f);
+  ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(tight,&ink);assert(ink.VtxBuffer.Size>=8);
+  float top=1e9,bottom=-1e9;
+  for(const auto& v:ink.VtxBuffer){top=std::min(top,v.pos.y);bottom=std::max(bottom,v.pos.y);assert(v.pos.x>=box.x-1.1f&&v.pos.x<=box.x+box.w+1.1f);}
+  assert(top>=box.y-1.1f&&bottom<=box.y+box.h+1.1f);
+  value.overlay_padding_x=7;value.overlay_padding_y=5;
+  const auto padded=prepare({root,value},std::vector<Style>(2),{{value.token,reading}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+  assert(std::abs(padded.geometry.boxes[1].w-box.w-14)<.01f);assert(std::abs(padded.geometry.boxes[1].h-box.h-10)<.01f);
  }
  // Verify actual graph primitives: every style honors its node override,
  // and clearing it returns to the shared plugin color.

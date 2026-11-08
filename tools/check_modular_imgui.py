@@ -103,10 +103,15 @@ def run(args):
             font=tmp/'ClawSans.ttf';font.write_bytes(gzip.decompress(base64.b64decode((ROOT/'assets/ClawSans.ttf.gz.b64').read_bytes())))
             import main
             assert hashlib.sha256(font.read_bytes()).hexdigest()==main.FONT_SHA256
-        for name in (() if args.classic_only else ('element-styles',) if args.elements_only else ('pill-overlay',) if args.pill_only else ('battery-discharging','battery-charging') if args.battery_only else ('group-tight','group-spaced') if args.spacing_only else ('graph-color',) if args.graph_only else ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right','graph-color','group-tight','group-spaced','battery-discharging','battery-charging','pill-overlay','element-styles')):
-            source='group-spacing' if name.startswith(('group-','battery-','pill-','element-')) else 'graph-focus' if name=='graph-color' else 'vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
+        for name in (() if args.classic_only else ('fps-tight',) if args.fps_only else ('element-styles',) if args.elements_only else ('pill-overlay',) if args.pill_only else ('battery-discharging','battery-charging') if args.battery_only else ('group-tight','group-spaced') if args.spacing_only else ('graph-color',) if args.graph_only else ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right','graph-color','group-tight','group-spaced','battery-discharging','battery-charging','pill-overlay','element-styles','fps-tight')):
+            source='group-spacing' if name.startswith(('group-','battery-','pill-','element-','fps-')) else 'graph-focus' if name=='graph-color' else 'vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
             preset=ROOT/('tests/fixtures' if source in ('graph-below','group-spacing') else 'assets/modular' if source in ('horizontal','vertical') else 'experiments/modular')/(source+'.json')
             document=schema.load_layout(preset.read_text())
+            if name=='fps-tight':
+                document.update(paddingX=10,paddingY=10)
+                readings=document['root']['children'][0]
+                fps=readings['children'][0];fps['axis']='row';fps['gap']=6
+                fps['children']=fps['children'][:2];fps['children'][1].update(scale=201,background='#303F56',paddingX=0,paddingY=0)
             if name=='element-styles':
                 document.update(paddingX=10,paddingY=10)
                 readings=document['root']['children'][0];readings['gap']=14
@@ -147,12 +152,12 @@ def run(args):
             subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(tmp),'-I',str(ROOT/'experiments/native'),
                             str(ROOT/'tools/modular_imgui_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
             for width,height in (((1280,800),) if name=='superscript' else ((1280,800),(1920,1080))):
-                for style in (range(1) if name=='superscript' or name.startswith(('center-','group-','battery-','pill-','element-')) else range(6)):
+                for style in (range(1) if name=='superscript' or name.startswith(('center-','group-','battery-','pill-','element-','fps-')) else range(6)):
                     target=output/f'{name}-{width}x{height}-style{style}'
-                    subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['pill'] if name=='pill-overlay' else ['charging' if name=='battery-charging' else '1'] if name=='superscript' or name.startswith('battery-') else [])],check=True)
+                    subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['pill'] if name=='pill-overlay' else ['charging' if name=='battery-charging' else '1'] if name in ('superscript','fps-tight') or name.startswith('battery-') else [])],check=True)
                     raster(target.with_suffix('.json'))
 
-        if args.graph_only or args.spacing_only or args.battery_only or args.pill_only or args.elements_only:return
+        if args.graph_only or args.spacing_only or args.battery_only or args.pill_only or args.elements_only or args.fps_only:return
 
         binary=tmp/'classic-probe'
         subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(ROOT/'experiments/native'),str(ROOT/'tools/classic_units_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
@@ -168,4 +173,4 @@ def run(args):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--graph-only',action='store_true');parser.add_argument('--spacing-only',action='store_true');parser.add_argument('--battery-only',action='store_true');parser.add_argument('--pill-only',action='store_true');parser.add_argument('--elements-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())
+    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--graph-only',action='store_true');parser.add_argument('--spacing-only',action='store_true');parser.add_argument('--battery-only',action='store_true');parser.add_argument('--pill-only',action='store_true');parser.add_argument('--elements-only',action='store_true');parser.add_argument('--fps-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())

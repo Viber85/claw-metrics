@@ -1,9 +1,10 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
 import type {Layout,Node} from './model';
+import {fpsFontMetrics} from './fps-font-metrics';
 const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
 // do not change when sample values are shorter than live values.
-const slots:Record<string,string>={'fps.value':'888','fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
+const slots:Record<string,string>={'fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
 export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,batteryStatus:'Discharging',batteryHours:2.25,draw:27,tdp:28};
 export function unitParts(token:string,value:string):[string,string]{
  const temperature=['cpu.temp','gpu.temp','gpu.junction','vram.temp'].includes(token);
@@ -31,6 +32,17 @@ export function batteryTime(count:number,status:string,hours:number,online=false
  return {text:total<1?'--':`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`,plugged:false};
 }
 export function Plug(){return <svg aria-label="Charger connected" width=".8em" height="1em" viewBox="0 0 80 100" style={{display:'block'}}><path d="M25 8V35 M55 8V35 M40 60V84H68" fill="none" stroke="currentColor" strokeWidth="7"/><rect x="12" y="30" width="56" height="34" rx="10" fill="currentColor"/></svg>}
+export function fpsBox(value:string,weight:string='regular',sans=true){
+ const metrics=fpsFontMetrics[(!sans?'sans':weight in fpsFontMetrics&&weight!=='sans'?weight:'regular') as keyof typeof fpsFontMetrics];
+ const text=/^[0-9-]+$/.test(value)?value:'--';
+ return {metrics,text,width:Math.max(0,text.length-1)*metrics.advance+metrics.right-metrics.left,height:metrics.top-metrics.bottom};
+}
+export function FpsValue({value,weight,sans}:{value:string;weight:string;sans:boolean}){
+ const {metrics:m,text,width,height}=fpsBox(value,weight,sans);
+ return <svg data-fps-ink="true" role="img" aria-label={`${text} FPS`} width={`${width/m.units}em`} height={`${height/m.units}em`} viewBox={`${m.left} ${-m.top} ${width} ${height}`} style={{display:'block',overflow:'visible',fill:'currentColor',fontFamily:'inherit',fontWeight:'inherit'}}>
+ {Array.from(text).map((digit,index)=><text key={index} x={index*m.advance+(m.advance-m.advances[digit as keyof typeof m.advances])/2} y={0} fontSize={m.units} style={{fontVariantNumeric:'normal',fontKerning:'none'}}>{digit}</text>)}
+ </svg>;
+}
 export function rgba(hex:string,opacity:number){const c=(hex||'161820').replace('#','');return `rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${opacity/100})`}
 export function backgroundStyle(s:any):React.CSSProperties{
  const b=s.background,stops=b.stops.map((p:any)=>`${rgba(p.color,s.opacity)} ${p.position}%`).join(',');
@@ -73,12 +85,13 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='time.value'?'time':n.token==='graph'?'graph':n.token==='separator'?'separator':part==='label'?category:'text';
   const color=n.color||'#'+(s.token_colors?.[n.token]||s.colors[palette]||s.colors.text);
   const px=(root?layout.paddingX:n.paddingX)??0,py=(root?layout.paddingY:n.paddingY)??0;
-  const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:0,paddingLeft:px,paddingRight:px,paddingTop:py,paddingBottom:py,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:6,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:`inset 0 0 0 ${n.outlineWidth??1}px ${rgba(n.outlineColor||'#8fb8d9',n.outlineOpacity??100)}`} :{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:3};
+  const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:0,paddingLeft:px,paddingRight:px,paddingTop:py,paddingBottom:py,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:6,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:`inset 0 0 0 ${n.outlineWidth??1}px ${rgba(n.outlineColor||'#8fb8d9',n.outlineOpacity??100)}`} :{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:0};
   const graphWidth=n.width===0?(fitWidths[n.id]??180):n.width;
   const props:any={'data-node-id':n.id,...(n.token==='graph'&&n.width===0?{'data-auto-width':'true','data-padding':px}:{}),onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';
   const alignment=parentAxis==='column'&&n.selfAlign!=='auto'?n.selfAlign:parentAlignment;
+  if(n.token==='fps.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400}}><FpsValue value={String(value)} weight={s.token_weights?.[n.token]||s.font_weight||'regular'} sans={Boolean(s.sans)}/></div>;
   if(n.token==='tdp.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.['tdp.value']||s.font_weight]||400):400,flexDirection:'row',gap:'.25em',alignItems:'flex-start'}}><span data-tdp-part="label" style={{color:n.color||'#'+(s.token_colors?.['tdp.label']||s.colors.tdp||s.colors.text),fontWeight:s.sans?(weights[s.token_weights?.['tdp.label']||s.font_weight]||400):400,lineHeight:'1em',paddingTop:s.unit_superscript?'.18em':0}}>{s.custom_labels?.tdp||'TDP'}</span><span data-tdp-part="value">{readingText('tdp.value',`${d.tdp} W`,s.unit_superscript)}</span></div>;
   if(n.token==='battery.time'&&remaining.plugged)return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color}}><span aria-hidden="true" style={{visibility:'hidden'}}>{readingText(n.token,slots[n.token],s.unit_superscript)}</span><span style={{position:'absolute',left:px,right:px,top:py,display:'flex',justifyContent:alignment==='center'?'center':alignment==='end'?'flex-end':'flex-start',paddingTop:s.unit_superscript?'.18em':0}}><Plug/></span></div>;
   return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{readingText(n.token,slots[n.token],s.unit_superscript)}</span><span style={{position:'absolute',left:px,right:px,top:py,textAlign:alignment}}>{readingText(n.token,String(value),s.unit_superscript)}</span></>:readingText(n.token,String(value),s.unit_superscript)}</div>

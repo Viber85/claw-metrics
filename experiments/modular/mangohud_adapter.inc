@@ -78,7 +78,7 @@ bool ClawTryModular() {
         if(item.value.find("tdp.txt")!=std::string::npos)set("tdp.value",claw_modular::power_text(item.ret,"TDP"));
         if(item.value.find("draw.txt")!=std::string::npos)set("battery.power",claw_modular::power_text(item.ret,"DRAW"));
     }
-    const char* slots[]={"","888","888.8 ms","","100%","888°C","8888 MHz","88.8 W","","100%","888°C","8888 MHz","88.8 W","888°C","88888 RPM","8888 mV","","888.8 GiB","","888.8 GiB","888°C","8888 MHz","","100%","88:88","","88:88","","AVG 8888.8","1% LOW 8888.8","GAME 888.8 GiB","SWAP 888.8 GiB"};
+    const char* slots[]={"","","888.8 ms","","100%","888°C","8888 MHz","88.8 W","","100%","888°C","8888 MHz","88.8 W","888°C","88888 RPM","8888 mV","","888.8 GiB","","888.8 GiB","888°C","8888 MHz","","100%","88:88","","88:88","","AVG 8888.8","1% LOW 8888.8","GAME 888.8 GiB","SWAP 888.8 GiB"};
     for(int token=0;token<32;++token)readings[keys[token]].slot=slots[token];
     for(int token:{25,27})readings[keys[token]].slot=ClawSlotReference(token,"%s",readings[keys[token]].value.c_str());
     // Keep existing TDP layout nodes and their explicit overrides intact while

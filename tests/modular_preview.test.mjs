@@ -3,8 +3,9 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
+const metrics={exports:{}};runInNewContext(ts.transpileModule(readFileSync('src/modular/fps-font-metrics.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:metrics,exports:metrics.exports});
 const module={exports:{}};
-runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]}:{},console});
+runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='./fps-font-metrics'?metrics.exports:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]}:{},console});
 const {ModularHud,unitParts,readingText}=module.exports;
 assert.equal(unitParts('cpu.temp','54°C').join('|'),'54|°C');
 assert.equal(unitParts('gpu.clock','1750 MHz').join('|'),'1750|MHz');
@@ -117,3 +118,14 @@ const groupNodes=walk(ModularHud({layout,settings,data:{},selected:'none',onSele
 const groupNode=groupNodes.find(n=>n.props?.['data-node-id']===gpu.id);
 assert.equal(groupNode.props.style.paddingLeft,19);assert.equal(groupNode.props.style.paddingTop,7);
 assert.equal(groupNode.props.style.boxShadow,'inset 0 0 0 4px rgba(255,170,204,0.35)');
+
+const {fpsBox,FpsValue}=module.exports;
+for(const weight of ['light','regular','semibold','bold'])for(const sans of [false,true]){
+ const a=fpsBox('84',weight,sans),b=fpsBox('11',weight,sans),c=fpsBox('100',weight,sans);
+ assert.equal(a.width,b.width);assert.equal(a.height,b.height);assert(c.width>a.width);
+ const value=FpsValue({value:'84',weight,sans});assert.equal(value.type,'svg');assert.equal(value.props['data-fps-ink'],'true');
+ assert.equal(value.props.style.display,'block');assert.equal(value.props.style.overflow,'visible');
+ assert.equal(value.props.width,`${a.width/a.metrics.units}em`);assert.equal(value.props.height,`${a.height/a.metrics.units}em`);
+}
+const fpsElement=groupNodes.find(n=>n.props?.['data-node-id']===fps.id);assert.equal(fpsElement.props.style.outlineOffset,0);
+console.log('PASS tight FPS preview: same-font SVG ink bounds, fixed digit cells, actual digit count and accurate selection outline.');

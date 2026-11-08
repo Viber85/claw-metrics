@@ -63,7 +63,30 @@ inline float unit_gap(float size) { return size*.14f; }
 inline float prefix_width(const Text& text,float size){
     return text.prefix.empty()?0:(text.prefix_font?text.prefix_font:text.font)->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,text.prefix.c_str()).x+size*.25f;
 }
+// Tight FPS ink bounds with fixed digit cells. Reserve actual digit count only.
+struct FpsInk {float advance=0,left=0,right=0,top=0,bottom=0;};
+inline bool fps_text(const std::string& value){return !value.empty()&&value.find_first_not_of("0123456789-")==std::string::npos;}
+inline FpsInk fps_ink(ImFont* font,float size){
+ FpsInk ink;const float scale=size/font->FontSize;
+ for(char c='0';c<='9';++c)ink.advance=std::max(ink.advance,font->GetCharAdvance(c)*scale);
+ ink.left=ink.top=std::numeric_limits<float>::max();ink.right=ink.bottom=std::numeric_limits<float>::lowest();
+ for(char c='0';c<='9';++c){const auto* g=font->FindGlyph(c);const float dx=(ink.advance-g->AdvanceX*scale)/2;
+  ink.left=std::min(ink.left,g->X0*scale+dx);ink.right=std::max(ink.right,g->X1*scale+dx);
+  ink.top=std::min(ink.top,g->Y0*scale);ink.bottom=std::max(ink.bottom,g->Y1*scale);
+ }return ink;
+}
+inline Size fps_extent(const Text& text,float size,const std::string& value){
+ const auto ink=fps_ink(text.font,size);return {float(value.size()-1)*ink.advance+ink.right-ink.left,ink.bottom-ink.top};
+}
+inline void paint_fps(ImDrawList* draw,const Text& text,float size,ImVec2 top,ImU32 color){
+ const auto ink=fps_ink(text.font,size);
+ for(size_t i=0;i<text.value.size();++i){const char digit[]={text.value[i],0};
+  const float dx=(ink.advance-text.font->GetCharAdvance(digit[0])*size/text.font->FontSize)/2;
+  draw->AddText(text.font,size,ImVec2(top.x-ink.left+i*ink.advance+dx,top.y-ink.top),color,digit);
+ }
+}
 inline Size reading_size(const Text& text,const std::string& token,float size,bool superscript,const std::string& value) {
+    if(token=="fps.value"&&fps_text(value))return fps_extent(text,size,value);
     if(text.plugged&&value.empty())return {size*.8f,size*(superscript?1.18f:1.f)};
     const auto parts=unit_parts(token,value);
     auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str());
@@ -90,7 +113,7 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
             throw std::invalid_argument("Missing font or reading");
         const auto& text=it->second;
         auto extent=reading_size(text,token,size,unit_superscript,text.value);
-        if(!text.slot.empty()){
+        if(token!="fps.value"&&!text.slot.empty()){
             auto slot=reading_size(text,token,size,unit_superscript,text.slot);
             extent.w=std::max(extent.w,slot.w);extent.h=std::max(extent.h,slot.h);
         }
@@ -192,6 +215,9 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
             const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*inset_x(n)-width));
             const auto color=style.text?style.text:text.color;
+            if(n.token=="fps.value"&&fps_text(text.value)){
+                paint_fps(draw,text,size,ImVec2(lo.x+inset_x(n)+offset,lo.y+inset_y(n)),color);return;
+            }
             const float prefix=prefix_width(text,size);
             const float baseline=lo.y+inset_y(n)+(frame.unit_superscript?size*.18f:0);
             if(text.plugged){
