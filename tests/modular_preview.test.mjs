@@ -139,3 +139,9 @@ const nativeHost=groupNodes.find(n=>n.props?.className==='modular-hud');
 assert.equal(nativeHost.props.style.fontKerning,'none');assert.equal(nativeHost.props.style.letterSpacing,0);
 for(const face of Object.values(metrics.exports.fpsFontMetrics))assert(face.lineUnits>face.units);
 console.log('PASS preview font scale: STB ascent/descent sizing, no kerning, matching FPS em geometry; browser/ImGui parity is checked separately.');
+
+const reservation=module.exports.ReservedReading({token:'cpu.clock',value:'3500 MHz',reference:'8888 MHz',superscript:true});
+assert.equal(reservation.props.style.display,'grid');assert.equal(reservation.props.style.visibility,'hidden');
+assert.equal(reservation.props.children.length,2);
+for(const layer of reservation.props.children){assert.equal(layer.props.style.gridArea,'1 / 1');assert.equal(layer.props.style.display,'flex');}
+console.log('PASS reservation layers: live/reference intrinsic maximum and no inherited inline line strut.');

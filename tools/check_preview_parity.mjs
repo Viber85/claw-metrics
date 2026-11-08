@@ -41,5 +41,5 @@ writeFileSync(output,`<!doctype html><meta charset="utf-8"><style>${previewFontC
 const dom=execFileSync(browser,['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--virtual-time-budget=3000','--dump-dom','file://'+output],{encoding:'utf8',maxBuffer:10000000,timeout:45000,stdio:['ignore','pipe','pipe']});
 const encoded=dom.match(/data-parity="([^"]+)"/);if(!encoded)throw Error('Browser did not finish font loading/geometry checks');
 const result=JSON.parse(Buffer.from(encoded[1],'base64').toString());
-if(result.failures.length){console.error(JSON.stringify(result.failures.slice(0,16),null,2));throw Error(`${result.failures.length} preview/native coordinate mismatches; max ${result.maxError}px`);}
+if(result.failures.length){console.error(JSON.stringify(result.failures.sort((a,b)=>Math.abs(b.actual-b.expected)-Math.abs(a.actual-a.expected)).slice(0,16),null,2));throw Error(`${result.failures.length} preview/native coordinate mismatches; max ${result.maxError}px`);}
 console.log(`PASS real browser / ImGui padding parity: ${cases.length} cases; max coordinate error ${result.maxError.toFixed(3)}px.`);
