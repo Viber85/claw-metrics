@@ -125,7 +125,17 @@ for(const weight of ['light','regular','semibold','bold'])for(const sans of [fal
  assert.equal(a.width,b.width);assert.equal(a.height,b.height);assert(c.width>a.width);
  const value=FpsValue({value:'84',weight,sans});assert.equal(value.type,'svg');assert.equal(value.props['data-fps-ink'],'true');
  assert.equal(value.props.style.display,'block');assert.equal(value.props.style.overflow,'visible');
- assert.equal(value.props.width,`${a.width/a.metrics.units}em`);assert.equal(value.props.height,`${a.height/a.metrics.units}em`);
+ assert.equal(value.props.width,`${a.width/a.metrics.lineUnits}em`);assert.equal(value.props.height,`${a.height/a.metrics.lineUnits}em`);
 }
 const fpsElement=groupNodes.find(n=>n.props?.['data-node-id']===fps.id);assert.equal(fpsElement.props.style.outlineOffset,0);
 console.log('PASS tight FPS preview: same-font SVG ink bounds, fixed digit cells, actual digit count and accurate selection outline.');
+
+const fontModule={exports:{}};
+runInNewContext(ts.transpileModule(fonts,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:fontModule,exports:fontModule.exports});
+const adjusted=fontModule.exports.previewFontCSS;
+assert.equal((adjusted.match(/size-adjust:83\.33333333333334%/g)||[]).length,4);
+assert(adjusted.includes('size-adjust:85.90604026845638%'));
+const nativeHost=groupNodes.find(n=>n.props?.className==='modular-hud');
+assert.equal(nativeHost.props.style.fontKerning,'none');assert.equal(nativeHost.props.style.letterSpacing,0);
+for(const face of Object.values(metrics.exports.fpsFontMetrics))assert(face.lineUnits>face.units);
+console.log('PASS preview font scale: STB ascent/descent sizing, no kerning, matching FPS em geometry; browser/ImGui parity is checked separately.');

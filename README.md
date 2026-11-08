@@ -1,3 +1,9 @@
+# Claw Metrics v0.2.4-test.108 — Preview/native padding parity
+
+The editor preview now measures the bundled fonts using the same ascent/descent scale as ImGui, rather than the CSS em square. This fixes padded RAM/VRAM cards appearing equal to CPU/GPU cards in the editor but wider after Apply. Kerning and ligatures are disabled in the preview to match native glyph advances. Tight FPS SVG bounds follow the same scale.
+
+A real Chrome/ImGui geometry check covers 24 layouts with padding on memory readings, four font weights, three font sizes, nested element scales and normal/superscript units. Existing styles keep their stored padding values. If a style was aligned using the old inaccurate preview, reopen it and adjust that padding once using the corrected preview. Native layout settings retain their meaning. Handheld appearance still requires device confirmation.
+
 # Claw Metrics v0.2.4-test.107 — Editor groups and controller navigation
 
 Group names in the editor's **Elements** tree are automatically bold; child readings use regular weight. This only changes the editor tree typography.

@@ -18,5 +18,5 @@ for key,path in fonts.items():
         if c=='-':continue
         pen=BoundsPen(glyphs);glyphs[name].draw(pen);x0,y0,x1,y1=pen.bounds
         offset=(advance-a)/2;bounds.append((x0+offset,y0,x1+offset,y1))
-    result[key]={'units':font['head'].unitsPerEm,'advance':advance,'left':min(b[0] for b in bounds),'bottom':min(b[1] for b in bounds),'right':max(b[2] for b in bounds),'top':max(b[3] for b in bounds),'advances':advances}
+    result[key]={'units':font['head'].unitsPerEm,'lineUnits':font['hhea'].ascent-font['hhea'].descent,'advance':advance,'left':min(b[0] for b in bounds),'bottom':min(b[1] for b in bounds),'right':max(b[2] for b in bounds),'top':max(b[3] for b in bounds),'advances':advances}
 (ROOT/'src/modular/fps-font-metrics.ts').write_text('// Generated from the same pinned fonts as preview-fonts.ts; tools/generate_fps_metrics.py.\nexport const fpsFontMetrics='+json.dumps(result,separators=(',',':'))+';\n')
