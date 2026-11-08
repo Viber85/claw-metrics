@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.104 ZIP
+name: Build Claw Metrics v0.2.4 test.105 ZIP
 on:
   push:
-    branches: [test/overlay-padding-pill-104]
+    branches: [test/group-padding-outline-105]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.104
+  group: claw-metrics-v0.2.4-test.105
   cancel-in-progress: true
 
 jobs:
@@ -246,7 +246,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.104.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.105.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -262,18 +262,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.104', package['version']
+              assert package['version'] == '0.2.4-test.105', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.104
-          path: ClawMetrics-v0.2.4-test.104.zip
+          name: ClawMetrics-v0.2.4-test.105
+          path: ClawMetrics-v0.2.4-test.105.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.104 ClawMetrics-v0.2.4-test.104.zip \
+          gh release create v0.2.4-test.105 ClawMetrics-v0.2.4-test.105.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.104 – Overlay padding and pill corners" \
-            --notes "Experimental test.104: Adds independent horizontal/vertical padding (0-160 px) only to the root Overlay in the editor. Child groups remain padding-free. Insets save with layouts/styles, affect measured anchors/background bounds, and keep fitted graphs inside the content area. Corner radius now supports 0-1000 with a Pill shape shortcut; rendering clamps corners to half the measured shorter side. Native V3 transports the two insets and retains V1/V2 decoding. Backend/frontend, native geometry, actual capsule vertices/fixtures, Vulkan/OpenGL and ZIP checks run before release. Retains test.103 charging/baselines and earlier diagnostics. Handheld appearance/controller focus and QAM stability remain unverified."
+            --title "Claw Metrics v0.2.4-test.105 – Element padding and group outlines" \
+            --notes "Experimental test.105: Adds independent X/Y padding (0-160 px, initially zero) to every group and reading, including graphs/separators. Group outlines gain thickness (0-12 px), color and opacity (0-100%). Outlines draw inward without adding sibling spacing; local Overlay outlines override inherited background outlines. Position on screen appears only when the root Overlay is selected. All settings persist through layouts, styles and undo/redo. Native V4 retains V1/V2/V3 decoding. Checks cover actual inset/glyph geometry, outline RGB/alpha, Vulkan/OpenGL imports, frontend/backend and ZIP contents. Retains pill corners, charging/baseline fixes and diagnostics. Handheld appearance/controller focus and QAM stability remain unverified."

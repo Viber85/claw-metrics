@@ -110,4 +110,10 @@ const overlayNode=paddedNodes.find(n=>n.props?.['data-node-id']===layout.root.id
 assert.equal(overlayNode.props.style.paddingLeft,27);assert.equal(overlayNode.props.style.paddingRight,27);
 assert.equal(overlayNode.props.style.paddingTop,13);assert.equal(overlayNode.props.style.paddingBottom,13);
 assert.equal(overlayNode.props.style.borderRadius,1000);
-assert.equal(paddedNodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.paddingLeft,undefined);
+assert.equal(paddedNodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.paddingLeft,0);
+
+gpu.paddingX=19;gpu.paddingY=7;gpu.outline=true;gpu.outlineWidth=4;gpu.outlineOpacity=35;gpu.outlineColor='#FFAACC';
+const groupNodes=walk(ModularHud({layout,settings,data:{},selected:'none',onSelect:()=>{}}));
+const groupNode=groupNodes.find(n=>n.props?.['data-node-id']===gpu.id);
+assert.equal(groupNode.props.style.paddingLeft,19);assert.equal(groupNode.props.style.paddingTop,7);
+assert.equal(groupNode.props.style.boxShadow,'inset 0 0 0 4px rgba(255,170,204,0.35)');

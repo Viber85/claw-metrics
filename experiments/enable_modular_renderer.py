@@ -20,7 +20,7 @@ assert text.count(anchor)==1
 path.write_text(text.replace(anchor,anchor+'\n#define parse_claw_modular_file(s) parse_path(s)\n#define parse_claw_unit_superscript(s) parse_unsigned(s)',1))
 path=root/'hud_elements.h';text=path.read_text()
 assert text.count('#pragma once')==1,'HUD declaration anchor mismatch'
-path.write_text(text+'\nbool ClawTryModular();\nvoid ClawModularBackground(const ImVec4& rectangle, const overlay_params& params,bool custom,ImU32 fill);\n')
+path.write_text(text+'\nbool ClawTryModular();\nvoid ClawModularBackground(const ImVec4& rectangle, const overlay_params& params,bool custom,ImU32 fill,bool local_outline);\n')
 path=root/'hud_elements.cpp';text=path.read_text()
 assert 'bool ClawTryModular()' not in text,'Already patched'
 text=text.replace('#include "hud_elements.h"','#include "hud_elements.h"\n#include "claw_modular_imgui.h"\n#include "claw_modular_loader.h"\n#include "claw_modular_power.h"',1)
@@ -38,7 +38,7 @@ path.write_text(text)
 path=root/'overlay.cpp';text=path.read_text()
 anchor='void render_imgui(swapchain_stats& data, struct overlay_params& params, ImVec2& window_size, bool is_vulkan)'
 assert text.count(anchor)==1
-wrapper=r'''void ClawModularBackground(const ImVec4& rect,const overlay_params& params,bool custom,ImU32 fill) {
+wrapper=r'''void ClawModularBackground(const ImVec4& rect,const overlay_params& params,bool custom,ImU32 fill,bool local_outline) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize,ImVec2(1,1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize,0.f);
@@ -49,7 +49,7 @@ wrapper=r'''void ClawModularBackground(const ImVec4& rect,const overlay_params& 
                  ((custom||params.claw_background_mode)?ImGuiWindowFlags_NoBackground:0));
     if(custom){auto* draw=ImGui::GetWindowDrawList();draw->AddRectFilled(ImVec2(rect.x,rect.y),ImVec2(rect.x+rect.z,rect.y+rect.w),fill,params.round_corners);}
     else ClawDrawBackground(params);
-    ClawDrawOutline(params);
+    if(!local_outline)ClawDrawOutline(params);
     ImGui::End();ImGui::PopStyleVar(3);
 }
 

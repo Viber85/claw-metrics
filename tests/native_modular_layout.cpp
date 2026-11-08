@@ -89,5 +89,13 @@ int main(){
    if(anchor==Anchor::BottomRight)assert(near(box.y+box.h,1050));
   }
  }
+ // Nested group padding contributes to siblings' positions without changing gaps.
+ auto groups=fit;groups[1].overlay_padding_x=19;groups[1].overlay_padding_y=7;
+ const auto plain_group=layout(fit,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+ const auto padded_group=layout(groups,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+ assert(near(padded_group.boxes[1].w,plain_group.boxes[1].w+38));assert(near(padded_group.boxes[1].h,plain_group.boxes[1].h+14));
+ assert(near(padded_group.boxes[2].x,padded_group.boxes[1].x+19));assert(near(padded_group.boxes[2].y,padded_group.boxes[1].y+7));
+ assert(near(padded_group.boxes[3].x-padded_group.boxes[2].x-padded_group.boxes[2].w,10));
+ assert(near(padded_group.boxes[4].w,padded_group.boxes[1].w));
  std::cout<<"PASS: nested layout, inherited scale, auto graph width, all anchors, alignment, hidden children, overflow and invalid trees\n";
 }

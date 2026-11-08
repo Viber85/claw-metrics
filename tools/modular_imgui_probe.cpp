@@ -28,7 +28,7 @@ int main(int argc,char**argv){
   };
   if(!appearance.background.empty())styles[i].fill=packed(appearance.background,appearance.opacity);
   styles[i].text=packed(appearance.color,100);
-  if(appearance.outline)styles[i].outline=IM_COL32(143,184,217,255);
+  if(appearance.outline){styles[i].outline=packed(appearance.outline_color,appearance.outline_opacity);styles[i].outline_width=appearance.outline_width;styles[i].rounding=i?6:styles[i].rounding;}
  }
  values["fps.value"].slot="888";
  values["battery.time"].slot="88:88";
@@ -166,6 +166,26 @@ int main(int argc,char**argv){
    const float cx=std::max(box.x+r,std::min(box.x+box.w-r,v.pos.x));const float cy=std::max(box.y+r,std::min(box.y+box.h-r,v.pos.y));
    assert(std::hypot(v.pos.x-cx,v.pos.y-cy)<=r+1.5f);
   }
+ }
+ // Per-element insets move actual text ink; outlines retain independent alpha.
+ {
+  Node root;root.id="element-insets";root.children={1};Node metric;metric.id="reading";metric.group=false;metric.token="cpu.load";
+  Text text;text.font=font;text.value="88%";
+  auto sample=[&](float px,float py){metric.overlay_padding_x=px;metric.overlay_padding_y=py;return prepare({root,metric},std::vector<Style>(2),{{metric.token,text}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);};
+  auto plain=sample(0,0),padded=sample(11,5);
+  assert(std::abs(padded.geometry.boxes[1].w-plain.geometry.boxes[1].w-22)<.001f);assert(std::abs(padded.geometry.boxes[1].h-plain.geometry.boxes[1].h-10)<.001f);
+  auto origin=[&](const Frame& f){ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(f,&ink);assert(ink.VtxBuffer.Size>=4);return ink.VtxBuffer[0].pos;};
+  const auto a=origin(plain),b=origin(padded);assert(std::abs(b.x-a.x-11)<.01f&&std::abs(b.y-a.y-5)<.01f);
+ }
+ for(float stroke:{0.f,1.f,4.f,12.f})for(unsigned alpha:{0u,89u,255u}){
+  Node root;root.id="outline-root";root.children={1};Node group;group.id="outlined";group.overlay_padding_x=50;group.overlay_padding_y=30;
+  std::vector<Style> styles(2);styles[1].outline=IM_COL32(255,170,34,alpha);styles[1].outline_width=stroke;styles[1].rounding=6;
+  auto frame=prepare({root,group},styles,{},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(frame,&ink);
+  if(stroke==0||alpha==0){assert(ink.VtxBuffer.Size==0);continue;}
+  assert(ink.VtxBuffer.Size>0);unsigned max_alpha=0;
+  for(const auto& v:ink.VtxBuffer){assert((v.col&~IM_COL32_A_MASK)==(styles[1].outline&~IM_COL32_A_MASK));max_alpha=std::max(max_alpha,unsigned(v.col>>IM_COL32_A_SHIFT));}
+  assert(max_alpha==alpha);
  }
  // Verify actual graph primitives: every style honors its node override,
  // and clearing it returns to the shared plugin color.

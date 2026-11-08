@@ -63,6 +63,15 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(main.normalize(value),value)
         self.assertIn('round_corners=1000',main.mango_config(value,True))
 
+    def test_group_outline_and_insets_roundtrip_with_saved_styles(self):
+        doc=copy.deepcopy(self.doc)
+        doc['root']['children'][0].update(paddingX=19,paddingY=7,outline=True,outlineWidth=4,outlineColor='#FFAACC',outlineOpacity=35)
+        payload={'modular_enabled':True,'modular_layout':doc}
+        result=main.normalize({**payload,'style_presets':{'1':payload}})
+        self.assertEqual(result['modular_layout'],doc)
+        self.assertEqual(result['style_presets']['1']['modular_layout'],doc)
+        self.assertEqual(main.normalize(result),result)
+
     def test_unit_superscript_defaults_and_style_roundtrip(self):
         self.assertFalse(main.normalize({})['unit_superscript'])
         raw={'modular_enabled':True,'modular_layout':self.doc,'unit_superscript':True,

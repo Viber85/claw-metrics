@@ -22,9 +22,20 @@ int main(int argc,char**argv){
  std::ifstream file(argv[1]);std::string bytes((std::istreambuf_iterator<char>(file)),{});
  auto doc=decode(bytes);assert(doc.nodes.size()>1);
  assert(doc.nodes[1].self_align==SelfAlign::End);
- std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";std::getline(old_input,line); // V3 root insets are absent from V1.
- std::string v2="CLAW_MODULAR_V2\n"+legacy.substr(legacy.find('\n')+1);
- while(std::getline(old_input,line)){if(line.empty())continue;std::istringstream record(line);std::vector<std::string> fields;std::string field;while(record>>field)fields.push_back(field);assert(fields.size()>=17);v2+=line+"\n";fields.erase(fields.begin()+6);for(size_t j=0;j<fields.size();++j){if(j)legacy+=' ';legacy+=fields[j];}legacy+='\n';}
+ std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";
+ std::string v2="CLAW_MODULAR_V2\n"+line+"\n";std::getline(old_input,line);
+ std::string v3="CLAW_MODULAR_V3\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
+ while(std::getline(old_input,line)){
+  if(line.empty())continue;
+  std::istringstream record(line);std::vector<std::string> fields;std::string field;while(record>>field)fields.push_back(field);
+  assert(fields.size()>=22);fields.erase(fields.begin()+17,fields.begin()+22);
+  auto join=[](const std::vector<std::string>& values){std::string out;for(size_t j=0;j<values.size();++j){if(j)out+=' ';out+=values[j];}return out+"\n";};
+  v2+=join(fields);v3+=join(fields);fields.erase(fields.begin()+6);legacy+=join(fields);
+ }
+ auto prior=decode(v3);assert(prior.nodes[0].overlay_padding_x==27&&prior.nodes[0].overlay_padding_y==13);
+ assert(prior.nodes[1].overlay_padding_x==0&&prior.appearance[1].outline_width==1);
+ assert(doc.nodes[1].overlay_padding_x==9&&doc.nodes[1].overlay_padding_y==5);
+ assert(doc.appearance[1].outline_color=="FFAA22"&&doc.appearance[1].outline_width==4&&doc.appearance[1].outline_opacity==35);
  auto previous=decode(v2);assert(previous.nodes[0].overlay_padding_x==0&&previous.nodes[1].self_align==SelfAlign::End);
  assert(doc.nodes[0].overlay_padding_x==27&&doc.nodes[0].overlay_padding_y==13);
  auto migrated=decode(legacy);assert(migrated.nodes.size()==doc.nodes.size()&&migrated.nodes[1].self_align==SelfAlign::Auto);

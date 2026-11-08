@@ -1,5 +1,5 @@
 export type Axis='row'|'column';
-export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;children:Node[];token:string;width:number;height:number};
+export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;paddingX?:number;paddingY?:number;outlineWidth?:number;outlineColor?:string;outlineOpacity?:number;children:Node[];token:string;width:number;height:number};
 export type Layout={schema:'claw-modular-layout';version:1;anchor:string;x:number;y:number;paddingX?:number;paddingY?:number;root:Node};
 export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right','center-left','center-right'];
 export const catalog:Record<string,string>={
@@ -79,9 +79,13 @@ export function validate(input:any):Layout{
   if(++count>96||depth>8)throw new Error('Limit: 96 elements and 8 nesting levels.');
   if(!v||typeof v.id!=='string'||v.id.length>100||ids.has(v.id)||!['group','metric'].includes(v.kind)||typeof v.name!=='string'||v.name.length>80||typeof v.visible!=='boolean'||!['row','column'].includes(v.axis)||!['start','center','end'].includes(v.align)||!['auto','start','center','end'].includes(v.selfAlign??'auto')||typeof v.outline!=='boolean'||!Array.isArray(v.children))throw new Error('Invalid element or duplicate ID.');
   ids.add(v.id);if(v.kind==='metric'&&(!catalog[v.token]||v.children.length))throw new Error('Invalid metric.');
-  const padding=number(v.padding===undefined&&v.kind==='group'?0:v.padding,0,80);
+  number(v.padding===undefined&&v.kind==='group'?0:v.padding,0,80); // Validate legacy scalar; new X/Y defaults are zero.
+  const extras:Partial<Node>={};
+  if(depth>0)for(const key of ['paddingX','paddingY'] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,160);
+  for(const key of ['outlineWidth','outlineOpacity'] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,key==='outlineWidth'?12:100);
+  if(v.outlineColor!==undefined)extras.outlineColor=color(v.outlineColor);
   const widthMin=v.kind==='metric'&&v.token==='graph'?0:40;
-  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,v.kind==='group'?240:80),padding:v.kind==='group'?0:padding,scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
+  return {...extras,id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,v.kind==='group'?240:80),padding:0,scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');
  return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,input.anchor.startsWith('center-')?-2000:0,2000),...(input.paddingX!==undefined?{paddingX:number(input.paddingX,0,160)}:{}),...(input.paddingY!==undefined?{paddingY:number(input.paddingY,0,160)}:{}),root};

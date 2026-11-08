@@ -22,6 +22,6 @@ with tempfile.TemporaryDirectory() as directory:
         last=doc['root']
         while last['children']:last=last['children'][-1]
         last['color']='#ABCDEF'
-        doc['root']['children'][0]['selfAlign']='end'
+        doc['root']['children'][0].update(selfAlign='end',paddingX=9,paddingY=5,outline=True,outlineColor='#FFAA22',outlineWidth=4,outlineOpacity=35)
         encoded=tmp/(name+'.layout');encoded.write_text(schema.encode_native(doc))
         subprocess.run([str(binary),str(encoded)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})

@@ -42,9 +42,13 @@ def validate_layout(value):
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
         for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 0 if v['kind'] == 'metric' and v['token'] == 'graph' else 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
             out[key] = number(v.get(key, 0) if key == 'padding' and v['kind'] == 'group' else v.get(key), low, high)
-        # Accept legacy padding, but remove it from all modular groups, including root.
-        if v['kind'] == 'group':
-            out['padding'] = 0
+        # Legacy scalar padding remains readable; explicit X/Y padding defaults to zero.
+        out['padding'] = 0
+        if depth > 0:
+            out.update({key:number(v[key],0,160) for key in ('paddingX','paddingY') if key in v})
+        for key,limit in (('outlineWidth',12),('outlineOpacity',100)):
+            if key in v:out[key]=number(v[key],0,limit)
+        if 'outlineColor' in v:out['outlineColor']=color(v['outlineColor'])
         out['color'] = color(v.get('color'))
         out['background'] = color(v.get('background'))
         out['children'] = [visit(c, depth + 1) for c in v['children']]
@@ -80,7 +84,7 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V3', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
+    lines = ['CLAW_MODULAR_V4', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
     for n, children in nodes:
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),
@@ -90,6 +94,8 @@ def encode_native(value):
         fields += [numeric(n['scale'] / 100)]
         fields += [numeric(n[k]) for k in ('width', 'height')]
         fields += [n['color'][1:] or '-', n['background'][1:] or '-', numeric(n['opacity']), str(int(n['outline'])), str(len(children))]
+        fields += [numeric(n.get(key,0)) for key in ('paddingX','paddingY')]
+        fields += [numeric(n.get('outlineWidth',1)), n.get('outlineColor','')[1:] or '8FB8D9', numeric(n.get('outlineOpacity',100))]
         fields += [str(index) for index in children]
         lines.append(' '.join(fields))
     encoded = '\n'.join(lines) + '\n'

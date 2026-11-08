@@ -170,7 +170,7 @@ assert.equal(padded.root.padding,67,'legacy migration does not mutate imported d
 assert.equal(model.group('Padded',[],{padding:50}).padding,0,'new groups have no padding');
 assert.throws(()=>model.validate({...initial,root:{...initial.root,gap:241}}));
 control('DialogButton','Apply layout').onClick();assert(model.flatten(applied.root).filter(n=>n.kind==='group').every(n=>n.padding===0));
-console.log('PASS group spacing: all row/column ancestors, independent internal gaps, 0–240 px, no legacy/new group padding, undo/redo and Apply.');
+console.log('PASS group spacing: all row/column ancestors, independent internal gaps, 0–240 px, zero default insets, undo/redo and Apply.');
 
 state.length=0;section('Position on screen');
 const anchorOptions=control('DropdownItem','Anchor').rgOptions;
@@ -260,3 +260,31 @@ render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Appearance'
 assert(!render().some(n=>n.type==='slider'&&n.props.label.startsWith('Overlay horizontal padding')));
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Pill shape'));
 console.log('PASS Overlay insets: independent axes, root-only controls, Pill shape, undo/redo and Apply.');
+
+const currentCpu=model.find(draft().root,cpu.id);
+control('slider','Horizontal padding (px)').onChange(19);
+control('slider','Vertical padding (px)').onChange(7);
+control('ToggleField','Outline').onChange(true);
+control('slider','Outline thickness (px)').onChange(4);
+control('slider','Outline opacity (%)').onChange(35);
+assert.equal(model.find(draft().root,cpu.id).paddingX,19);assert.equal(model.find(draft().root,cpu.id).paddingY,7);
+assert.equal(model.find(draft().root,cpu.id).outlineWidth,4);assert.equal(model.find(draft().root,cpu.id).outlineOpacity,35);
+control('DialogButton','Undo').onClick();assert.equal(model.find(draft().root,cpu.id).outlineOpacity,undefined);
+control('DialogButton','Redo').onClick();assert.equal(model.find(draft().root,cpu.id).outlineOpacity,35);
+control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,cpu.id).paddingX,19);assert.equal(model.find(applied.root,cpu.id).outlineWidth,4);
+assert.equal(model.parent(applied.root,cpu.id).gap,model.parent(draft().root,cpu.id).gap);
+console.log('PASS group insets/outline: independent axes, separate opacity/thickness, undo/redo, Apply and unchanged sibling gaps.');
+
+control('DialogButton','Outline color').onClick();picker.props.onConfirm('FFAACC');
+assert.equal(model.find(draft().root,cpu.id).outlineColor,'#FFAACC');
+control('DialogButton','Default outline color').onClick();assert.equal(model.find(draft().root,cpu.id).outlineColor,'');
+const metricNode=model.flatten(draft().root).find(n=>n.kind==='metric'&&n.token==='cpu.load');
+render().find(n=>n.type==='preview').props.onSelect(metricNode.id);section('Appearance');
+assert.equal(control('slider','Horizontal padding (px)').value,0);assert.equal(control('slider','Vertical padding (px)').value,0);
+control('slider','Horizontal padding (px)').onChange(11);control('slider','Vertical padding (px)').onChange(5);
+assert.equal(model.find(draft().root,metricNode.id).paddingX,11);assert.equal(model.find(draft().root,metricNode.id).paddingY,5);
+assert(!render().some(n=>n.props?.className==='claw-builder-accordion-button'&&text(n.props.children).includes('Position on screen')));
+render().find(n=>n.type==='preview').props.onSelect(draft().root.id);
+assert(render().some(n=>n.props?.className==='claw-builder-accordion-button'&&text(n.props.children).includes('Position on screen')));
+control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,metricNode.id).paddingX,11);
+console.log('PASS all elements have zero-default X/Y padding; global Position appears only for Overlay.');

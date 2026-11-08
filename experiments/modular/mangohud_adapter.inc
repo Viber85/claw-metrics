@@ -110,7 +110,7 @@ bool ClawTryModular() {
         const auto& a=active->appearance[i];
         if(!a.background.empty())styles[i].fill=packed(a.background,a.opacity);
         styles[i].text=packed(a.color,100);
-        if(a.outline){styles[i].outline=packed("8FB8D9",100);styles[i].rounding=i?6:p.round_corners;}
+        if(a.outline){styles[i].outline=packed(a.outline_color,a.outline_opacity);styles[i].outline_width=a.outline_width;styles[i].rounding=i?6:p.round_corners;}
     }
     try {
         const auto size=ImGui::GetIO().DisplaySize;
@@ -119,7 +119,7 @@ bool ClawTryModular() {
         frame.graph_style=int(p.claw_graph_style);
         const auto& box=frame.geometry.boxes[0];
         if(!box.visible||box.w<=0||box.h<=0)return true;
-        ClawModularBackground(ImVec4(box.x,box.y,box.w,box.h),p,!active->appearance[0].background.empty(),root_fill);
+        ClawModularBackground(ImVec4(box.x,box.y,box.w,box.h),p,!active->appearance[0].background.empty(),root_fill,active->appearance[0].outline);
         frame.graph_color=ImGui::ColorConvertFloat4ToU32(HUDElements.colors.frametime);
         const unsigned separator_rgb=p.horizontal_separator_color;
         frame.separator_color=IM_COL32((separator_rgb>>16)&255,(separator_rgb>>8)&255,separator_rgb&255,255);

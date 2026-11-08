@@ -29,6 +29,9 @@ with tempfile.TemporaryDirectory() as directory:
         atomic(config,main.mango_config(value,native_spacing=True)+'fps_limit=60\n')
     docs={name:schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text()) for name in ('two-rows','graph-focus')}
     for document in docs.values():document.update(paddingX=7,paddingY=5)
+    for document in docs.values():
+        document['root'].update(outline=True,outlineWidth=2,outlineColor='#AA66FF',outlineOpacity=40)
+        document['root']['children'][0].update(paddingX=5,paddingY=3,outline=True,outlineWidth=3,outlineColor='#22CC88',outlineOpacity=40)
     docs['graph-focus'].update(anchor='center-left',x=16,y=-12)
     stress=copy.deepcopy(docs['two-rows']);stress['root'].update(id='stress-root',axis='column',children=[])
     metric=copy.deepcopy(docs['two-rows']['root']['children'][1]['children'][1]['children'][-1])

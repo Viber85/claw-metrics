@@ -1,39 +1,27 @@
 # Decky layout builder
 
-The editor uses a Decky route and works on a validated draft. Apply publishes
-after the editor unmounts; Cancel discards changes. Save style shares the main
-menu slots. Undo/Redo retain both layout and appearance changes.
+The editor uses a Decky route and a draft. Apply publishes after unmount;
+Cancel discards changes. Save style uses the shared main menu slots. Undo/Redo
+cover layout and appearance.
 
-Groups have no padding, including the root overlay. Existing layouts and saved
-styles are normalized to zero group padding without changing their metrics,
-colors, font settings, alignment or other geometry. The old padding field remains
-readable for layout v1/native V2 compatibility; native geometry also ignores
-legacy group padding. Metric padding remains unchanged.
+Every group and reading, including graphs/separators, has independent horizontal
+and vertical padding, 0–160 px and initially zero. Child padding is stored on the
+node; the root Overlay retains its layout-level paddingX/paddingY from test.104.
+Legacy scalar padding is ignored. Insets affect measured geometry, backgrounds,
+anchors, sibling positions and fitted graph content width.
 
-Group spacing exposes every containing row/column gap while a nested group is
-selected. Labels include the group name and axis; each slider affects every gap
-between that container's items. Horizontal and vertical gaps are independent,
-0–240 px in 1 px steps. The selected group's internal reading gap is separate.
-No ineffective axis control is shown when the tree contains no such container.
+Group outlines have an enable switch, color, width 0–12 px and opacity 0–100%.
+They draw inward and do not add layout spacing. Local Overlay outline settings
+override the inherited global background outline, including at zero opacity.
+Old layouts default to a 1 px #8fb8d9 opaque outline when their switch is enabled.
 
-The HTML preview uses simulated readings. Native ImGui fixtures and geometry
-tests check tight/expanded nested layouts; CI exercises Vulkan/OpenGL and ZIP
-packaging. None of these establish Steam controller focus or handheld stability.
+Position on screen is global and only shown for the root Overlay. Radius remains
+0–1000 with a Pill shape shortcut and clamps to the measured shorter side.
+Containing row/column gap controls remain separate from element padding.
+Native V4 transports insets/outline settings and still decodes V1/V2/V3.
 
-Superscript mode reserves the same main-text line box for every text token,
-including group labels, clocks and unavailable readings. Only units use the
-smaller raised font. Charged/full/charge-limit states replace battery time with
-a vector plug while retaining the time reservation. Discharge estimates must
-be finite and between one minute and 100 hours; unavailable data shows --.
-Classic battery time uses the same checked formatter.
-
-External power online state is sampled with the existing battery update, not
-during per-frame drawing. A connected AC/USB supply also shows the plug when
-the battery status is Unknown or Discharging. Battery online flags are ignored.
-
-The root Overlay has independent horizontal and vertical insets (0–160 px).
-They are stored as optional layout-level paddingX/paddingY, defaulting to zero,
-and are separate from child group padding. Native V3 adds these two root values;
-the decoder still accepts V1/V2. Insets participate in all measured anchors,
-background bounds and graph fitting. Radius supports 0–1000; Pill shape selects
-1000 and drawing clamps it to half the shorter measured side.
+Superscript text uses a shared main baseline; battery state uses the checked
+formatter and a vector charger icon. The HTML preview uses simulated readings.
+Tests cover schema/style persistence, native geometry, actual glyph/outline
+vertices, imported layouts and Vulkan/OpenGL. These are not handheld/controller
+focus or QAM stability validation.

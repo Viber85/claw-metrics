@@ -78,7 +78,7 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
                      size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false) {
     if(styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
-    for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,6))throw std::invalid_argument("Invalid drawing style");
+    for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,12))throw std::invalid_argument("Invalid drawing style");
     for(float value:graph)if(!range(value,0,1000000))throw std::invalid_argument("Invalid graph sample");
     Frame frame;frame.nodes=std::move(nodes);frame.styles=std::move(styles);
     frame.readings=std::move(readings);frame.graph=std::move(graph);
@@ -121,8 +121,12 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
         const float radius=std::min(style.rounding,std::min(box.w,box.h)*.5f);
         if(style.fill>>24)draw->AddRectFilled(lo,hi,style.fill,radius);
         if((style.outline>>24)&&style.outline_width>0){
+            if(2*style.outline_width>=std::min(box.w,box.h)){
+                draw->AddRectFilled(lo,hi,style.outline,radius);
+            }else{
             const float inset=style.outline_width/2;
             if(box.w>2*inset&&box.h>2*inset)draw->AddRect(ImVec2(lo.x+inset,lo.y+inset),ImVec2(hi.x-inset,hi.y-inset),style.outline,std::max(0.f,radius-inset),0,style.outline_width);
+            }
         }
         if(n.group){for(auto child:n.children){
             const auto& item=frame.nodes[child];
@@ -132,7 +136,7 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             visit(child,scale,alignment);
         }return;}
         if(n.token=="separator"){
-            draw->AddRectFilled(ImVec2(lo.x+n.padding,lo.y+n.padding),ImVec2(hi.x-n.padding,hi.y-n.padding),style.text?style.text:frame.separator_color);
+            draw->AddRectFilled(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),style.text?style.text:frame.separator_color);
             return;
         }
         if(n.token=="graph"){
@@ -145,10 +149,10 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const size_t sample_count=std::min<size_t>(64,frame.graph.size());
             for(size_t k=0;k<sample_count;++k)samples.push_back(frame.graph[k*(frame.graph.size()-1)/(sample_count-1)]);
             float max_value=1;for(float value:samples)max_value=std::max(max_value,value);
-            const float width=box.w-2*n.padding,height=box.h-2*n.padding;
-            const float baseline=hi.y-n.padding;
+            const float width=box.w-2*inset_x(n),height=box.h-2*inset_y(n);
+            const float baseline=hi.y-inset_y(n);
             std::vector<ImVec2> points;points.reserve(samples.size()*4);
-            auto point=[&](float index,float value){return ImVec2(lo.x+n.padding+width*index/(samples.size()-1),baseline-height*std::max(0.f,std::min(max_value,value))/max_value);};
+            auto point=[&](float index,float value){return ImVec2(lo.x+inset_x(n)+width*index/(samples.size()-1),baseline-height*std::max(0.f,std::min(max_value,value))/max_value);};
             if(frame.graph_style>=4){
                 for(size_t k=0;k+1<samples.size();++k){
                     const float a=samples[k?k-1:k],b=samples[k],c=samples[k+1],d=samples[std::min(k+2,samples.size()-1)];
@@ -157,11 +161,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                 }
                 points.push_back(point(samples.size()-1,samples.back()));
             }else for(size_t k=0;k<samples.size();++k)points.push_back(point(k,samples[k]));
-            draw->PushClipRect(ImVec2(lo.x+n.padding,lo.y+n.padding),ImVec2(hi.x-n.padding,hi.y-n.padding),true);
+            draw->PushClipRect(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),true);
             auto alpha=[&](unsigned value){return (graph_color&~IM_COL32_A_MASK)|(ImU32(value*int((graph_color>>IM_COL32_A_SHIFT)&255)/255)<<IM_COL32_A_SHIFT);};
             if(frame.graph_style==2){
                 const float bar=std::max(1.f,width/samples.size()*.72f);
-                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-n.padding),baseline),graph_color);
+                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-inset_x(n)),baseline),graph_color);
             }else{
                 if(frame.graph_style==1||frame.graph_style==3||frame.graph_style==5){
                     const ImU32 fill=frame.graph_style==1?graph_color:alpha(frame.graph_style==3?56:36);
@@ -186,21 +190,21 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float size=frame.font_size*scale;
             const auto parts=unit_parts(n.token,text.value);
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
-            const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
+            const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*inset_x(n)-width));
             const auto color=style.text?style.text:text.color;
             const float prefix=prefix_width(text,size);
-            const float baseline=lo.y+n.padding+(frame.unit_superscript?size*.18f:0);
+            const float baseline=lo.y+inset_y(n)+(frame.unit_superscript?size*.18f:0);
             if(text.plugged){
-                paint_plug(draw,ImVec2(lo.x+n.padding+offset,baseline),size,color);
+                paint_plug(draw,ImVec2(lo.x+inset_x(n)+offset,baseline),size,color);
                 return;
             }
             const int prefix_first=draw->VtxBuffer.Size;
-            if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+n.padding+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
+            if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+inset_x(n)+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
             const int number_first=draw->VtxBuffer.Size;
-            draw->AddText(text.font,size,ImVec2(lo.x+n.padding+offset+prefix,baseline),color,parts.first.c_str());
+            draw->AddText(text.font,size,ImVec2(lo.x+inset_x(n)+offset+prefix,baseline),color,parts.first.c_str());
             if(!parts.second.empty()){
                 const float main_width=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str()).x;
-                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+n.padding+offset+prefix+main_width+unit_gap(size),lo.y+n.padding),color,parts.second.c_str());
+                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+inset_x(n)+offset+prefix+main_width+unit_gap(size),lo.y+inset_y(n)),color,parts.second.c_str());
             }
             if(!text.prefix.empty()&&std::getenv("CLAW_METRICS_VERIFY")&&ImGui::GetFrameCount()%60==0){
                 bool label_ok=true,value_ok=true;const auto label_color=style.text?style.text:text.prefix_color;

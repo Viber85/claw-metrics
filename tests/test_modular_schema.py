@@ -57,6 +57,20 @@ class ModularSchemaTests(unittest.TestCase):
         for invalid in (-1,161,True,float('inf')):
             with self.assertRaises(ValueError):schema.validate_layout({**self.layout,'paddingX':invalid})
 
+    def test_group_padding_and_outline_persist_and_reject_bad_values(self):
+        group=self.layout['root']['children'][0]
+        group.update(paddingX=19,paddingY=7,outline=True,outlineWidth=4,outlineColor='#FFAACC',outlineOpacity=35)
+        group['children'][0].update(paddingX=3,paddingY=4)
+        out=schema.validate_layout(self.layout)
+        self.assertEqual(out['root']['children'][0]['children'][0]['paddingX'],3)
+        self.assertEqual(out['root']['children'][0]['children'][0]['paddingY'],4)
+        for key in ('paddingX','paddingY','outline','outlineWidth','outlineColor','outlineOpacity'):
+            self.assertEqual(out['root']['children'][0][key],group[key])
+        self.assertEqual(schema.load_layout(json.dumps(out)),out)
+        for key,bad in (('paddingX',161),('paddingY',-1),('outlineWidth',13),('outlineOpacity',101),('outlineColor','#xyz123')):
+            broken=copy.deepcopy(self.layout);broken['root']['children'][0][key]=bad
+            with self.assertRaises(ValueError):schema.validate_layout(broken)
+
     def test_input_is_not_mutated_or_referenced(self):
         out = schema.validate_layout(self.layout)
         out['root']['children'].clear()
@@ -98,7 +112,7 @@ class ModularSchemaTests(unittest.TestCase):
         self.layout['root']['id'] = 'čćž' * 20
         self.layout['root'].update(background='#112233', opacity=44, outline=True)
         text = schema.encode_native(self.layout)
-        self.assertTrue(text.startswith('CLAW_MODULAR_V3\n'))
+        self.assertTrue(text.startswith('CLAW_MODULAR_V4\n'))
         self.assertIn(self.layout['root']['id'].encode().hex(), text)
         self.assertIn('112233 44 1', text)
         with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
@@ -108,7 +122,7 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'end'
         out = schema.validate_layout(self.layout)
         self.assertEqual(out['root']['children'][0]['selfAlign'], 'end')
-        self.assertIn('CLAW_MODULAR_V3', schema.encode_native(out))
+        self.assertIn('CLAW_MODULAR_V4', schema.encode_native(out))
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
