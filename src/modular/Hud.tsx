@@ -60,7 +60,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   for(const graph of Array.from(element.querySelectorAll<HTMLElement>('[data-auto-width="true"]'))){
    const parent=graph.parentElement;if(!parent)continue;
    const siblingWidth=Math.max(0,...Array.from(parent.children).filter(child=>child!==graph).map(child=>(child as HTMLElement).offsetWidth));
-   if(siblingWidth>0){const id=graph.dataset.nodeId;if(id)next[id]=Math.max(0,siblingWidth-2*(Number(graph.dataset.padding)||0));}
+   if(siblingWidth>0){const id=graph.dataset.nodeId;if(id)next[id]=Math.max(1,siblingWidth-2*(Number(graph.dataset.padding)||0));}
   }
   setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
  },[layout,s.fontsize,s.sans,s.font_weight,s.unit_superscript]);
@@ -74,7 +74,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   const color=n.color||'#'+(s.token_colors?.[n.token]||s.colors[palette]||s.colors.text);
   const px=(root?layout.paddingX:n.paddingX)??0,py=(root?layout.paddingY:n.paddingY)??0;
   const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:0,paddingLeft:px,paddingRight:px,paddingTop:py,paddingBottom:py,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:6,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:`inset 0 0 0 ${n.outlineWidth??1}px ${rgba(n.outlineColor||'#8fb8d9',n.outlineOpacity??100)}`} :{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:3};
-  const graphWidth=n.width===0?(fitWidths[n.id]||180):n.width;
+  const graphWidth=n.width===0?(fitWidths[n.id]??180):n.width;
   const props:any={'data-node-id':n.id,...(n.token==='graph'&&n.width===0?{'data-auto-width':'true','data-padding':px}:{}),onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';

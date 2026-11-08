@@ -82,14 +82,14 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             // A graph with width=0 follows the widest sibling in a vertical group.
             // This keeps it aligned with the readings row instead of overshooting it.
             for(auto child:children)if(!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0){
-                const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?widest_non_auto_graph:180.f+2*inset_x(nodes[child]);
+                const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?std::max(widest_non_auto_graph,2*inset_x(nodes[child])+1.f):180.f+2*inset_x(nodes[child]);
                 sizes[child].w=target;
             }
             if(n.axis==Axis::Column){
                 // Recompute after resolving auto-width graph children so their
                 // own default padding cannot make the parent wider than readings.
                 out.w=0;for(auto child:children)out.w=std::max(out.w,sizes[child].w);
-            }
+            }else{out.w=0;for(auto child:children)out.w+=sizes[child].w;}
             const float gaps=count?float(count-1)*n.gap:0;
             if(n.axis==Axis::Row)out.w+=gaps;else out.h+=gaps;
         }

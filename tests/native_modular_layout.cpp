@@ -97,5 +97,12 @@ int main(){
  assert(near(padded_group.boxes[2].x,padded_group.boxes[1].x+19));assert(near(padded_group.boxes[2].y,padded_group.boxes[1].y+7));
  assert(near(padded_group.boxes[3].x-padded_group.boxes[2].x-padded_group.boxes[2].w,10));
  assert(near(padded_group.boxes[4].w,padded_group.boxes[1].w));
+ // A fitted graph keeps a positive drawing area even when insets exceed readings.
+ auto narrow=fit;narrow[4].overlay_padding_x=160;
+ auto narrow_result=layout(narrow,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+ assert(near(narrow_result.boxes[4].w,321)&&near(narrow_result.boxes[0].w,321));
+ assert(near(narrow_result.boxes[4].w-2*inset_x(narrow[4]),1));
+ narrow[0].axis=Axis::Row;narrow_result=layout(narrow,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+ assert(near(narrow_result.boxes[0].w,narrow_result.boxes[1].w+narrow_result.boxes[4].w+narrow[0].gap));
  std::cout<<"PASS: nested layout, inherited scale, auto graph width, all anchors, alignment, hidden children, overflow and invalid trees\n";
 }
