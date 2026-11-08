@@ -54,6 +54,7 @@ def validate_layout(value):
     if root['kind'] != 'group':
         raise ValueError('Root must be a group')
     return {'schema': 'claw-modular-layout', 'version': 1, 'anchor': value['anchor'],
+            **{key:number(value[key],0,160) for key in ('paddingX','paddingY') if key in value},
             'x': number(value.get('x'), 0, 2000), 'y': number(value.get('y'), -2000 if value['anchor'].startswith('center-') else 0, 2000), 'root': root}
 
 
@@ -79,7 +80,7 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V2', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes))))]
+    lines = ['CLAW_MODULAR_V3', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
     for n, children in nodes:
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),

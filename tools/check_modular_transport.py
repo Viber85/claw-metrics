@@ -17,6 +17,7 @@ with tempfile.TemporaryDirectory() as directory:
         source='graph-focus' if name.startswith('center-') else name
         doc=schema.load_layout((ROOT/f'experiments/modular/{source}.json').read_text())
         if name.startswith('center-'):doc.update(anchor=name,y=-22)
+        doc.update(paddingX=27,paddingY=13)
         doc['root'].update(id='čćž'*20,background='#112233',opacity=44,outline=True)
         last=doc['root']
         while last['children']:last=last['children'][-1]

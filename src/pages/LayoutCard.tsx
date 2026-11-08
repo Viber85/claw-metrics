@@ -105,7 +105,7 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
         <PanelSectionRow><ToggleField label="Superscript units" checked={settings.unit_superscript}
           disabled={!ready || !info?.layout_spacing_supported} onChange={unit_superscript=>update({unit_superscript})}/></PanelSectionRow>
         {([ ["fontsize", "Text size", 12, 28, 1], ["opacity", "Background opacity (%)", 0, 100, 5],
-          ["rounding", "Corner radius", 0, 20, 1] ] as const).map(([key, label, min, max, step]) =>
+          ["rounding", "Corner radius", 0, 1000, 1] ] as const).map(([key, label, min, max, step]) =>
           <PanelSectionRow key={key}><div className="claw-layout-slider"><LayoutSliderField label={label} value={settings[key]} min={min} max={max} step={step} showValue disabled={!ready}
             onChange={(value: number) => update({[key]: value})} /></div></PanelSectionRow>)}
 

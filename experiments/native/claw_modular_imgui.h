@@ -78,7 +78,7 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
                      size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false) {
     if(styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
-    for(const auto& s:styles)if(!range(s.rounding,0,80)||!range(s.outline_width,0,6))throw std::invalid_argument("Invalid drawing style");
+    for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,6))throw std::invalid_argument("Invalid drawing style");
     for(float value:graph)if(!range(value,0,1000000))throw std::invalid_argument("Invalid graph sample");
     Frame frame;frame.nodes=std::move(nodes);frame.styles=std::move(styles);
     frame.readings=std::move(readings);frame.graph=std::move(graph);
@@ -118,10 +118,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
         const auto& n=frame.nodes[i];const auto& style=frame.styles[i];
         const float scale=inherited*n.scale;
         const ImVec2 lo(box.x,box.y),hi(box.x+box.w,box.y+box.h);
-        if(style.fill>>24)draw->AddRectFilled(lo,hi,style.fill,style.rounding);
+        const float radius=std::min(style.rounding,std::min(box.w,box.h)*.5f);
+        if(style.fill>>24)draw->AddRectFilled(lo,hi,style.fill,radius);
         if((style.outline>>24)&&style.outline_width>0){
             const float inset=style.outline_width/2;
-            if(box.w>2*inset&&box.h>2*inset)draw->AddRect(ImVec2(lo.x+inset,lo.y+inset),ImVec2(hi.x-inset,hi.y-inset),style.outline,std::max(0.f,style.rounding-inset),0,style.outline_width);
+            if(box.w>2*inset&&box.h>2*inset)draw->AddRect(ImVec2(lo.x+inset,lo.y+inset),ImVec2(hi.x-inset,hi.y-inset),style.outline,std::max(0.f,radius-inset),0,style.outline_width);
         }
         if(n.group){for(auto child:n.children){
             const auto& item=frame.nodes[child];

@@ -30,3 +30,10 @@ Classic battery time uses the same checked formatter.
 External power online state is sampled with the existing battery update, not
 during per-frame drawing. A connected AC/USB supply also shows the plug when
 the battery status is Unknown or Discharging. Battery online flags are ignored.
+
+The root Overlay has independent horizontal and vertical insets (0–160 px).
+They are stored as optional layout-level paddingX/paddingY, defaulting to zero,
+and are separate from child group padding. Native V3 adds these two root values;
+the decoder still accepts V1/V2. Insets participate in all measured anchors,
+background bounds and graph fitting. Radius supports 0–1000; Pill shape selects
+1000 and drawing clamps it to half the shorter measured side.

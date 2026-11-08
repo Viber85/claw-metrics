@@ -42,14 +42,15 @@ inline Document decode(const std::string& bytes){
     if(bytes.size()>1024*1024)throw std::invalid_argument("Native layout exceeds 1 MiB");
     std::istringstream input(bytes);input.imbue(std::locale::classic());
     std::string magic;int anchor=0,count=0;Document doc;
-    if(!(input>>magic>>anchor>>doc.x>>doc.y>>count)||(magic!="CLAW_MODULAR_V1"&&magic!="CLAW_MODULAR_V2")||anchor<0||anchor>7||count<1||count>96)
+    if(!(input>>magic>>anchor>>doc.x>>doc.y>>count)||(magic!="CLAW_MODULAR_V1"&&magic!="CLAW_MODULAR_V2"&&magic!="CLAW_MODULAR_V3")||anchor<0||anchor>7||count<1||count>96)
         throw std::invalid_argument("Invalid transport header");
     doc.anchor=static_cast<Anchor>(anchor);doc.nodes.resize(count);doc.appearance.resize(count);
+    if(magic=="CLAW_MODULAR_V3"&&!(input>>doc.nodes[0].overlay_padding_x>>doc.nodes[0].overlay_padding_y))throw std::invalid_argument("Invalid overlay padding");
     const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value graph separator ";
     for(int i=0;i<count;++i){
         auto& n=doc.nodes[i];auto& style=doc.appearance[i];std::string id;int group,visible,axis,align,self_align=0,outline,children;
         if(!(input>>id>>n.token>>group>>visible>>axis>>align)||
-           (magic=="CLAW_MODULAR_V2"&&!(input>>self_align))||
+           (magic!="CLAW_MODULAR_V1"&&!(input>>self_align))||
            !(input>>n.gap>>n.padding>>n.scale>>n.width>>n.height>>style.color>>style.background>>style.opacity>>outline>>children)||
            group<0||group>1||visible<0||visible>1||axis<0||axis>1||align<0||align>2||outline<0||outline>1||children<0||children>96||
            self_align<0||self_align>3||

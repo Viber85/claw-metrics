@@ -71,7 +71,7 @@ def normalize_token_colors(payload):
 
 
 STYLE_LAYOUT_RANGES = {
-    "fontsize": (12, 28), "fps_scale": (100, 200), "opacity": (0, 100), "rounding": (0, 20),
+    "fontsize": (12, 28), "fps_scale": (100, 200), "opacity": (0, 100), "rounding": (0, 1000),
     "padding_x": (0, 24), "padding_y": (0, 24),
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12), "group_gap_x": (0, 60),
@@ -754,7 +754,7 @@ def normalize(payload):
         if type(default) is bool and type(v) is bool:
             d[key] = v
     for key, low, high in (("fontsize", 12, 28), ("fps_scale", 100, 200), ("opacity", 0, 100),
-                           ("rounding", 0, 20), ("offset_x", -1920, 1920),
+                           ("rounding", 0, 1000), ("offset_x", -1920, 1920),
                            ("offset_y", -1200, 1200), ("padding_y", 0, 24),
                            ("padding_x", 0, 24), ("element_gap", 0, 20),
                            ("table_gap", 0, 12), ("group_gap_x", 0, 60), ("graph_width", 80, 200),

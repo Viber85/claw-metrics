@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.103 ZIP
+name: Build Claw Metrics v0.2.4 test.104 ZIP
 on:
   push:
-    branches: [test/battery-baselines-103]
+    branches: [test/overlay-padding-pill-104]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.103
+  group: claw-metrics-v0.2.4-test.104
   cancel-in-progress: true
 
 jobs:
@@ -246,7 +246,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.103.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.104.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -262,18 +262,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.103', package['version']
+              assert package['version'] == '0.2.4-test.104', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.103
-          path: ClawMetrics-v0.2.4-test.103.zip
+          name: ClawMetrics-v0.2.4-test.104
+          path: ClawMetrics-v0.2.4-test.104.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.103 ClawMetrics-v0.2.4-test.103.zip \
+          gh release create v0.2.4-test.104 ClawMetrics-v0.2.4-test.104.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.103 – Charging indicator and shared text baselines" \
-            --notes "Experimental test.103: Replaces remaining battery time with a charger icon for cached AC/USB online power, Charging, Full and Not charging states. Invalid, infinite, negative, unknown or implausible discharge estimates show -- before any integer conversion. Charging/discharging preserve the reserved width. Classic battery paths use the same checked formatter; modular icons draw as vectors without an icon-font dependency. Superscript mode now gives labels, numbers, clocks, missing readings and optional metrics one shared line box and main-text baseline. Includes actual ImGui glyph/charge-transition fixtures, backend/frontend, Vulkan/OpenGL and ZIP checks. Retains test.102 spacing and test.101 diagnostics. Handheld appearance and QAM stability remain unverified."
+            --title "Claw Metrics v0.2.4-test.104 – Overlay padding and pill corners" \
+            --notes "Experimental test.104: Adds independent horizontal/vertical padding (0-160 px) only to the root Overlay in the editor. Child groups remain padding-free. Insets save with layouts/styles, affect measured anchors/background bounds, and keep fitted graphs inside the content area. Corner radius now supports 0-1000 with a Pill shape shortcut; rendering clamps corners to half the measured shorter side. Native V3 transports the two insets and retains V1/V2 decoding. Backend/frontend, native geometry, actual capsule vertices/fixtures, Vulkan/OpenGL and ZIP checks run before release. Retains test.103 charging/baselines and earlier diagnostics. Handheld appearance/controller focus and QAM stability remain unverified."

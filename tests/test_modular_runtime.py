@@ -52,6 +52,17 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result['modular_enabled'])
         self.assertIn('240 0',modular.encode_native(result['modular_layout']))
 
+    def test_overlay_insets_and_pill_roundtrip_in_saved_styles(self):
+        doc={**self.doc,'paddingX':27,'paddingY':13}
+        payload={'modular_enabled':True,'modular_layout':doc,'rounding':1000}
+        value=main.normalize({**payload,'style_presets':{'1':payload}})
+        self.assertEqual(value['modular_layout'],doc)
+        self.assertEqual(value['rounding'],1000)
+        self.assertEqual(value['style_presets']['1']['modular_layout'],doc)
+        self.assertEqual(value['style_presets']['1']['rounding'],1000)
+        self.assertEqual(main.normalize(value),value)
+        self.assertIn('round_corners=1000',main.mango_config(value,True))
+
     def test_unit_superscript_defaults_and_style_roundtrip(self):
         self.assertFalse(main.normalize({})['unit_superscript'])
         raw={'modular_enabled':True,'modular_layout':self.doc,'unit_superscript':True,

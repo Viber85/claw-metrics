@@ -104,3 +104,10 @@ function textOf(n){return typeof n==='string'?n:Array.isArray(n)?n.map(textOf).j
 console.log('PASS battery preview: plugged/full/charge-limit, safe unavailable estimates and common label/value line boxes.');
 
 assert.equal(batteryTime(1,'Unknown',Infinity,true).plugged,true);assert.equal(batteryTime(1,'Discharging',2.25,true).plugged,true);
+
+const paddedNodes=walk(ModularHud({layout:{...layout,paddingX:27,paddingY:13},settings:{...settings,rounding:1000},data:{},selected:'none',onSelect:()=>{}}));
+const overlayNode=paddedNodes.find(n=>n.props?.['data-node-id']===layout.root.id);
+assert.equal(overlayNode.props.style.paddingLeft,27);assert.equal(overlayNode.props.style.paddingRight,27);
+assert.equal(overlayNode.props.style.paddingTop,13);assert.equal(overlayNode.props.style.paddingBottom,13);
+assert.equal(overlayNode.props.style.borderRadius,1000);
+assert.equal(paddedNodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.paddingLeft,undefined);

@@ -243,3 +243,20 @@ control('DialogButton','Use plugin color').onClick();assert.equal(model.find(dra
 render().find(n=>n.type==='preview').props.onSelect(initial.root.id);section('Appearance');
 assert(control('slider','Element scale (%)'),'group text scaling remains available');
 console.log('PASS graph editor: no ineffective scale slider; width/height retained; selected color survives Apply and style snapshot; reset inherits plugin color.');
+
+state.length=0;section('Appearance');
+assert.equal(control('slider','Corner radius').max,1000);
+for(const label of ['Overlay horizontal padding (px)','Overlay vertical padding (px)']){
+ const field=control('slider',label);assert.equal(field.min,0);assert.equal(field.max,160);assert.equal(field.step,1);
+}
+control('slider','Overlay horizontal padding (px)').onChange(27);
+control('slider','Overlay vertical padding (px)').onChange(13);
+assert.equal(draft().paddingX,27);assert.equal(draft().paddingY,13);
+control('DialogButton','Pill shape').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,1000);
+control('DialogButton','Undo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,10);
+control('DialogButton','Redo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,1000);
+control('DialogButton','Apply layout').onClick();assert.equal(applied.paddingX,27);assert.equal(applied.paddingY,13);assert.equal(appliedAppearance.rounding,1000);
+render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Appearance');
+assert(!render().some(n=>n.type==='slider'&&n.props.label.startsWith('Overlay horizontal padding')));
+assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Pill shape'));
+console.log('PASS Overlay insets: independent axes, root-only controls, Pill shape, undo/redo and Apply.');

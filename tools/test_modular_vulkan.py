@@ -25,9 +25,10 @@ with tempfile.TemporaryDirectory() as directory:
     def atomic(path,text):
         staging=path.with_suffix('.tmp');staging.write_text(text);os.replace(staging,path)
     def settings(size=24, style="line", background="linear", enabled=True, units=False):
-        value=main.normalize({'unit_superscript':units,'token_colors':{'tdp.label':'FFAC12','tdp.value':'DDEEFF'},'token_weights':{'tdp.label':'bold','tdp.value':'light'},'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
+        value=main.normalize({'unit_superscript':units,'token_colors':{'tdp.label':'FFAC12','tdp.value':'DDEEFF'},'token_weights':{'tdp.label':'bold','tdp.value':'light'},'modular_enabled':enabled,'modular_layout':docs['two-rows'],'graph_style':style,'background':{'mode':background,'outline_enabled':True,'outline_width':2,'outline_opacity':60},'rounding':1000,'opacity':0 if background=='solid' else 80,'fontsize':size,'fps':True,'cpu':True,'gpu':True,'ram':True,'vram':True,'battery':True,'tdp':True,'draw':True,'frametime':True,'time':True,'hud_position':'top-left','metrics':{'graph':True,'fps_average':True,'fps_low1':True,'ram_game':True,'ram_swap':True}})
         atomic(config,main.mango_config(value,native_spacing=True)+'fps_limit=60\n')
     docs={name:schema.load_layout((ROOT/f'experiments/modular/{name}.json').read_text()) for name in ('two-rows','graph-focus')}
+    for document in docs.values():document.update(paddingX=7,paddingY=5)
     docs['graph-focus'].update(anchor='center-left',x=16,y=-12)
     stress=copy.deepcopy(docs['two-rows']);stress['root'].update(id='stress-root',axis='column',children=[])
     metric=copy.deepcopy(docs['two-rows']['root']['children'][1]['children'][1]['children'][-1])

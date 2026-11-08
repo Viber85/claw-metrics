@@ -48,6 +48,15 @@ class ModularSchemaTests(unittest.TestCase):
         original['root']['gap'] = 0
         self.assertEqual(schema.validate_layout(original)['root']['padding'], 0)
 
+    def test_overlay_insets_roundtrip_and_invalid_limits(self):
+        self.layout.update(paddingX=27,paddingY=13)
+        out=schema.validate_layout(self.layout)
+        self.assertEqual((out['paddingX'],out['paddingY']),(27,13))
+        self.assertEqual(schema.load_layout(json.dumps(out)),out)
+        self.assertEqual(schema.encode_native(out).splitlines()[2],'27 13')
+        for invalid in (-1,161,True,float('inf')):
+            with self.assertRaises(ValueError):schema.validate_layout({**self.layout,'paddingX':invalid})
+
     def test_input_is_not_mutated_or_referenced(self):
         out = schema.validate_layout(self.layout)
         out['root']['children'].clear()
@@ -89,7 +98,7 @@ class ModularSchemaTests(unittest.TestCase):
         self.layout['root']['id'] = 'čćž' * 20
         self.layout['root'].update(background='#112233', opacity=44, outline=True)
         text = schema.encode_native(self.layout)
-        self.assertTrue(text.startswith('CLAW_MODULAR_V2\n'))
+        self.assertTrue(text.startswith('CLAW_MODULAR_V3\n'))
         self.assertIn(self.layout['root']['id'].encode().hex(), text)
         self.assertIn('112233 44 1', text)
         with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
@@ -99,7 +108,7 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'end'
         out = schema.validate_layout(self.layout)
         self.assertEqual(out['root']['children'][0]['selfAlign'], 'end')
-        self.assertIn('CLAW_MODULAR_V2', schema.encode_native(out))
+        self.assertIn('CLAW_MODULAR_V3', schema.encode_native(out))
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 

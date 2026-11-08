@@ -18,7 +18,7 @@ int main(int argc,char**argv){
  std::string bytes((std::istreambuf_iterator<char>(layout_file)),{});
  auto document=decode(bytes);auto nodes=document.nodes;std::map<std::string,Text> values;
  for(const auto& n:nodes)if(!n.group&&n.token!="graph")values[n.token]={reading(n.token),n.token=="fps.value"?large:font,color(n.token)};
- std::vector<Style> styles(nodes.size());styles[0].fill=IM_COL32(16,24,38,240);styles[0].outline=IM_COL32(107,126,153,150);styles[0].rounding=10;
+ std::vector<Style> styles(nodes.size());styles[0].fill=IM_COL32(16,24,38,240);styles[0].outline=IM_COL32(107,126,153,150);styles[0].rounding=argc==8&&std::string(argv[7])=="pill"?1000:10;
  for(size_t i=0;i<nodes.size();++i){
   const auto& appearance=document.appearance[i];
   auto packed=[](const std::string& hex,float opacity)->ImU32{
@@ -154,6 +154,18 @@ int main(int argc,char**argv){
   assert(std::abs(charge.geometry.boxes[0].w-discharge.geometry.boxes[0].w)<.001f);
   assert(std::abs(charge.geometry.boxes[0].h-discharge.geometry.boxes[0].h)<.001f);
   ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(charge,&ink);assert(ink.VtxBuffer.Size>20);
+ }
+ // Rounded backgrounds must become real capsules on both axes.
+ for(bool vertical:{false,true}){
+  Node root;root.id="pill";root.overlay_padding_x=vertical?30:120;root.overlay_padding_y=vertical?120:30;
+  Style style;style.fill=IM_COL32(40,80,120,255);style.rounding=1000;
+  auto pill=prepare({root},{style},{},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(pill,&ink);assert(ink.VtxBuffer.Size>20);
+  const auto& box=pill.geometry.boxes[0];const float r=std::min(box.w,box.h)/2;
+  for(const auto& v:ink.VtxBuffer){
+   const float cx=std::max(box.x+r,std::min(box.x+box.w-r,v.pos.x));const float cy=std::max(box.y+r,std::min(box.y+box.h-r,v.pos.y));
+   assert(std::hypot(v.pos.x-cx,v.pos.y-cy)<=r+1.5f);
+  }
  }
  // Verify actual graph primitives: every style honors its node override,
  // and clearing it returns to the shared plugin color.

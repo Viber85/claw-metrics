@@ -74,5 +74,20 @@ int main(){
   assert(near(boxes[0].w,40+horizontal)&&near(boxes[0].h,30+2*vertical));
  }
  spaced[0].gap=241;bool excessive=false;try{layout(spaced,0,{1920,1080},Anchor::TopLeft,8,8,10,measure);}catch(const std::invalid_argument&){excessive=true;}assert(excessive);
+ // Overlay-only insets grow the measured background and translate its children.
+ for(float px:{0.f,17.f,160.f})for(float py:{0.f,9.f,160.f})for(auto axis:{Axis::Row,Axis::Column}){
+  auto padded=fit;padded[0].axis=axis;padded[0].overlay_padding_x=px;padded[0].overlay_padding_y=py;
+  auto unpadded=padded;unpadded[0].overlay_padding_x=0;unpadded[0].overlay_padding_y=0;
+  const auto plain=layout(unpadded,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+  const auto result=layout(padded,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
+  assert(near(result.boxes[0].w,plain.boxes[0].w+2*px));assert(near(result.boxes[0].h,plain.boxes[0].h+2*py));
+  for(size_t i=1;i<padded.size();++i){assert(near(result.boxes[i].x,plain.boxes[i].x+px));assert(near(result.boxes[i].y,plain.boxes[i].y+py));}
+  for(auto anchor:{Anchor::TopCenter,Anchor::CenterRight,Anchor::BottomRight}){
+   const auto anchored=layout(padded,0,{1920,1080},anchor,20,30,10,measure);const auto& box=anchored.boxes[0];
+   if(anchor==Anchor::TopCenter)assert(near(box.x+box.w/2,980));
+   if(anchor==Anchor::CenterRight)assert(near(box.y+box.h/2,570));
+   if(anchor==Anchor::BottomRight)assert(near(box.y+box.h,1050));
+  }
+ }
  std::cout<<"PASS: nested layout, inherited scale, auto graph width, all anchors, alignment, hidden children, overflow and invalid trees\n";
 }
