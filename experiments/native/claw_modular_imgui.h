@@ -3,6 +3,7 @@
 #include "claw_battery_time.h"
 #include "imgui.h"
 #include <limits>
+#include <array>
 #include <map>
 #include <cstring>
 #include <cstdlib>
@@ -25,10 +26,12 @@ struct Style {
     ImU32 fill=0,outline=0,text=0;
     float rounding=0,outline_width=1;
 };
+using FontFaces=std::array<ImFont*,5>; // 0 is automatic.
 struct Frame {
     std::vector<Node> nodes;
     std::vector<Style> styles;
     std::map<std::string,Text> readings;
+    std::vector<Text> node_readings;
     std::vector<float> graph;
     Result geometry;
     Size screen;
@@ -99,19 +102,38 @@ inline Size reading_size(const Text& text,const std::string& token,float size,bo
 }
 inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
-                     size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false) {
-    if(styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
+                     size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false,const FontFaces& faces={}) {
+    if(nodes.empty()||nodes.size()>96||root>=nodes.size()||styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
     for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,12))throw std::invalid_argument("Invalid drawing style");
     for(float value:graph)if(!range(value,0,1000000))throw std::invalid_argument("Invalid graph sample");
     Frame frame;frame.nodes=std::move(nodes);frame.styles=std::move(styles);
     frame.readings=std::move(readings);frame.graph=std::move(graph);
     frame.root=root;frame.screen=screen;frame.font_size=font;frame.unit_superscript=unit_superscript;
+    // Resolve per-element faces without changing token-wide plugin styles.
+    // Copies are per node: duplicate instances of one token can use different fonts.
+    frame.node_readings.resize(frame.nodes.size());
+    std::vector<bool> resolved(frame.nodes.size(),false);
+    std::function<void(size_t,int,int)> resolve=[&](size_t i,int inherited,int depth){
+        if(i>=frame.nodes.size()||resolved[i]||depth>8)throw std::invalid_argument("Invalid font tree");
+        resolved[i]=true;
+        const auto& n=frame.nodes[i];const int weight=n.font_weight?n.font_weight:inherited;
+        if(weight<0||weight>4)throw std::invalid_argument("Invalid font weight");
+        if(!n.group){
+            const auto found=frame.readings.find(n.token);
+            if(found!=frame.readings.end()){
+                auto text=found->second;
+                if(weight&&faces[weight]){text.font=faces[weight];if(!text.prefix.empty())text.prefix_font=faces[weight];}
+                frame.node_readings[i]=std::move(text);
+            }
+        }
+        for(auto child:n.children)resolve(child,weight,depth+1);
+    };
+    resolve(root,0,0);
     // One immutable reading snapshot supplies both measurement and drawing.
-    frame.geometry=layout(frame.nodes,root,screen,anchor,x,y,font,[&](const std::string& token,float size){
-        const auto it=frame.readings.find(token);
-        if(it==frame.readings.end()||!it->second.font||!it->second.font->IsLoaded()||it->second.value.size()>16384)
+    frame.geometry=layout(frame.nodes,root,screen,anchor,x,y,font,[](const std::string&,float){return Size{};},[&](size_t index,const std::string& token,float size){
+        const auto& text=frame.node_readings[index];
+        if(!text.font||!text.font->IsLoaded()||text.value.size()>16384)
             throw std::invalid_argument("Missing font or reading");
-        const auto& text=it->second;
         auto extent=reading_size(text,token,size,unit_superscript,text.value);
         if(token!="fps.value"&&!text.slot.empty()){
             // Barlow's zero is wider than eight. Reserve both references so
@@ -215,7 +237,7 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                 std::fprintf(stderr,"CLAW_MODULAR_GRAPH_COLOR style=%d override=%d expected=%08x vertices=%d rgb_ok=%d\n",frame.graph_style,style.text?1:0,graph_color,draw->VtxBuffer.Size-graph_first,rgb_ok?1:0);
             }
         }else{
-            const auto& text=frame.readings.at(n.token);
+            const auto& text=frame.node_readings[i];
             const float size=frame.font_size*scale;
             const auto parts=unit_parts(n.token,text.value);
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;

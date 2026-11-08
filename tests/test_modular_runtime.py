@@ -72,6 +72,16 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['style_presets']['1']['modular_layout'],doc)
         self.assertEqual(main.normalize(result),result)
 
+    def test_element_radius_and_weight_in_saved_style(self):
+        doc=copy.deepcopy(self.doc);doc['root']['fontWeight']='light'
+        group=doc['root']['children'][0];group.update(cornerRadius=1000,fontWeight='semibold')
+        group['children'][0]['fontWeight']='bold'
+        payload={'modular_enabled':True,'modular_layout':doc}
+        settings=main.normalize({**payload,'style_presets':{'1':payload}})
+        self.assertEqual(settings['modular_layout'],doc)
+        self.assertEqual(settings['style_presets']['1']['modular_layout'],doc)
+        self.assertEqual(main.normalize(settings),settings)
+
     def test_unit_superscript_defaults_and_style_roundtrip(self):
         self.assertFalse(main.normalize({})['unit_superscript'])
         raw={'modular_enabled':True,'modular_layout':self.doc,'unit_superscript':True,

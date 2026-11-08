@@ -33,6 +33,7 @@ int main(int argc,char**argv){
   };
   if(!appearance.background.empty())styles[i].fill=packed(appearance.background,appearance.opacity);
   styles[i].text=packed(appearance.color,100);
+  if(i)styles[i].rounding=appearance.corner_radius>=0?appearance.corner_radius:(appearance.outline?6:0);
   if(appearance.outline){styles[i].outline=packed(appearance.outline_color,appearance.outline_opacity);styles[i].outline_width=appearance.outline_width;styles[i].rounding=i?6:styles[i].rounding;}
  }
  values["fps.value"].slot="";
@@ -128,6 +129,24 @@ int main(int argc,char**argv){
  catch(const std::invalid_argument&){rejected=true;}
  assert(rejected);
  ImGui::NewFrame();
+ // Three instances of one token: local Light/Bold overrides and inherited
+ // Semibold must control both measurement and the actual glyph UVs drawn.
+ if(fps_faces.size()==5){
+  FontFaces faces={nullptr,fps_faces[2],font,fps_faces[3],fps_faces[4]};
+  Node root;root.id="weighted";root.font_weight=3;root.children={1,2,3};
+  Node a;a.id="light";a.group=false;a.token="cpu.load";a.font_weight=1;
+  Node b=a;b.id="bold";b.font_weight=4;Node c=a;c.id="inherited";c.font_weight=0;
+  Text text;text.font=font;text.value="88";
+  auto sample=prepare({root,a,b,c},std::vector<Style>(4),{{"cpu.load",text}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,false,faces);
+  ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(sample,&ink);
+  assert(ink.VtxBuffer.Size==24);
+  const int weights[]={1,4,3};
+  for(int i=0;i<3;++i){const auto* face=faces[weights[i]];const auto* glyph=face->FindGlyph('8');
+   assert(sample.node_readings[i+1].font==face);
+   assert(std::abs(sample.geometry.boxes[i+1].w-face->CalcTextSizeA(24,1e10f,0,"88").x)<.001f);
+   assert(ink.VtxBuffer[i*8].uv.x==glyph->U0&&ink.VtxBuffer[i*8].uv.y==glyph->V0);
+  }
+ }
  // Real glyph vertices: every text metric uses the same main-text origin.
  // This checks the bug with top, center and bottom alignment, units on/off.
  for(bool raised:{false,true})for(auto align:{Align::Start,Align::Center,Align::End}){

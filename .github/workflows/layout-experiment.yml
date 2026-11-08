@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.108 ZIP
+name: Build Claw Metrics v0.2.4 test.109 ZIP
 on:
   push:
-    branches: [test/preview-padding-parity-108]
+    branches: [test/element-appearance-109]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.108
+  group: claw-metrics-v0.2.4-test.109
   cancel-in-progress: true
 
 jobs:
@@ -257,7 +257,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.108.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.109.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -273,18 +273,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.108', package['version']
+              assert package['version'] == '0.2.4-test.109', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.108
-          path: ClawMetrics-v0.2.4-test.108.zip
+          name: ClawMetrics-v0.2.4-test.109
+          path: ClawMetrics-v0.2.4-test.109.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.108 ClawMetrics-v0.2.4-test.108.zip \
+          gh release create v0.2.4-test.109 ClawMetrics-v0.2.4-test.109.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.108 – Preview and native padding parity" \
-            --notes "Experimental test.108: Fixes the preview font measurement mismatch that made padded RAM/VRAM cards align in the editor but overshoot CPU/GPU cards in game. Preview glyphs now use ImGui/STB ascent-minus-descent sizing instead of the CSS em square, with kerning/ligatures disabled to match the renderer. Tight FPS SVG bounds use the same scale. Both renderers reserve eight/zero digit references to keep clock/memory boxes stable as readings change. Preview reading boxes use the same reference/live maximum and eliminate inherited inline line-height struts. Explicit padding and gaps remain pixel values. Adds a mandatory real Chrome/ImGui comparison of every node rectangle across 24 padded CPU/GPU/RAM/VRAM fixtures, four weights, three font sizes, nested scales and both unit modes. Existing styles keep their stored values; layouts tuned to the old inaccurate preview may need one padding adjustment in the corrected editor. Retains test.107 controller navigation, prior font/outline controls and diagnostics. Full frontend/backend, native Vulkan/OpenGL, ImGui and ZIP checks remain enabled. Actual handheld appearance/controller focus and QAM stability still require device confirmation."
+            --title "Claw Metrics v0.2.4-test.109 – Group corners and per-element font weight" \
+            --notes "Experimental test.109: Adds Corner radius (0-1000 px, including pill shapes) to each group in the editor. Background and outline use the same radius. Adds per-element Font weight: Automatic, Light, Regular, Semibold and Bold. Group choices apply to descendants unless an individual reading overrides them; Automatic restores group/plugin styling. Independent copies of the same metric can use different font faces. Uses bundled font weights, with an editor hint when bundled fonts are disabled. Both fields persist in Apply, Undo/Redo, JSON and shared saved styles. Native V5 transport retains V1-V4 compatibility. Browser/ImGui parity now covers mixed fonts, duplicate metrics and group radii, and native glyph UV tests verify the selected faces are drawn. Full frontend/backend, native Vulkan/OpenGL, ImGui layout and ZIP checks remain enabled. Retains test.108 stable widths and padding parity. Actual handheld appearance/controller focus still require device confirmation. Restart the game after installing."

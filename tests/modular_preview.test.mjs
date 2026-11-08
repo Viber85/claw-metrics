@@ -146,3 +146,18 @@ assert.equal(reservation.props.children.length,3);
 assert.equal(reservation.props.children[1].props.children.props.children[0].props.children,'0000');
 for(const layer of reservation.props.children){assert.equal(layer.props.style.gridArea,'1 / 1');assert.equal(layer.props.style.display,'flex');}
 console.log('PASS reservation layers: live/reference intrinsic maximum and no inherited inline line strut.');
+
+const styled=JSON.parse(readFileSync('assets/modular/vertical.json'));
+const styledCpu=styled.root.children.find(n=>n.name==='CPU');styledCpu.cornerRadius=1000;styledCpu.fontWeight='semibold';
+const styledLoad=styledCpu.children.find(n=>n.token==='cpu.load');styledLoad.fontWeight='bold';
+styledCpu.children.push({...structuredClone(styledLoad),id:'independent-copy',fontWeight:'light'});
+function styledPreview(){return walk(ModularHud({layout:styled,settings:{...settings,sans:true,font_weight:'regular',token_weights:{'cpu.label':'regular'}},data:module.exports.initialData,selected:'none',onSelect:()=>{}}))}
+let styledNodes=styledPreview();
+const byId=id=>styledNodes.find(n=>n.props?.['data-node-id']===id);
+assert.equal(byId(styledCpu.id).props.style.borderRadius,1000);
+assert.equal(byId(styledCpu.children.find(n=>n.token==='cpu.label').id).props.style.fontWeight,600,'group overrides plugin token styling');
+assert.equal(byId(styledLoad.id).props.style.fontWeight,700,'reading overrides group');
+assert.equal(byId('independent-copy').props.style.fontWeight,300,'duplicate token can have an independent face');
+delete styledLoad.fontWeight;styledNodes=styledPreview();assert.equal(byId(styledLoad.id).props.style.fontWeight,600);
+delete styledCpu.fontWeight;styledNodes=styledPreview();assert.equal(byId(styledCpu.children.find(n=>n.token==='cpu.label').id).props.style.fontWeight,400,'automatic restores plugin styling');
+console.log('PASS preview radius and font inheritance: group/plugin precedence and independent duplicate readings.');

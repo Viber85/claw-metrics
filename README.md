@@ -1,3 +1,11 @@
+# Claw Metrics v0.2.4-test.109 — Group corners and individual font weights
+
+Select a group in the editor and open **Appearance → Corner radius** to choose 0–1000 px, including a pill shape. Its background and outline follow the same curve. Overlay retains its existing global Corner radius control.
+
+**Appearance → Font weight** applies to a group or individual text reading: Automatic, Light, Regular, Semibold or Bold. An individual override wins over its group; the nearest group override wins over plugin token/global settings. Automatic restores inheritance. Duplicate instances of one metric can use different font weights. These choices use the bundled font; the control explains when that font is disabled. Graphs and separators do not display an ineffective font control.
+
+Both options persist through Undo/Redo, Apply, JSON export/import and saved styles shared with the main menu. Existing layouts retain automatic font styling and their native group corner defaults. Native transport V5 retains readers for V1–V4. Restart the game after installing. Tests include mixed-font browser/ImGui geometry, rounded group fills/outlines and actual glyph UVs for independent duplicate readings. Handheld appearance/controller navigation still need device confirmation.
+
 # Claw Metrics v0.2.4-test.108 — Preview/native padding parity
 
 The editor preview now measures the bundled fonts using the same ascent/descent scale as ImGui, rather than the CSS em square. This fixes padded RAM/VRAM cards appearing equal to CPU/GPU cards in the editor but wider after Apply. Kerning and ligatures are disabled in the preview to match native glyph advances. Tight FPS SVG bounds follow the same scale. Both renderers reserve the larger eight/zero digit reference (zero is wider in Barlow), keeping card widths stable when live clocks or memory readings change. The preview uses the maximum of those references and live text, and no longer add the browser’s inherited inline line height to padded metrics.

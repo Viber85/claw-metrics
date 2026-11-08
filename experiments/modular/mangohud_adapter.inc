@@ -110,12 +110,13 @@ bool ClawTryModular() {
         const auto& a=active->appearance[i];
         if(!a.background.empty())styles[i].fill=packed(a.background,a.opacity);
         styles[i].text=packed(a.color,100);
-        if(a.outline){styles[i].outline=packed(a.outline_color,a.outline_opacity);styles[i].outline_width=a.outline_width;styles[i].rounding=i?6:p.round_corners;}
+        if(i)styles[i].rounding=a.corner_radius>=0?a.corner_radius:(a.outline?6:0);
+        if(a.outline){styles[i].outline=packed(a.outline_color,a.outline_opacity);styles[i].outline_width=a.outline_width;if(!i)styles[i].rounding=p.round_corners;}
     }
     try {
         const auto size=ImGui::GetIO().DisplaySize;
         const ImU32 root_fill=styles[0].fill;styles[0].fill=0;
-        auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale,p.claw_unit_superscript);
+        auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale,p.claw_unit_superscript,{nullptr,claw_metric_light,claw_metric_regular,claw_metric_semibold,claw_bold_fps_font});
         frame.graph_style=int(p.claw_graph_style);
         const auto& box=frame.geometry.boxes[0];
         if(!box.visible||box.w<=0||box.h<=0)return true;

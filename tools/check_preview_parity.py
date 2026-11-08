@@ -12,12 +12,16 @@ def fixture():
     for key in ('cpu','gpu'):
         readings=node(key+'-readings',[node(key+'-'+part,token=key+'.'+part) for part in ('load','temp','clock')])
         group=node(key,[node(key+'-label',token=key+'.label'),readings],axis='column',paddingX=12,paddingY=8)
-        group.update(background='#152C55',gap=2);groups.append(group)
+        group.update(background='#152C55',gap=2,cornerRadius=1000 if key=='cpu' else 8)
+        if key=='cpu':group.update(outline=True,outlineColor='#00DDBB',outlineWidth=2)
+        groups.append(group)
     memory=[]
     for key in ('ram','vram'):
         group=node(key,[node(key+'-label',token=key+'.label'),node(key+'-value',token=key+'.value',paddingX=0,paddingY=3)],paddingX=12,paddingY=4)
-        group.update(background='#152C55',gap=8);memory.append(group)
-    return schema.validate_layout(dict(schema='claw-modular-layout',version=1,anchor='top-left',x=16,y=16,paddingX=13,paddingY=7,root=node('overlay',[node('processors',groups),node('memory',memory)],axis='column')))
+        group.update(background='#152C55',gap=8,cornerRadius=0 if key=='ram' else 1000);memory.append(group)
+    groups[0]['fontWeight']='semibold';groups[0]['children'][0]['fontWeight']='bold'
+    twins=node('twins',[node('ram-light',token='ram.value',fontWeight='light'),node('ram-bold',token='ram.value',fontWeight='bold')],fontWeight='semibold')
+    return schema.validate_layout(dict(schema='claw-modular-layout',version=1,anchor='top-left',x=16,y=16,paddingX=13,paddingY=7,root=node('overlay',[node('processors',groups),node('memory',memory),twins],axis='column')))
 
 
 def run(args):

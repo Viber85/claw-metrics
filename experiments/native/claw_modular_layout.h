@@ -18,6 +18,7 @@ enum class Anchor { TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, Bott
 struct Node {
     std::string id,token;
     bool group=true,visible=true;
+    int font_weight=0; // 0 inherits the group/plugin; 1..4 are bundled faces.
     Axis axis=Axis::Row;
     Align align=Align::Center;
     SelfAlign self_align=SelfAlign::Auto;
@@ -27,6 +28,7 @@ struct Node {
 };
 struct Result { std::vector<Rect> boxes; bool outside=false; };
 using Measure=std::function<Size(const std::string&,float)>;
+using NodeMeasure=std::function<Size(size_t,const std::string&,float)>;
 
 // Explicit per-axis padding defaults to zero for every element.
 inline float inset_x(const Node& node) { return node.overlay_padding_x; }
@@ -34,7 +36,7 @@ inline float inset_y(const Node& node) { return node.overlay_padding_y; }
 inline bool finite(float x) { return std::isfinite(x); }
 inline bool range(float x,float lo,float hi) { return finite(x)&&x>=lo&&x<=hi; }
 inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
-                     Anchor anchor,float x,float y,float font,const Measure& measure) {
+                     Anchor anchor,float x,float y,float font,const Measure& measure,const NodeMeasure& node_measure={}) {
     if(nodes.empty()||nodes.size()>96||root>=nodes.size()||!nodes[root].group||
        !range(screen.w,1,32768)||!range(screen.h,1,32768)||!range(x,0,2000)||
        !range(y,anchor==Anchor::CenterLeft||anchor==Anchor::CenterRight?-2000.f:0.f,2000)||!range(font,1,256)||static_cast<int>(anchor)<0||static_cast<int>(anchor)>7||!measure)
@@ -50,7 +52,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.axis!=Axis::Row&&n.axis!=Axis::Column)||
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
-           !range(n.overlay_padding_x,0,160)||!range(n.overlay_padding_y,0,160)||
+           (n.font_weight<0||n.font_weight>4)||!range(n.overlay_padding_x,0,160)||!range(n.overlay_padding_y,0,160)||
            !range(n.gap,0,n.group?240.f:80.f)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
            !range(n.width,!n.group&&n.token=="graph"?0.f:40.f,1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
@@ -66,7 +68,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
         Size out;
         if(!n.group) {
             // Graph dimensions are CSS/device pixels, like DevLab's SVG attributes.
-            out=(n.token=="graph"||n.token=="separator")?Size{n.width,n.height}:measure(n.token,font*scale);
+            out=(n.token=="graph"||n.token=="separator")?Size{n.width,n.height}:(node_measure?node_measure(i,n.token,font*scale):measure(n.token,font*scale));
             if(!range(out.w,0,1000000)||!range(out.h,0,1000000))throw std::invalid_argument("Invalid metric measurement");
         } else {
             size_t count=0;std::vector<size_t> children;float widest_non_auto_graph=0;

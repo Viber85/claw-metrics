@@ -112,7 +112,7 @@ class ModularSchemaTests(unittest.TestCase):
         self.layout['root']['id'] = 'čćž' * 20
         self.layout['root'].update(background='#112233', opacity=44, outline=True)
         text = schema.encode_native(self.layout)
-        self.assertTrue(text.startswith('CLAW_MODULAR_V4\n'))
+        self.assertTrue(text.startswith('CLAW_MODULAR_V5\n'))
         self.assertIn(self.layout['root']['id'].encode().hex(), text)
         self.assertIn('112233 44 1', text)
         with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
@@ -122,7 +122,7 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'end'
         out = schema.validate_layout(self.layout)
         self.assertEqual(out['root']['children'][0]['selfAlign'], 'end')
-        self.assertIn('CLAW_MODULAR_V4', schema.encode_native(out))
+        self.assertIn('CLAW_MODULAR_V5', schema.encode_native(out))
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
@@ -182,3 +182,17 @@ class ModularSchemaTests(unittest.TestCase):
                 self.assertEqual(settings['style_presets']['1']['modular_layout'],out)
         bad=copy.deepcopy(self.layout);bad.update(anchor='top-left',y=-1)
         with self.assertRaises(ValueError):schema.validate_layout(bad)
+
+
+class ElementAppearanceTests(unittest.TestCase):
+    def test_radius_and_weight_survive_roundtrip_and_reject_invalid_values(self):
+        doc=schema.load_layout((ROOT/'assets/modular/vertical.json').read_text())
+        group=doc['root']['children'][0];group.update(cornerRadius=1000,fontWeight='light')
+        reading=group['children'][0];reading['fontWeight']='bold'
+        result=schema.validate_layout(doc)
+        self.assertEqual(result,doc)
+        self.assertIn('1000 1',schema.encode_native(result))
+        self.assertEqual(schema.load_layout(json.dumps(result)),result)
+        for key,value in [('cornerRadius',-1),('cornerRadius',1001),('fontWeight','heavy'),('fontWeight',4)]:
+            broken=copy.deepcopy(doc);broken['root']['children'][0][key]=value
+            with self.assertRaises(ValueError):schema.validate_layout(broken)

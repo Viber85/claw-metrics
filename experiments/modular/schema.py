@@ -49,6 +49,10 @@ def validate_layout(value):
         for key,limit in (('outlineWidth',12),('outlineOpacity',100)):
             if key in v:out[key]=number(v[key],0,limit)
         if 'outlineColor' in v:out['outlineColor']=color(v['outlineColor'])
+        if depth>0 and v['kind']=='group' and 'cornerRadius' in v:out['cornerRadius']=number(v['cornerRadius'],0,1000)
+        if 'fontWeight' in v:
+            if v['fontWeight'] not in ('light','regular','semibold','bold'):raise ValueError('Invalid font weight')
+            out['fontWeight']=v['fontWeight']
         out['color'] = color(v.get('color'))
         out['background'] = color(v.get('background'))
         out['children'] = [visit(c, depth + 1) for c in v['children']]
@@ -84,7 +88,7 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V4', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
+    lines = ['CLAW_MODULAR_V5', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
     for n, children in nodes:
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),
@@ -96,6 +100,7 @@ def encode_native(value):
         fields += [n['color'][1:] or '-', n['background'][1:] or '-', numeric(n['opacity']), str(int(n['outline'])), str(len(children))]
         fields += [numeric(n.get(key,0)) for key in ('paddingX','paddingY')]
         fields += [numeric(n.get('outlineWidth',1)), n.get('outlineColor','')[1:] or '8FB8D9', numeric(n.get('outlineOpacity',100))]
+        fields += [numeric(n.get('cornerRadius',-1)), str(('', 'light', 'regular', 'semibold', 'bold').index(n.get('fontWeight','')))]
         fields += [str(index) for index in children]
         lines.append(' '.join(fields))
     encoded = '\n'.join(lines) + '\n'

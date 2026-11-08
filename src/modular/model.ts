@@ -1,5 +1,6 @@
 export type Axis='row'|'column';
-export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;paddingX?:number;paddingY?:number;outlineWidth?:number;outlineColor?:string;outlineOpacity?:number;children:Node[];token:string;width:number;height:number};
+export type FontWeight='light'|'regular'|'semibold'|'bold';
+export type Node={id:string;kind:'group'|'metric';name:string;visible:boolean;axis:Axis;gap:number;padding:number;align:'start'|'center'|'end';selfAlign:'auto'|'start'|'center'|'end';scale:number;color:string;background:string;opacity:number;outline:boolean;paddingX?:number;paddingY?:number;outlineWidth?:number;outlineColor?:string;outlineOpacity?:number;cornerRadius?:number;fontWeight?:FontWeight;children:Node[];token:string;width:number;height:number};
 export type Layout={schema:'claw-modular-layout';version:1;anchor:string;x:number;y:number;paddingX?:number;paddingY?:number;root:Node};
 export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right','center-left','center-right'];
 export const catalog:Record<string,string>={
@@ -84,6 +85,8 @@ export function validate(input:any):Layout{
   if(depth>0)for(const key of ['paddingX','paddingY'] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,160);
   for(const key of ['outlineWidth','outlineOpacity'] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,key==='outlineWidth'?12:100);
   if(v.outlineColor!==undefined)extras.outlineColor=color(v.outlineColor);
+  if(depth>0&&v.kind==='group'&&v.cornerRadius!==undefined)extras.cornerRadius=number(v.cornerRadius,0,1000);
+  if(v.fontWeight!==undefined){if(!['light','regular','semibold','bold'].includes(v.fontWeight))throw new Error('Invalid font weight.');extras.fontWeight=v.fontWeight;}
   const widthMin=v.kind==='metric'&&v.token==='graph'?0:40;
   return {...extras,id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,v.kind==='group'?240:80),padding:0,scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
