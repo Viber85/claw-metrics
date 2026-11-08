@@ -50,7 +50,10 @@ function scope(name,flow,parent){
  if(parent)assert.equal(scopes.at(-1)?.props.className,parent,`${name} nearest navigation parent`);
 }
 function checkNavigation(orientation){
- scope('claw-builder',orientation==='horizontal'?'column':'row','claw-builder-page');
+ assert.equal(navClass('claw-builder').node.props['data-orientation'],orientation);
+ // Zoom consumes Left/Right as a native slider: Down must still reach the
+ // controls panel even when the preview is visually beside it.
+ scope('claw-builder','column','claw-builder-page');
  scope('claw-builder-preview','column','claw-builder');
  scope('claw-builder-panel','column','claw-builder');
  scope('claw-builder-menu','row','claw-builder-panel');

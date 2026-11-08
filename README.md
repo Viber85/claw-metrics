@@ -2,7 +2,7 @@
 
 Group names in the editor's **Elements** tree are automatically bold; child readings use regular weight. This only changes the editor tree typography.
 
-The editor now registers Steam navigation rows and columns matching the visible layout. Left/right can move between Elements and the properties panel, and between controls in a row; up/down moves within each column. Both preview orientations and the Save style form use the same navigation hierarchy. Sliders and dropdowns retain their native controller handling. Mock tests verify the component hierarchy and selection behavior; actual controller navigation and QAM stability still need handheld confirmation.
+The editor now registers Steam navigation rows and columns for its panels and controls. Left/right can move between Elements and the properties panel, and between controls in a row; up/down moves within each column. Both preview orientations and the Save style form use the same navigation hierarchy. Up/down moves between Zoom and Layout controls so the native zoom slider can keep using left/right to change its value. Sliders and dropdowns retain their native controller handling. Mock tests verify the component hierarchy and selection behavior; actual controller navigation and QAM stability still need handheld confirmation.
 
 # Claw Metrics v0.2.4-test.100 — Graph color override and size controls
 
