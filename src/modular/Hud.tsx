@@ -73,6 +73,9 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
  const host=useRef<HTMLDivElement>(null),[fitWidths,setFitWidths]=useState<Record<string,number>>({});
  useLayoutEffect(()=>{
   const element=host.current;if(!element)return;
+  let alive=true;
+  const measure=()=>{
+  if(!alive)return;
   const next:Record<string,number>={};
   for(const graph of Array.from(element.querySelectorAll<HTMLElement>('[data-auto-width="true"]'))){
    const parent=graph.parentElement;if(!parent)continue;
@@ -80,7 +83,13 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
    if(siblingWidth>0){const id=graph.dataset.nodeId;if(id)next[id]=Math.max(1,siblingWidth-2*(Number(graph.dataset.padding)||0));}
   }
   setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
- },[layout,s.fontsize,s.sans,s.font_weight,s.unit_superscript]);
+  };
+  measure();
+  // A newly selected weight can load after the first layout measurement.
+  // One guarded font-ready pass updates auto-width graphs without resize loops.
+  if(typeof document!=='undefined'&&document.fonts)void document.fonts.ready.then(measure);
+  return()=>{alive=false};
+ },[layout,s.fontsize,s.sans,s.font_weight,s.token_weights,s.unit_superscript]);
  const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25,d.batteryPlugged??false);
  const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};

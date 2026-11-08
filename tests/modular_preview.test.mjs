@@ -4,8 +4,10 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
 const metrics={exports:{}};runInNewContext(ts.transpileModule(readFileSync('src/modular/fps-font-metrics.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:metrics,exports:metrics.exports});
+let graphHost=null,capturedLayoutEffect,fitted={};
+const fakeDocument={fonts:{ready:Promise.resolve()}};
 const module={exports:{}};
-runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='./fps-font-metrics'?metrics.exports:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]}:{},console});
+runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='./fps-font-metrics'?metrics.exports:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:effect=>{capturedLayoutEffect=effect},useRef:()=>({current:graphHost}),useState:initial=>[typeof initial==='function'?initial():initial,next=>{fitted=typeof next==='function'?next(fitted):next}]}:{},console,document:fakeDocument});
 const {ModularHud,unitParts,readingText}=module.exports;
 assert.equal(unitParts('cpu.temp','54°C').join('|'),'54|°C');
 assert.equal(unitParts('gpu.clock','1750 MHz').join('|'),'1750|MHz');
@@ -161,3 +163,16 @@ assert.equal(byId('independent-copy').props.style.fontWeight,300,'duplicate toke
 delete styledLoad.fontWeight;styledNodes=styledPreview();assert.equal(byId(styledLoad.id).props.style.fontWeight,600);
 delete styledCpu.fontWeight;styledNodes=styledPreview();assert.equal(byId(styledCpu.children.find(n=>n.token==='cpu.label').id).props.style.fontWeight,400,'automatic restores plugin styling');
 console.log('PASS preview radius and font inheritance: group/plugin precedence and independent duplicate readings.');
+
+let fontReadyResolve;fakeDocument.fonts.ready=new Promise(resolve=>{fontReadyResolve=resolve});
+const sibling={offsetWidth:160};const autoGraph={dataset:{nodeId:'font-graph',padding:'7'}};
+autoGraph.parentElement={children:[sibling,autoGraph]};graphHost={querySelectorAll:()=>[autoGraph]};
+ModularHud({layout:styled,settings,data:module.exports.initialData,selected:'none',onSelect:()=>{}});
+const stopFontPass=capturedLayoutEffect();assert.equal(fitted['font-graph'],146);
+sibling.offsetWidth=220;fontReadyResolve();await new Promise(setImmediate);
+assert.equal(fitted['font-graph'],206,'auto graph remeasures when the selected font face finishes loading');stopFontPass();
+fakeDocument.fonts.ready=new Promise(resolve=>{fontReadyResolve=resolve});
+ModularHud({layout:styled,settings,data:module.exports.initialData,selected:'none',onSelect:()=>{}});
+const stopUnmounted=capturedLayoutEffect();stopUnmounted();sibling.offsetWidth=300;fontReadyResolve();await new Promise(setImmediate);
+assert.equal(fitted['font-graph'],206,'font completion after unmount cannot update the preview');graphHost=null;
+console.log('PASS font loading: guarded auto-graph width refresh and no update after unmount.');
