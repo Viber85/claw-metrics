@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.106 ZIP
+name: Build Claw Metrics v0.2.4 test.107 ZIP
 on:
   push:
-    branches: [test/fps-tight-bounds-106]
+    branches: [test/editor-navigation-107]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.106
+  group: claw-metrics-v0.2.4-test.107
   cancel-in-progress: true
 
 jobs:
@@ -246,7 +246,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.106.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.107.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -262,18 +262,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.106', package['version']
+              assert package['version'] == '0.2.4-test.107', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.106
-          path: ClawMetrics-v0.2.4-test.106.zip
+          name: ClawMetrics-v0.2.4-test.107
+          path: ClawMetrics-v0.2.4-test.107.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.106 ClawMetrics-v0.2.4-test.106.zip \
+          gh release create v0.2.4-test.107 ClawMetrics-v0.2.4-test.107.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.106 – Tight FPS ink bounds" \
-            --notes "Experimental test.106: Removes the invisible third-digit reservation and full-em/superscript line padding from FPS value. Uses actual digit count with fixed digit cells to keep widths stable within the same digit count. Native bounds use glyph ink; the preview uses the same pinned font outlines in an SVG, without DOM/canvas measurement loops. Selection outlines now follow the actual element box. Explicit X/Y padding still adds the requested pixels. Other metrics retain shared superscript baselines. Checks include glyph bounds at 201% scale, digit-count transitions, font variants, frontend/backend, Vulkan/OpenGL and ZIP verification. Retains test.105 padding/outlines and prior diagnostics. Handheld appearance/controller focus and QAM stability remain unverified."
+            --title "Claw Metrics v0.2.4-test.107 – Editor group names and controller navigation" \
+            --notes "Experimental test.107: Group names in the editor element tree are automatically bold, while readings use regular weight. Registers native Steam navigation containers for the main editor layout, preview, controls panel, element tree, properties and saved-style form. Left/right navigation can cross between the element tree and properties; up/down remains within each column. Existing native slider and dropdown handling is retained. Mock regressions check the navigation hierarchy in horizontal and vertical templates, bold group names, regular reading names and selection/collapse behavior. Full frontend/backend, native Vulkan/OpenGL, ImGui layout and ZIP checks remain enabled. Actual handheld controller navigation and QAM stability still require device confirmation. Retains test.106 FPS bounds and all prior padding, outlines and diagnostics."

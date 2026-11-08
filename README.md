@@ -1,3 +1,9 @@
+# Claw Metrics v0.2.4-test.107 — Editor groups and controller navigation
+
+Group names in the editor's **Elements** tree are automatically bold; child readings use regular weight. This only changes the editor tree typography.
+
+The editor now registers Steam navigation rows and columns matching the visible layout. Left/right can move between Elements and the properties panel, and between controls in a row; up/down moves within each column. Both preview orientations and the Save style form use the same navigation hierarchy. Sliders and dropdowns retain their native controller handling. Mock tests verify the component hierarchy and selection behavior; actual controller navigation and QAM stability still need handheld confirmation.
+
 # Claw Metrics v0.2.4-test.100 — Graph color override and size controls
 
 Frametime graphs in the editor now hide **Element scale** because their dimensions use **Graph width** and **Graph height**. **Graph color** is retained through Apply and saved styles and now takes priority over the plugin graph palette in the native renderer, including fills and layered styles. **Use plugin color** restores inheritance. Existing saved overrides are honored without recreating the layout.

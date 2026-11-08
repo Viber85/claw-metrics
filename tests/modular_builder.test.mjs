@@ -22,7 +22,8 @@ const {Builder}=load('src/modular/Builder.tsx',name=>{
 });
 const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
-function render(){cursor=0;return walk(Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true}))}
+function renderTree(){cursor=0;return Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true})}
+function render(){return walk(renderTree())}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
@@ -31,6 +32,46 @@ assert(render().some(n=>n.props?.className==='claw-builder-stage'));
 assert(!render().some(n=>n.type==='ModalRoot'),'the editor is a routed page, not a Steam modal');
 assert(render().some(n=>n.props?.className==='claw-builder-page'));
 assert.equal(applied,undefined);
+// Inspect the native Focusable hierarchy, not just CSS classes. This catches
+// the missing parent row which formerly flattened both columns into a column.
+// It does not simulate Steam's navigation engine or establish device behavior.
+function navigation(v,scopes=[]){
+ if(!v||typeof v!=='object')return [];
+ if(Array.isArray(v))return v.flatMap(child=>navigation(child,scopes));
+ if(typeof v.type==='function')return navigation(v.type(v.props),scopes);
+ const next=v.type==='Focusable'?[...scopes,v]:scopes;
+ return [{node:v,scopes},...navigation(v.props.children,next)];
+}
+function navClass(name){const result=navigation(renderTree()).find(({node})=>node.props.className===name);assert(result,name);return result}
+function scope(name,flow,parent){
+ const {node,scopes}=navClass(name);
+ assert.equal(node.type,'Focusable',`${name} must register native navigation`);
+ assert.equal(node.props['flow-children'],flow,name);
+ if(parent)assert.equal(scopes.at(-1)?.props.className,parent,`${name} nearest navigation parent`);
+}
+function checkNavigation(orientation){
+ scope('claw-builder',orientation==='horizontal'?'column':'row','claw-builder-page');
+ scope('claw-builder-preview','column','claw-builder');
+ scope('claw-builder-panel','column','claw-builder');
+ scope('claw-builder-menu','row','claw-builder-panel');
+ scope('claw-builder-navigator','column','claw-builder-menu');
+ scope('claw-builder-properties','column','claw-builder-menu');
+ scope('claw-builder-property-scroll','column','claw-builder-properties');
+ scope('claw-builder-actions','row','claw-builder-properties');
+ scope('claw-builder-fields','row','claw-builder-card-body');
+ scope('claw-builder-tree','column','claw-builder-card-body');
+ const treeButton=navClass('claw-builder-tree-select');
+ assert.equal(treeButton.scopes.at(-1).props.className,'claw-builder-tree-row');
+ assert.equal(treeButton.scopes.at(-2).props.className,'claw-builder-tree');
+}
+checkNavigation('horizontal');
+const horizontalDraft=state[1];
+state[1]=model.validate(JSON.parse(readFileSync('assets/modular/vertical.json')));
+checkNavigation('vertical');state[1]=horizontalDraft;
+const rootButton=navClass('claw-builder-tree-select').node;
+assert(walk(rootButton).some(n=>n.type==='strong'&&text(n.props.children)===initial.root.name),'root group name is bold');
+console.log('PASS editor navigation hierarchy: horizontal/vertical templates, left/right sibling panels and control rows; mock structure only.');
+
 assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own right-panel actions');
 assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
@@ -76,6 +117,12 @@ assert(firstGroup);
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'nested groups begin collapsed');
 render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
 assert(render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'group expands');
+for(const row of render().filter(n=>n.props?.className==='claw-builder-tree-select')){
+ const groupRow=row.props['aria-expanded']!==undefined;
+ assert.equal(walk(row).some(n=>n.type==='strong'),groupRow,'only group names are bold, including nested groups');
+}
+assert(render().some(n=>n.type==='style'&&n.props.children.includes('font-weight:400!important}.claw-builder-tree-select strong{font-weight:700}')),'readings retain regular weight regardless of native button defaults');
+
 render().find(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.name)).props.onClick();
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-select'&&text(n.props.children).includes(firstGroup.children[0].name)),'group collapses without deleting contents');
 assert(!render().some(n=>n.props?.className==='claw-builder-tree-toggle'),'no separate tree toggle');
@@ -211,6 +258,7 @@ saveStyleHandler=async(slot,doc,appearance,name)=>{
 };
 control('TextField','Name').onChange({target:{value:'Unsaved editor draft'}});
 control('DialogButton','Save style').onClick();
+scope('claw-builder-save-style','column','claw-builder-properties');
 assert.equal(control('DropdownItem','Style slot').selectedOption,'new');
 assert(control('DropdownItem','Style slot').rgOptions.some(x=>x.data==='1'&&x.label==='Existing'));
 control('TextField','Style name').onChange({target:{value:'From editor'}});
