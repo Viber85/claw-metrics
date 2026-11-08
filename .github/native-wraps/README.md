@@ -2,7 +2,7 @@
 
 These are the unmodified ZIP assets from mesonbuild/wrapdb, encoded as base64 for repository transport. Each archive retains its upstream `LICENSE.build`. They only contain Meson build files; the dependency sources are still fetched by the pinned upstream wraps.
 
-`tools/cache_native_wraps.py` decodes them into Meson's package cache and verifies SHA256 against the wrap files in the checked-out MangoHud v0.8.1 source. A mismatch stops the build. This removes a dependency on WrapDB availability and GitHub's anonymous API quota.
+`tools/cache_native_wraps.py` decodes them into Meson's package cache and verifies SHA256 against the wrap files in the checked-out MangoHud v0.8.1 source. A mismatch stops the build. This removes a dependency on WrapDB availability and GitHub's anonymous API quota. The helper also caches dependency source archives, using GitHub's canonical codeload URL for archive downloads and verifying each against its original upstream `source_hash` before Meson runs.
 
 | File | Official release asset | SHA256 |
 | --- | --- | --- |
