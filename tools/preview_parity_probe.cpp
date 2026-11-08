@@ -28,6 +28,14 @@ int main(int argc,char**argv){
   if(!a.background.empty()){const unsigned rgb=std::stoul(a.background,nullptr,16);styles[i].fill=IM_COL32(rgb>>16,(rgb>>8)&255,rgb&255,255);}
  }
  auto frame=prepare(doc.nodes,styles,readings,{},0,{1280,800},doc.anchor,doc.x,doc.y,size,std::string(argv[6])=="1");
+ auto changed=readings;
+ changed["cpu.clock"].value="2545 MHz";changed["gpu.clock"].value="600 MHz";
+ changed["ram.value"].value="5.4 GiB";changed["vram.value"].value="2.2 GiB";
+ auto live=prepare(doc.nodes,styles,changed,{},0,{1280,800},doc.anchor,doc.x,doc.y,size,std::string(argv[6])=="1");
+ for(size_t i=0;i<doc.nodes.size();++i){
+  const auto& a=frame.geometry.boxes[i];const auto& b=live.geometry.boxes[i];
+  if(std::abs(a.x-b.x)>.001f||std::abs(a.y-b.y)>.001f||std::abs(a.w-b.w)>.001f||std::abs(a.h-b.h)>.001f)return 4;
+ }
  ImGui::NewFrame();paint(frame,ImGui::GetBackgroundDrawList());ImGui::Render();
  std::ofstream out(std::string(argv[4])+".json");out<<"{\"width\":1280,\"height\":800,\"boxes\":{";
  for(size_t i=0;i<doc.nodes.size();++i){if(i)out<<",";const auto& b=frame.geometry.boxes[i];out<<'"'<<doc.nodes[i].id<<"\":["<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<"]";}

@@ -142,6 +142,7 @@ console.log('PASS preview font scale: STB ascent/descent sizing, no kerning, mat
 
 const reservation=module.exports.ReservedReading({token:'cpu.clock',value:'3500 MHz',reference:'8888 MHz',superscript:true});
 assert.equal(reservation.props.style.display,'grid');assert.equal(reservation.props.style.visibility,'hidden');
-assert.equal(reservation.props.children.length,2);
+assert.equal(reservation.props.children.length,3);
+assert.equal(reservation.props.children[1].props.children.props.children[0].props.children,'0000');
 for(const layer of reservation.props.children){assert.equal(layer.props.style.gridArea,'1 / 1');assert.equal(layer.props.style.display,'flex');}
 console.log('PASS reservation layers: live/reference intrinsic maximum and no inherited inline line strut.');

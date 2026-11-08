@@ -114,8 +114,14 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
         const auto& text=it->second;
         auto extent=reading_size(text,token,size,unit_superscript,text.value);
         if(token!="fps.value"&&!text.slot.empty()){
-            auto slot=reading_size(text,token,size,unit_superscript,text.slot);
-            extent.w=std::max(extent.w,slot.w);extent.h=std::max(extent.h,slot.h);
+            // Barlow's zero is wider than eight. Reserve both references so
+            // clocks/memory do not shrink when e.g. 3500 MHz changes to 2545.
+            auto zeroes=text.slot;std::replace(zeroes.begin(),zeroes.end(),'8','0');
+            const std::string* references[]={&text.slot,&zeroes};
+            for(const auto* reference:references){
+                auto slot=reading_size(text,token,size,unit_superscript,*reference);
+                extent.w=std::max(extent.w,slot.w);extent.h=std::max(extent.h,slot.h);
+            }
         }
         return extent;
     });

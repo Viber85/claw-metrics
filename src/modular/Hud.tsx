@@ -27,7 +27,7 @@ export function readingText(token:string,value:string,superscript:boolean){
 // The intrinsic box is the maximum of reference and live text, like native
 // prepare(). A flex/grid wrapper avoids an extra inherited inline line strut.
 export function ReservedReading({token,value,reference,superscript}:{token:string;value:string;reference:string;superscript:boolean}){
- return <span aria-hidden="true" style={{visibility:'hidden',display:'grid'}}>{[reference,value].map((text,index)=><span key={index} style={{gridArea:'1 / 1',display:'flex'}}>{readingText(token,text,superscript)}</span>)}</span>;
+ return <span aria-hidden="true" style={{visibility:'hidden',display:'grid'}}>{[reference,reference.replace(/8/g,'0'),value].map((text,index)=><span key={index} style={{gridArea:'1 / 1',display:'flex'}}>{readingText(token,text,superscript)}</span>)}</span>;
 }
 export function batteryTime(count:number,status:string,hours:number,online=false){
  if(count<=0)return {text:'--',plugged:false};
