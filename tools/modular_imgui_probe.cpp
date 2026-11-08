@@ -31,7 +31,10 @@ int main(int argc,char**argv){
   if(appearance.outline)styles[i].outline=IM_COL32(143,184,217,255);
  }
  values["fps.value"].slot="888";
- const bool superscript=argc==8&&std::string(argv[7])=="1";
+ values["battery.time"].slot="88:88";
+ const bool charging=argc==8&&std::string(argv[7])=="charging";
+ if(charging){values["battery.time"].value="";values["battery.time"].plugged=true;}
+ const bool superscript=argc==8&&(std::string(argv[7])=="1"||charging);
  auto frame=prepare(nodes,styles,values,{8,9,8,10,12,11,8,9,7,8,9,8},0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
  if(nodes[1].self_align==SelfAlign::End){auto default_nodes=nodes;default_nodes[1].self_align=SelfAlign::Auto;
   auto baseline=prepare(default_nodes,styles,values,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,superscript);
@@ -120,6 +123,38 @@ int main(int argc,char**argv){
  catch(const std::invalid_argument&){rejected=true;}
  assert(rejected);
  ImGui::NewFrame();
+ // Real glyph vertices: every text metric uses the same main-text origin.
+ // This checks the bug with top, center and bottom alignment, units on/off.
+ for(bool raised:{false,true})for(auto align:{Align::Start,Align::Center,Align::End}){
+  const std::vector<std::pair<std::string,std::string>> all={
+   {"fps.label","88"},{"cpu.label","88"},{"gpu.label","88"},{"ram.label","88"},{"vram.label","88"},{"battery.label","88"},
+   {"fps.value","88"},{"fps.average","88"},{"fps.low1","88"},{"fps.ms","88 ms"},
+   {"cpu.load","88%"},{"cpu.temp","88°C"},{"cpu.clock","88 MHz"},{"cpu.power","88 W"},
+   {"gpu.load","88%"},{"gpu.temp","88°C"},{"gpu.clock","88 MHz"},{"gpu.power","88 W"},{"gpu.junction","88°C"},{"gpu.fan","88 RPM"},{"gpu.voltage","88 mV"},
+   {"ram.value","88 GiB"},{"ram.game","88 GiB"},{"ram.swap","88 GiB"},{"vram.value","88 GiB"},{"vram.temp","88°C"},{"vram.clock","88 MHz"},
+   {"battery.value","88%"},{"battery.time","88:88"},{"battery.power","88 W"},{"tdp.value","88 W"},{"time.value","88:88"}};
+  float first_y=0;
+  for(size_t i=0;i<all.size();++i){
+   Node root;root.id="all-metrics";root.children={1};root.align=align;
+   Node node;node.id="text";node.group=false;node.token=all[i].first;
+   Text value;value.font=font;value.value=all[i].second;
+   auto sample=prepare({root,node},std::vector<Style>(2),{{node.token,value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+   ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(sample,&ink);
+   assert(ink.VtxBuffer.Size>=4);const float y=ink.VtxBuffer[0].pos.y;
+   if(i==0)first_y=y;assert(std::abs(y-first_y)<.01f);
+  }
+ }
+ // Charge transitions keep the reserved time width and draw a vector plug.
+ for(bool raised:{false,true}){
+  Node root;root.id="charging";root.children={1};Node timer;timer.id="time";timer.group=false;timer.token="battery.time";
+  Text value;value.font=font;value.value="02:15";value.slot="88:88";
+  auto discharge=prepare({root,timer},std::vector<Style>(2),{{timer.token,value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+  value.value="";value.plugged=true;
+  auto charge=prepare({root,timer},std::vector<Style>(2),{{timer.token,value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24,raised);
+  assert(std::abs(charge.geometry.boxes[0].w-discharge.geometry.boxes[0].w)<.001f);
+  assert(std::abs(charge.geometry.boxes[0].h-discharge.geometry.boxes[0].h)<.001f);
+  ImDrawList ink(ImGui::GetDrawListSharedData());ink._ResetForNewFrame();ink.PushClipRectFullScreen();paint(charge,&ink);assert(ink.VtxBuffer.Size>20);
+ }
  // Verify actual graph primitives: every style honors its node override,
  // and clearing it returns to the shared plugin color.
  for(int kind=0;kind<6;++kind)for(ImU32 override_color:{ImU32(0),IM_COL32(255,0,255,255),IM_COL32(255,255,0,255)}){

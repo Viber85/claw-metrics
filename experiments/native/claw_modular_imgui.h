@@ -1,5 +1,6 @@
 #pragma once
 #include "claw_modular_layout.h"
+#include "claw_battery_time.h"
 #include "imgui.h"
 #include <limits>
 #include <map>
@@ -18,6 +19,7 @@ struct Text {
     std::string prefix{};
     ImFont* prefix_font=nullptr;
     ImU32 prefix_color=IM_COL32(240,242,245,255);
+    bool plugged=false; // Vector icon; does not depend on an icon font.
 };
 struct Style {
     ImU32 fill=0,outline=0,text=0;
@@ -62,12 +64,14 @@ inline float prefix_width(const Text& text,float size){
     return text.prefix.empty()?0:(text.prefix_font?text.prefix_font:text.font)->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,text.prefix.c_str()).x+size*.25f;
 }
 inline Size reading_size(const Text& text,const std::string& token,float size,bool superscript,const std::string& value) {
+    if(text.plugged&&value.empty())return {size*.8f,size*(superscript?1.18f:1.f)};
     const auto parts=unit_parts(token,value);
     auto extent=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str());
     if(!parts.second.empty()){
         extent.x+=unit_gap(size)+text.font->CalcTextSizeA(size*(superscript?.7f:1.f),std::numeric_limits<float>::max(),0,parts.second.c_str()).x;
-        if(superscript)extent.y+=size*.18f;
     }
+    // One shared line box for labels, numbers, missing readings and clocks.
+    if(superscript)extent.y+=size*.18f;
     return {prefix_width(text,size)+extent.x,extent.y};
 }
 inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
@@ -96,6 +100,15 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
 }
 inline float text_offset(Align alignment,float available) {
     return alignment==Align::End?available:alignment==Align::Center?available/2:0;
+}
+inline void paint_plug(ImDrawList* draw,ImVec2 top,float size,ImU32 color){
+    const float stroke=std::max(1.f,size*.07f);
+    auto p=[&](float x,float y){return ImVec2(top.x+x*size,top.y+y*size);};
+    draw->AddLine(p(.25f,.08f),p(.25f,.35f),color,stroke);
+    draw->AddLine(p(.55f,.08f),p(.55f,.35f),color,stroke);
+    draw->AddRectFilled(p(.12f,.3f),p(.68f,.64f),color,size*.1f);
+    draw->AddLine(p(.4f,.6f),p(.4f,.84f),color,stroke);
+    draw->AddLine(p(.4f,.84f),p(.68f,.84f),color,stroke);
 }
 inline void paint(const Frame& frame,ImDrawList* draw) {
     if(!draw)throw std::invalid_argument("Missing draw list");
@@ -175,7 +188,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*n.padding-width));
             const auto color=style.text?style.text:text.color;
             const float prefix=prefix_width(text,size);
-            const float baseline=lo.y+n.padding+(!parts.second.empty()&&frame.unit_superscript?size*.18f:0);
+            const float baseline=lo.y+n.padding+(frame.unit_superscript?size*.18f:0);
+            if(text.plugged){
+                paint_plug(draw,ImVec2(lo.x+n.padding+offset,baseline),size,color);
+                return;
+            }
             const int prefix_first=draw->VtxBuffer.Size;
             if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+n.padding+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
             const int number_first=draw->VtxBuffer.Size;

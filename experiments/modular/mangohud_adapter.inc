@@ -70,10 +70,8 @@ bool ClawTryModular() {
     set("vram.label",p.claw_vram_label.empty()?"VRAM":p.claw_vram_label);
     set("battery.label",p.claw_battery_label.empty()?"BATT":p.claw_battery_label);
     set("battery.value",fmt("%.0f%%",Battery_Stats.current_percent,Battery_Stats.batt_count>0));
-    if(Battery_Stats.batt_count>0&&Battery_Stats.remaining_time>0){
-        float hours;const float minutes=std::modf(Battery_Stats.remaining_time,&hours)*60;
-        char buffer[32];std::snprintf(buffer,sizeof(buffer),"%02d:%02d",int(hours),int(minutes));set("battery.time",buffer);
-    }
+    const auto remaining=claw_modular::battery_time(Battery_Stats.batt_count,Battery_Stats.current_status,Battery_Stats.remaining_time);
+    set("battery.time",remaining.text);readings["battery.time"].plugged=remaining.plugged;
     set("time.value",data.time.empty()?"--":data.time);
     set("tdp.value","TDP --");set("battery.power","DRAW --");
     for(const auto& item:HUDElements.exec_list){

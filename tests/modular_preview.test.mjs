@@ -82,3 +82,23 @@ assert.equal(nodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.paddi
 assert.equal(nodes.find(n=>n.props?.['data-node-id']===layout.root.id).props.style.gap,240);
 assert.equal(nodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.gap,0);
 console.log('PASS preview: legacy group padding ignored and independent parent/internal gaps retained.');
+
+const {batteryTime}=module.exports;
+for(const status of ['Charging','Full','Not charging'])for(const hours of [0,-1,2.25,Infinity,NaN]){
+ const result=batteryTime(1,status,hours);assert.equal(result.plugged,true);assert.equal(result.text,'');
+}
+for(const hours of [0,-1,100,1e30,Infinity,NaN])assert.equal(batteryTime(1,'Discharging',hours).text,'--');
+assert.equal(batteryTime(1,'Discharging',2.25).text,'02:15');assert.equal(batteryTime(1,'Unknown',2.25).text,'--');
+assert.equal(batteryTime(0,'Charging',Infinity).plugged,false);
+for(const token of ['fps.label','cpu.label','gpu.label','ram.label','vram.label','battery.label','time.value','fps.average','fps.low1','battery.time']){
+ const row=readingText(token,'88',true);assert.equal(row.props.style.height,'1.18em');assert.equal(row.props.children[0].props.style.paddingTop,'.18em');
+}
+const battery=modelBattery(layout.root);
+function modelBattery(n){return n.token==='battery.time'?n:n.children.map(modelBattery).find(Boolean)}
+if(!battery){gpu.children.push({...line,id:'battery-time-test',token:'battery.time',padding:0});}
+const charging=walk(ModularHud({layout,settings,data:{batteryStatus:'Charging',batteryHours:Infinity},selected:'none',onSelect:()=>{}}));
+const plugged=charging.find(n=>n.props?.['data-node-id']===(battery?.id||'battery-time-test'));
+assert(walk(plugged).some(n=>n.type===module.exports.Plug));
+assert(!textOf(plugged).includes('Infinity'));assert(!textOf(plugged).includes('-2147483648'));
+function textOf(n){return typeof n==='string'?n:Array.isArray(n)?n.map(textOf).join(''):n&&typeof n==='object'?textOf(n.props?.children):''}
+console.log('PASS battery preview: plugged/full/charge-limit, safe unavailable estimates and common label/value line boxes.');

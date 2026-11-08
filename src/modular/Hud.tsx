@@ -4,7 +4,7 @@ const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
 // do not change when sample values are shorter than live values.
 const slots:Record<string,string>={'fps.value':'888','fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
-export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,draw:27,tdp:28};
+export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,batteryStatus:'Discharging',batteryHours:2.25,draw:27,tdp:28};
 export function unitParts(token:string,value:string):[string,string]{
  const temperature=['cpu.temp','gpu.temp','gpu.junction','vram.temp'].includes(token);
  const suffix=temperature?(value.includes('°F')?'°F':'°C'):
@@ -21,8 +21,16 @@ export function unitParts(token:string,value:string):[string,string]{
 export function readingText(token:string,value:string,superscript:boolean){
  const [main,unit]=unitParts(token,value);
  // The gap belongs to the reading's full font size, never the smaller unit.
- return unit?<span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top',columnGap:'.14em'}}><span style={{paddingTop:superscript?'.18em':0}}>{main}</span><span style={{fontSize:superscript?'.7em':'1em'}}>{unit}</span></span>:value;
+ return <span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top',columnGap:'.14em',height:superscript?'1.18em':'1em'}}><span style={{lineHeight:'1em',paddingTop:superscript?'.18em':0}}>{main}</span>{unit&&<span style={{lineHeight:'1em',fontSize:superscript?'.7em':'1em'}}>{unit}</span>}</span>;
 }
+export function batteryTime(count:number,status:string,hours:number){
+ if(count<=0)return {text:'--',plugged:false};
+ if(['Charging','Full','Not charging'].includes(status))return {text:'',plugged:true};
+ if(status!=='Discharging'||!Number.isFinite(hours)||hours<=0||hours>=100)return {text:'--',plugged:false};
+ const total=Math.floor(hours*60);
+ return {text:total<1?'--':`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`,plugged:false};
+}
+export function Plug(){return <svg aria-label="Charger connected" width=".8em" height="1em" viewBox="0 0 80 100" style={{display:'block'}}><path d="M25 8V35 M55 8V35 M40 60V84H68" fill="none" stroke="currentColor" strokeWidth="7"/><rect x="12" y="30" width="56" height="34" rx="10" fill="currentColor"/></svg>}
 export function rgba(hex:string,opacity:number){const c=(hex||'161820').replace('#','');return `rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${opacity/100})`}
 export function backgroundStyle(s:any):React.CSSProperties{
  const b=s.background,stops=b.stops.map((p:any)=>`${rgba(p.color,s.opacity)} ${p.position}%`).join(',');
@@ -56,7 +64,8 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   }
   setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
  },[layout,s.fontsize,s.sans,s.font_weight,s.unit_superscript]);
- const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':'02:15','battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
+ const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25);
+ const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row'):React.ReactNode{
   if(!n.visible)return null;
@@ -69,7 +78,8 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';
   const alignment=parentAxis==='column'&&n.selfAlign!=='auto'?n.selfAlign:parentAlignment;
-  if(n.token==='tdp.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.['tdp.value']||s.font_weight]||400):400,flexDirection:'row',gap:'.25em',alignItems:'flex-start'}}><span data-tdp-part="label" style={{color:n.color||'#'+(s.token_colors?.['tdp.label']||s.colors.tdp||s.colors.text),fontWeight:s.sans?(weights[s.token_weights?.['tdp.label']||s.font_weight]||400):400,paddingTop:s.unit_superscript?'.18em':0}}>{s.custom_labels?.tdp||'TDP'}</span><span data-tdp-part="value">{readingText('tdp.value',`${d.tdp} W`,s.unit_superscript)}</span></div>;
+  if(n.token==='tdp.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.['tdp.value']||s.font_weight]||400):400,flexDirection:'row',gap:'.25em',alignItems:'flex-start'}}><span data-tdp-part="label" style={{color:n.color||'#'+(s.token_colors?.['tdp.label']||s.colors.tdp||s.colors.text),fontWeight:s.sans?(weights[s.token_weights?.['tdp.label']||s.font_weight]||400):400,lineHeight:'1em',paddingTop:s.unit_superscript?'.18em':0}}>{s.custom_labels?.tdp||'TDP'}</span><span data-tdp-part="value">{readingText('tdp.value',`${d.tdp} W`,s.unit_superscript)}</span></div>;
+  if(n.token==='battery.time'&&remaining.plugged)return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color}}><span aria-hidden="true" style={{visibility:'hidden'}}>{readingText(n.token,slots[n.token],s.unit_superscript)}</span><span style={{position:'absolute',left:n.padding,right:n.padding,display:'flex',justifyContent:alignment==='center'?'center':alignment==='end'?'flex-end':'flex-start',paddingTop:s.unit_superscript?'.18em':0}}><Plug/></span></div>;
   return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight:s.sans?(weights[s.token_weights?.[n.token]||s.font_weight]||400):400,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.width,height:n.height,background:color}}/>:slots[n.token]?<><span aria-hidden="true" style={{visibility:'hidden'}}>{readingText(n.token,slots[n.token],s.unit_superscript)}</span><span style={{position:'absolute',left:n.padding,right:n.padding,textAlign:alignment}}>{readingText(n.token,String(value),s.unit_superscript)}</span></>:readingText(n.token,String(value),s.unit_superscript)}</div>
  }
  const bottom=layout.anchor.startsWith('bottom'),right=layout.anchor.endsWith('right'),center=layout.anchor.endsWith('center'),middle=layout.anchor.startsWith('center-');

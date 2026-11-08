@@ -103,10 +103,15 @@ def run(args):
             font=tmp/'ClawSans.ttf';font.write_bytes(gzip.decompress(base64.b64decode((ROOT/'assets/ClawSans.ttf.gz.b64').read_bytes())))
             import main
             assert hashlib.sha256(font.read_bytes()).hexdigest()==main.FONT_SHA256
-        for name in (() if args.classic_only else ('group-tight','group-spaced') if args.spacing_only else ('graph-color',) if args.graph_only else ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right','graph-color','group-tight','group-spaced')):
-            source='group-spacing' if name.startswith('group-') else 'graph-focus' if name=='graph-color' else 'vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
+        for name in (() if args.classic_only else ('battery-discharging','battery-charging') if args.battery_only else ('group-tight','group-spaced') if args.spacing_only else ('graph-color',) if args.graph_only else ('two-rows','graph-focus','horizontal','vertical','graph-below','separator','superscript','center-left','center-right','graph-color','group-tight','group-spaced','battery-discharging','battery-charging')):
+            source='group-spacing' if name.startswith(('group-','battery-')) else 'graph-focus' if name=='graph-color' else 'vertical' if name.startswith('center-') else 'graph-below' if name=='separator' else 'horizontal' if name=='superscript' else name
             preset=ROOT/('tests/fixtures' if source in ('graph-below','group-spacing') else 'assets/modular' if source in ('horizontal','vertical') else 'experiments/modular')/(source+'.json')
             document=schema.load_layout(preset.read_text())
+            if name.startswith('battery-'):
+                document['root']['gap']=6
+                readings=document['root']['children'][0];readings['gap']=18
+                readings['children'][1]['gap']=8
+                for row in readings['children'][1]['children']:row['gap']=6
             if name=='group-spaced':
                 document['root']['gap']=8
                 readings=document['root']['children'][0]
@@ -132,12 +137,12 @@ def run(args):
             subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(tmp),'-I',str(ROOT/'experiments/native'),
                             str(ROOT/'tools/modular_imgui_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
             for width,height in (((1280,800),) if name=='superscript' else ((1280,800),(1920,1080))):
-                for style in (range(1) if name=='superscript' or name.startswith(('center-','group-')) else range(6)):
+                for style in (range(1) if name=='superscript' or name.startswith(('center-','group-','battery-')) else range(6)):
                     target=output/f'{name}-{width}x{height}-style{style}'
-                    subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['1'] if name=='superscript' else [])],check=True)
+                    subprocess.run([str(binary),str(font),str(width),str(height),str(target),str(transport),str(style),*(['charging' if name=='battery-charging' else '1'] if name=='superscript' or name.startswith('battery-') else [])],check=True)
                     raster(target.with_suffix('.json'))
 
-        if args.graph_only or args.spacing_only:return
+        if args.graph_only or args.spacing_only or args.battery_only:return
 
         binary=tmp/'classic-probe'
         subprocess.run(['g++','-std=c++14','-O1','-I',str(imgui),'-I',str(ROOT/'experiments/native'),str(ROOT/'tools/classic_units_probe.cpp'),*[str(imgui/n) for n in HASHES if n.endswith('.cpp')],'-o',str(binary)],check=True)
@@ -153,4 +158,4 @@ def run(args):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--graph-only',action='store_true');parser.add_argument('--spacing-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())
+    parser=argparse.ArgumentParser();parser.add_argument('--imgui-dir');parser.add_argument('--font');parser.add_argument('--classic-only',action='store_true');parser.add_argument('--graph-only',action='store_true');parser.add_argument('--spacing-only',action='store_true');parser.add_argument('--battery-only',action='store_true');parser.add_argument('--render-dir',required=True);run(parser.parse_args())

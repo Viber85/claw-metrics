@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.102 ZIP
+name: Build Claw Metrics v0.2.4 test.103 ZIP
 on:
   push:
-    branches: [test/group-spacing-102]
+    branches: [test/battery-baselines-103]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.102
+  group: claw-metrics-v0.2.4-test.103
   cancel-in-progress: true
 
 jobs:
@@ -134,6 +134,7 @@ jobs:
           python3 ../experiments/fix_classic_spacing_alignment.py src
           python3 ../experiments/verify_classic_superscript_baseline.py src
           python3 ../experiments/split_tdp_styles.py src
+          python3 ../experiments/fix_battery_time.py src
           python3 ../experiments/guard_glx_swap_interval.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
@@ -245,7 +246,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.102.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.103.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -261,18 +262,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.102', package['version']
+              assert package['version'] == '0.2.4-test.103', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.102
-          path: ClawMetrics-v0.2.4-test.102.zip
+          name: ClawMetrics-v0.2.4-test.103
+          path: ClawMetrics-v0.2.4-test.103.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.102 ClawMetrics-v0.2.4-test.102.zip \
+          gh release create v0.2.4-test.103 ClawMetrics-v0.2.4-test.103.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.102 – Padding-free groups and nested spacing controls" \
-            --notes "Experimental test.102: Removes padding from every modular editor group, including existing layouts and the overlay root. Group spacing now exposes every containing row/column directly from the selected nested group, with group names and independent 0-240 px controls in 1 px steps. Each control applies to all gaps in its named container; internal reading spacing stays separate. Preview, validation, saved styles, templates and native geometry agree. Includes test.101 diagnostics and routed editor. Backend, frontend, native geometry, actual ImGui tight/expanded fixtures, Vulkan/OpenGL and ZIP checks run before release. Handheld appearance/controller focus and QAM freeze resolution remain unverified."
+            --title "Claw Metrics v0.2.4-test.103 – Charging indicator and shared text baselines" \
+            --notes "Experimental test.103: Replaces remaining battery time with a charger icon for Charging, Full and Not charging states. Invalid, infinite, negative, unknown or implausible discharge estimates show -- before any integer conversion. Charging/discharging preserve the reserved width. Classic battery paths use the same checked formatter; modular icons draw as vectors without an icon-font dependency. Superscript mode now gives labels, numbers, clocks, missing readings and optional metrics one shared line box and main-text baseline. Includes actual ImGui glyph/charge-transition fixtures, backend/frontend, Vulkan/OpenGL and ZIP checks. Retains test.102 spacing and test.101 diagnostics. Handheld appearance and QAM stability remain unverified."

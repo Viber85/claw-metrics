@@ -19,3 +19,10 @@ No ineffective axis control is shown when the tree contains no such container.
 The HTML preview uses simulated readings. Native ImGui fixtures and geometry
 tests check tight/expanded nested layouts; CI exercises Vulkan/OpenGL and ZIP
 packaging. None of these establish Steam controller focus or handheld stability.
+
+Superscript mode reserves the same main-text line box for every text token,
+including group labels, clocks and unavailable readings. Only units use the
+smaller raised font. Charged/full/charge-limit states replace battery time with
+a vector plug while retaining the time reservation. Discharge estimates must
+be finite and between one minute and 100 hours; unavailable data shows --.
+Classic battery time uses the same checked formatter.
