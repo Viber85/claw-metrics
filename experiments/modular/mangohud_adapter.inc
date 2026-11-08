@@ -70,7 +70,7 @@ bool ClawTryModular() {
     set("vram.label",p.claw_vram_label.empty()?"VRAM":p.claw_vram_label);
     set("battery.label",p.claw_battery_label.empty()?"BATT":p.claw_battery_label);
     set("battery.value",fmt("%.0f%%",Battery_Stats.current_percent,Battery_Stats.batt_count>0));
-    const auto remaining=claw_modular::battery_time(Battery_Stats.batt_count,Battery_Stats.current_status,Battery_Stats.remaining_time);
+    const auto remaining=claw_modular::battery_time(Battery_Stats.batt_count,Battery_Stats.current_status,Battery_Stats.remaining_time,Battery_Stats.external_power.load());
     set("battery.time",remaining.text);readings["battery.time"].plugged=remaining.plugged;
     set("time.value",data.time.empty()?"--":data.time);
     set("tdp.value","TDP --");set("battery.power","DRAW --");

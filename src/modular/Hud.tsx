@@ -23,9 +23,9 @@ export function readingText(token:string,value:string,superscript:boolean){
  // The gap belongs to the reading's full font size, never the smaller unit.
  return <span style={{display:'inline-flex',alignItems:'flex-start',verticalAlign:'top',columnGap:'.14em',height:superscript?'1.18em':'1em'}}><span style={{lineHeight:'1em',paddingTop:superscript?'.18em':0}}>{main}</span>{unit&&<span style={{lineHeight:'1em',fontSize:superscript?'.7em':'1em'}}>{unit}</span>}</span>;
 }
-export function batteryTime(count:number,status:string,hours:number){
+export function batteryTime(count:number,status:string,hours:number,online=false){
  if(count<=0)return {text:'--',plugged:false};
- if(['Charging','Full','Not charging'].includes(status))return {text:'',plugged:true};
+ if(online||['Charging','Full','Not charging'].includes(status))return {text:'',plugged:true};
  if(status!=='Discharging'||!Number.isFinite(hours)||hours<=0||hours>=100)return {text:'--',plugged:false};
  const total=Math.floor(hours*60);
  return {text:total<1?'--':`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`,plugged:false};
@@ -64,7 +64,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   }
   setFitWidths(previous=>JSON.stringify(previous)===JSON.stringify(next)?previous:next);
  },[layout,s.fontsize,s.sans,s.font_weight,s.unit_superscript]);
- const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25);
+ const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25,d.batteryPlugged??false);
  const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row'):React.ReactNode{

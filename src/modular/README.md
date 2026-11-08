@@ -26,3 +26,7 @@ smaller raised font. Charged/full/charge-limit states replace battery time with
 a vector plug while retaining the time reservation. Discharge estimates must
 be finite and between one minute and 100 hours; unavailable data shows --.
 Classic battery time uses the same checked formatter.
+
+External power online state is sampled with the existing battery update, not
+during per-frame drawing. A connected AC/USB supply also shows the plug when
+the battery status is Unknown or Discharging. Battery online flags are ignored.

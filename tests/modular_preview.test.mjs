@@ -102,3 +102,5 @@ assert(walk(plugged).some(n=>n.type===module.exports.Plug));
 assert(!textOf(plugged).includes('Infinity'));assert(!textOf(plugged).includes('-2147483648'));
 function textOf(n){return typeof n==='string'?n:Array.isArray(n)?n.map(textOf).join(''):n&&typeof n==='object'?textOf(n.props?.children):''}
 console.log('PASS battery preview: plugged/full/charge-limit, safe unavailable estimates and common label/value line boxes.');
+
+assert.equal(batteryTime(1,'Unknown',Infinity,true).plugged,true);assert.equal(batteryTime(1,'Discharging',2.25,true).plugged,true);
