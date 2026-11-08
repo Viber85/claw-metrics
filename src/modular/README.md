@@ -1,20 +1,21 @@
 # Decky layout builder
 
-Based on release v0.2.4-test.73 (ff3f671), reusing model.ts and Hud.tsx from
-Viber85/claw-devlab main (Modular Lab 01). Builder.tsx adapts the DevLab tree,
-preview and selected-node inspector to native Decky controls and a modal.
+The editor uses a Decky route and works on a validated draft. Apply publishes
+after the editor unmounts; Cancel discards changes. Save style shares the main
+menu slots. Undo/Redo retain both layout and appearance changes.
 
-The QAM entry retains preset selection and JSON import/export. The modal edits a
-validated draft, with 40 undo steps; Apply publishes the complete tree using the
-existing test.73 settings path. Cancel discards the draft. Legacy Layout controls
-are hidden while modular mode is active. Existing renderer/backend are unchanged.
+Groups have no padding, including the root overlay. Existing layouts and saved
+styles are normalized to zero group padding without changing their metrics,
+colors, font settings, alignment or other geometry. The old padding field remains
+readable for layout v1/native V2 compatibility; native geometry also ignores
+legacy group padding. Metric padding remains unchanged.
 
-The preview is an HTML simulation using sample sensor values, not a native game
-screenshot. Native DropdownItem, DialogButton, ToggleField, TextField and SliderField
-are used for Steam input; real controller focus, keyboard handling and modal sizing
-still require on-device validation. Colors use the existing Decky color dialog.
+Group spacing exposes every containing row/column gap while a nested group is
+selected. Labels include the group name and axis; each slider affects every gap
+between that container's items. Horizontal and vertical gaps are independent,
+0–240 px in 1 px steps. The selected group's internal reading gap is separate.
+No ineffective axis control is shown when the tree contains no such container.
 
-Validation: npm run typecheck; npm run build; node tests/modular_editor.test.mjs;
-node tests/modular_builder.test.mjs; python -m unittest discover -s tests.
-The browser screenshot check could not run because Chromium was unavailable and
-its download failed. Do not describe this as visually or hardware validated.
+The HTML preview uses simulated readings. Native ImGui fixtures and geometry
+tests check tight/expanded nested layouts; CI exercises Vulkan/OpenGL and ZIP
+packaging. None of these establish Steam controller focus or handheld stability.

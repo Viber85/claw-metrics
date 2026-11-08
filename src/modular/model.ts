@@ -12,9 +12,16 @@ let serial=0;
 export const uid=()=>`n-${Date.now().toString(36)}-${++serial}`;
 export function node(kind:Node['kind'],name:string,extra:Partial<Node>={}):Node{return {id:uid(),kind,name,visible:true,axis:'row',gap:8,padding:0,align:'center',selfAlign:'auto',scale:100,color:'',background:'',opacity:85,outline:false,children:[],token:'fps.value',width:180,height:44,...extra}}
 export const metric=(token:string,extra:Partial<Node>={})=>node('metric',catalog[token]||token,{token,...(token==='separator'?{width:160,height:2}:{}),...extra});
-export const group=(name:string,children:Node[],extra:Partial<Node>={})=>node('group',name,{children,...extra});
+export const group=(name:string,children:Node[],extra:Partial<Node>={})=>node('group',name,{children,...extra,padding:0});
 export function find(root:Node,id:string):Node|undefined{if(root.id===id)return root;for(const c of root.children){const found=find(c,id);if(found)return found}}
 export function parent(root:Node,id:string):Node|undefined{if(root.children.some(c=>c.id===id))return root;for(const c of root.children){const found=parent(c,id);if(found)return found}}
+// Expose every containing gap: a nested CPU row can adjust the GPU row below
+// and the FPS column beside it without changing the selected group.
+export function spacingAncestors(root:Node,id:string):Node[]{
+ const out:Node[]=[];let n=parent(root,id);
+ while(n){if(n.children.filter(child=>child.visible).length>1)out.push(n);n=parent(root,n.id)}
+ return out;
+}
 export function flatten(root:Node):Node[]{return [root,...root.children.flatMap(flatten)]}
 export function move(layout:Layout,id:string,targetId:string,index?:number):Layout{
  const out=structuredClone(layout),item=find(out.root,id),target=find(out.root,targetId),from=parent(out.root,id);
@@ -61,7 +68,7 @@ export function preset(kind:string,s:any):Layout{
  if(kind==='two-rows')children=[fps,group('System & graphics',[group('System row',[cpu(),metric('tdp.value'),metric('battery.power')],{gap:20}),group('Graphics row',[gpu(),group('RAM',tokens('ram.label','ram.value')),group('VRAM',tokens('vram.label','vram.value')),metric('graph',{width:110,height:28})],{gap:20})],{axis:'column',align:'start',gap:8})];
  else if(kind==='graph-focus'){axis='column';children=[group('Performance',[group('Frame rate',[fps,metric('fps.ms')],{axis:'column',align:'start'}),metric('graph',{width:520,height:70})],{gap:24}),group('Readings',[cpu(),gpu(),metric('tdp.value'),metric('battery.power')],{gap:20})]}
  else {axis=kind==='vertical'?'column':'row';const map:Record<string,()=>Node>={fps:()=>group('FPS',tokens('fps.label','fps.value',...(s.metrics?.fps_ms?['fps.ms']:[]),...(s.metrics?.fps_average?['fps.average']:[]),...(s.metrics?.fps_low1?['fps.low1']:[]))),cpu:()=>cpu(s),gpu:()=>gpu(s),ram:()=>group('RAM',tokens('ram.label','ram.value',...(s.metrics?.ram_game?['ram.game']:[]),...(s.metrics?.ram_swap?['ram.swap']:[]))),vram:()=>group('VRAM',tokens('vram.label','vram.value')),battery:()=>group('Battery',tokens('battery.label','battery.value',...(s.metrics?.battery_time?['battery.time']:[]))),tdp:()=>metric('tdp.value'),draw:()=>metric('battery.power'),time:()=>metric('time.value'),frametime:()=>metric('graph',{width:s.graph_width||150,height:44})};children=(s.order||Object.keys(map)).filter((k:string)=>s[k]&&map[k]&&(k!=='frametime'||s.metrics?.graph)).map((k:string)=>map[k]());}
- return {schema:'claw-modular-layout',version:1,anchor:'top-center',x:16,y:20,root:group('Overlay',children,{axis,gap:16,padding:14})};
+ return {schema:'claw-modular-layout',version:1,anchor:'top-center',x:16,y:20,root:group('Overlay',children,{axis,gap:16,padding:0})};
 }
 export function validate(input:any):Layout{
  if(input?.schema!=='claw-modular-layout'||input.version!==1||!anchors.includes(input.anchor))throw new Error('Expected a modular layout v1 file.');
@@ -72,8 +79,9 @@ export function validate(input:any):Layout{
   if(++count>96||depth>8)throw new Error('Limit: 96 elements and 8 nesting levels.');
   if(!v||typeof v.id!=='string'||v.id.length>100||ids.has(v.id)||!['group','metric'].includes(v.kind)||typeof v.name!=='string'||v.name.length>80||typeof v.visible!=='boolean'||!['row','column'].includes(v.axis)||!['start','center','end'].includes(v.align)||!['auto','start','center','end'].includes(v.selfAlign??'auto')||typeof v.outline!=='boolean'||!Array.isArray(v.children))throw new Error('Invalid element or duplicate ID.');
   ids.add(v.id);if(v.kind==='metric'&&(!catalog[v.token]||v.children.length))throw new Error('Invalid metric.');
+  const padding=number(v.padding===undefined&&v.kind==='group'?0:v.padding,0,80);
   const widthMin=v.kind==='metric'&&v.token==='graph'?0:40;
-  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,80),padding:number(v.padding,0,80),scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
+  return {id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,v.kind==='group'?240:80),padding:v.kind==='group'?0:padding,scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');
  return {schema:'claw-modular-layout',version:1,anchor:input.anchor,x:number(input.x,0,2000),y:number(input.y,input.anchor.startsWith('center-')?-2000:0,2000),root};

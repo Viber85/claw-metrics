@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.101 ZIP
+name: Build Claw Metrics v0.2.4 test.102 ZIP
 on:
   push:
-    branches: [test/editor-route-stability-101]
+    branches: [test/group-spacing-102]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.101
+  group: claw-metrics-v0.2.4-test.102
   cancel-in-progress: true
 
 jobs:
@@ -245,7 +245,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.101.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.102.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -261,18 +261,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.101', package['version']
+              assert package['version'] == '0.2.4-test.102', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.101
-          path: ClawMetrics-v0.2.4-test.101.zip
+          name: ClawMetrics-v0.2.4-test.102
+          path: ClawMetrics-v0.2.4-test.102.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.101 ClawMetrics-v0.2.4-test.101.zip \
+          gh release create v0.2.4-test.102 ClawMetrics-v0.2.4-test.102.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.101 – QAM diagnostics and routed editor" \
-            --notes "Diagnostic test.101: Records bounded, durable editor and settings lifecycle events to help investigate QAM freezes. Editor uses a Decky route and applies changes after page unmount; a React error boundary provides a Close action for render exceptions. Crash reports include a factual summary, separate SteamUI/input journal excerpts, corrected MESSAGE-only filters and explicit truncation metadata. Retains all test.100 graph and appearance changes. CSS Loader is not a required trigger in user testing. This is not a confirmed freeze fix; actual Steam controller focus and on-device stability remain unverified."
+            --title "Claw Metrics v0.2.4-test.102 – Padding-free groups and nested spacing controls" \
+            --notes "Experimental test.102: Removes padding from every modular editor group, including existing layouts and the overlay root. Group spacing now exposes every containing row/column directly from the selected nested group, with group names and independent 0-240 px controls in 1 px steps. Each control applies to all gaps in its named container; internal reading spacing stays separate. Preview, validation, saved styles, templates and native geometry agree. Includes test.101 diagnostics and routed editor. Backend, frontend, native geometry, actual ImGui tight/expanded fixtures, Vulkan/OpenGL and ZIP checks run before release. Handheld appearance/controller focus and QAM freeze resolution remain unverified."

@@ -26,6 +26,28 @@ class ModularSchemaTests(unittest.TestCase):
             strip_default_alignment(migrated['root'])
             self.assertEqual(migrated, original)
 
+    def test_group_padding_removed_and_wide_spacing_retained(self):
+        original = copy.deepcopy(self.layout)
+        def update(node):
+            if node['kind'] == 'group':node.update(padding=73, gap=240)
+            for child in node['children']:update(child)
+        update(original['root'])
+        out = schema.validate_layout(original)
+        def check(node):
+            if node['kind'] == 'group':
+                self.assertEqual(node['padding'], 0)
+                self.assertEqual(node['gap'], 240)
+            for child in node['children']:check(child)
+        check(out['root'])
+        self.assertEqual(original['root']['padding'], 73)
+        self.assertEqual(schema.load_layout(json.dumps(out)), out)
+        self.assertIn('240 0', schema.encode_native(out))
+        original['root']['gap'] = 241
+        with self.assertRaises(ValueError):schema.validate_layout(original)
+        del original['root']['padding']
+        original['root']['gap'] = 0
+        self.assertEqual(schema.validate_layout(original)['root']['padding'], 0)
+
     def test_input_is_not_mutated_or_referenced(self):
         out = schema.validate_layout(self.layout)
         out['root']['children'].clear()

@@ -35,6 +35,23 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.doc['root']['children'])
         self.assertTrue(d['style_presets']['1']['modular_layout']['root']['children'])
 
+    def test_legacy_group_padding_migrates_in_layout_and_saved_styles(self):
+        doc = json.loads((ROOT/'assets/modular/two-rows.json').read_text())
+        def update(node):
+            if node['kind'] == 'group':node.update(padding=61, gap=240)
+            for child in node['children']:update(child)
+        update(doc['root'])
+        settings = {'modular_enabled':True, 'modular_layout':doc}
+        result = main.normalize({**settings,'style_presets':{'1':settings}})
+        for layout in (result['modular_layout'],result['style_presets']['1']['modular_layout']):
+            self.assertEqual(layout['root']['padding'],0)
+            self.assertEqual(layout['root']['gap'],240)
+            self.assertEqual(modular.load_layout(json.dumps(layout)),layout)
+        self.assertEqual(main.normalize(result),result)
+        self.assertEqual(doc['root']['padding'],61)
+        self.assertTrue(result['modular_enabled'])
+        self.assertIn('240 0',modular.encode_native(result['modular_layout']))
+
     def test_unit_superscript_defaults_and_style_roundtrip(self):
         self.assertFalse(main.normalize({})['unit_superscript'])
         raw={'modular_enabled':True,'modular_layout':self.doc,'unit_superscript':True,

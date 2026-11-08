@@ -40,8 +40,11 @@ def validate_layout(value):
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
         out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
-        for key, low, high in (('gap', 0, 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 0 if v['kind'] == 'metric' and v['token'] == 'graph' else 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
-            out[key] = number(v.get(key), low, high)
+        for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 0 if v['kind'] == 'metric' and v['token'] == 'graph' else 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
+            out[key] = number(v.get(key, 0) if key == 'padding' and v['kind'] == 'group' else v.get(key), low, high)
+        # Accept legacy padding, but remove it from all modular groups, including root.
+        if v['kind'] == 'group':
+            out['padding'] = 0
         out['color'] = color(v.get('color'))
         out['background'] = color(v.get('background'))
         out['children'] = [visit(c, depth + 1) for c in v['children']]

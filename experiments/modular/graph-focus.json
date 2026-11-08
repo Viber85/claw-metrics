@@ -11,7 +11,7 @@
     "visible": true,
     "axis": "column",
     "gap": 16,
-    "padding": 14,
+    "padding": 0,
     "align": "center",
     "scale": 100,
     "color": "",

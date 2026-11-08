@@ -135,7 +135,7 @@ state.length=0;
 const cpu=model.flatten(initial.root).find(n=>n.name==='CPU');
 const container=model.parent(initial.root,cpu.id);
 render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Group spacing');
-control('slider','Horizontal spacing to sibling groups (px)').onChange(31);
+control('slider',`Horizontal spacing · ${container.name} (px)`).onChange(31);
 assert.equal(model.find(draft().root,container.id).gap,31);
 assert.equal(model.find(draft().root,cpu.id).gap,cpu.gap);
 control('DialogButton','Undo').onClick();assert.equal(model.find(draft().root,container.id).gap,container.gap);
@@ -143,15 +143,34 @@ control('DialogButton','Redo').onClick();assert.equal(model.find(draft().root,co
 render().find(n=>n.type==='preview').props.onSelect(container.id);
 control('DropdownItem','Direction').onChange({data:'column'});
 render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Group spacing');
-assert(!render().some(n=>n.type==='slider'&&n.props.label==='Horizontal spacing to sibling groups (px)'));
-control('slider','Vertical spacing to sibling groups (px)').onChange(27);
+assert(!render().some(n=>n.type==='slider'&&n.props.label===`Horizontal spacing · ${container.name} (px)`));
+control('slider',`Vertical spacing · ${container.name} (px)`).onChange(27);
 assert.equal(model.find(draft().root,container.id).gap,27);
 assert.equal(model.find(draft().root,cpu.id).gap,cpu.gap);
 control('slider','Horizontal spacing inside group (px)').onChange(11);
 assert.equal(model.find(draft().root,cpu.id).gap,11);
 assert.equal(model.find(draft().root,container.id).gap,27);
 control('DialogButton','Apply layout').onClick();assert.equal(model.parent(applied.root,cpu.id).gap,27);
-console.log('PASS group spacing: containing row/column gaps, independent internal spacing, undo/redo and saved layout.');
+// Editing CPU also exposes its grandparent column and outer FPS/readings row.
+const ancestors=model.spacingAncestors(draft().root,cpu.id);
+assert(ancestors.some(n=>n.axis==='row')&&ancestors.some(n=>n.axis==='column'));
+for(const ancestor of ancestors){
+ const label=`${ancestor.axis==='row'?'Horizontal':'Vertical'} spacing · ${ancestor.name} (px)`;
+ const field=control('slider',label);assert.equal(field.min,0);assert.equal(field.max,240);assert.equal(field.step,1);
+ field.onChange(240);assert.equal(model.find(draft().root,ancestor.id).gap,240);
+ field.onChange(0);assert.equal(model.find(draft().root,ancestor.id).gap,0);
+ assert.equal(model.find(draft().root,cpu.id).gap,11,'outer gaps do not change reading spacing');
+}
+section('Appearance');
+assert(!render().some(n=>n.type==='slider'&&n.props.label==='Group padding'));
+assert(model.flatten(draft().root).filter(n=>n.kind==='group').every(n=>n.padding===0));
+const padded=structuredClone(initial);for(const node of model.flatten(padded.root))if(node.kind==='group')node.padding=67;
+const migrated=model.validate(padded);assert(model.flatten(migrated.root).filter(n=>n.kind==='group').every(n=>n.padding===0));
+assert.equal(padded.root.padding,67,'legacy migration does not mutate imported data');
+assert.equal(model.group('Padded',[],{padding:50}).padding,0,'new groups have no padding');
+assert.throws(()=>model.validate({...initial,root:{...initial.root,gap:241}}));
+control('DialogButton','Apply layout').onClick();assert(model.flatten(applied.root).filter(n=>n.kind==='group').every(n=>n.padding===0));
+console.log('PASS group spacing: all row/column ancestors, independent internal gaps, 0–240 px, no legacy/new group padding, undo/redo and Apply.');
 
 state.length=0;section('Position on screen');
 const anchorOptions=control('DropdownItem','Anchor').rgOptions;

@@ -72,3 +72,13 @@ for(const enabled of [false,true]){
  assert.equal(walk(row).filter(n=>n.props?.children==='Power Limit').length,1);
 }
 console.log('PASS modular TDP preview: independent category/value colors and weights, custom title and both unit modes.');
+
+// Raw older layouts also preview without group insets before normalization.
+for(const node of [layout.root,gpu])node.padding=77;
+layout.root.gap=240;gpu.gap=0;
+nodes=walk(ModularHud({layout,settings,data:{gpu:72},selected:'none',onSelect:()=>{}}));
+assert.equal(nodes.find(n=>n.props?.['data-node-id']===layout.root.id).props.style.padding,0);
+assert.equal(nodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.padding,0);
+assert.equal(nodes.find(n=>n.props?.['data-node-id']===layout.root.id).props.style.gap,240);
+assert.equal(nodes.find(n=>n.props?.['data-node-id']===gpu.id).props.style.gap,0);
+console.log('PASS preview: legacy group padding ignored and independent parent/internal gaps retained.');

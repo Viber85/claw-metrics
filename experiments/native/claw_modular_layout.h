@@ -27,6 +27,8 @@ struct Node {
 struct Result { std::vector<Rect> boxes; bool outside=false; };
 using Measure=std::function<Size(const std::string&,float)>;
 
+// Legacy transport padding remains readable, but groups no longer reserve it.
+inline float content_padding(const Node& node) { return node.group?0.f:node.padding; }
 inline bool finite(float x) { return std::isfinite(x); }
 inline bool range(float x,float lo,float hi) { return finite(x)&&x>=lo&&x<=hi; }
 inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
@@ -46,7 +48,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.axis!=Axis::Row&&n.axis!=Axis::Column)||
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
-           !range(n.gap,0,80)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
+           !range(n.gap,0,n.group?240.f:80.f)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
            !range(n.width,!n.group&&n.token=="graph"?0.f:40.f,1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
         ids.push_back(n.id);
@@ -88,7 +90,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             const float gaps=count?float(count-1)*n.gap:0;
             if(n.axis==Axis::Row)out.w+=gaps;else out.h+=gaps;
         }
-        out.w+=2*n.padding;out.h+=2*n.padding;
+        out.w+=2*content_padding(n);out.h+=2*content_padding(n);
         sizes[i]=out;return out;
     };
     const auto total=size(root,1);
@@ -101,16 +103,16 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
     std::function<void(size_t,float,float)> place=[&](size_t i,float px,float py) {
         const auto& n=nodes[i];if(!n.visible)return;
         const auto s=sizes[i];out.boxes[i]={px,py,s.w,s.h,true};
-        float cursor=0;
+        const float inset=content_padding(n);float cursor=0;
         for(auto child:n.children) {
             if(!nodes[child].visible)continue;
             const auto c=sizes[child];
-            float cross=n.axis==Axis::Row?s.h-2*n.padding-c.h:s.w-2*n.padding-c.w;
+            float cross=n.axis==Axis::Row?s.h-2*inset-c.h:s.w-2*inset-c.w;
             const auto alignment=nodes[child].self_align==SelfAlign::Auto?n.align:
                 nodes[child].self_align==SelfAlign::Start?Align::Start:
                 nodes[child].self_align==SelfAlign::Center?Align::Center:Align::End;
             cross=alignment==Align::Start?0:alignment==Align::Center?cross/2:cross;
-            place(child,px+n.padding+(n.axis==Axis::Row?cursor:cross),py+n.padding+(n.axis==Axis::Row?cross:cursor));
+            place(child,px+inset+(n.axis==Axis::Row?cursor:cross),py+inset+(n.axis==Axis::Row?cross:cursor));
             cursor+=(n.axis==Axis::Row?c.w:c.h)+n.gap;
         }
     };

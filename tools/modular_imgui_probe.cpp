@@ -80,20 +80,25 @@ int main(int argc,char**argv){
  // Separate CPU/GPU containers in either direction without changing their
  // internal spacing; these are the same parent gaps edited by the builder.
  for(Axis axis:{Axis::Row,Axis::Column}){
-  Node root;root.id="spacing-root";root.axis=axis;root.children={1,4};
-  Node cpu;cpu.id="cpu-group";cpu.children={2,3};cpu.gap=6;
-  Node gpu;gpu.id="gpu-group";gpu.children={5,6};gpu.gap=9;
+  Node root;root.id="spacing-root";root.axis=axis;root.padding=70;root.children={1,4};
+  Node cpu;cpu.id="cpu-group";cpu.children={2,3};cpu.gap=6;cpu.padding=60;
+  Node gpu;gpu.id="gpu-group";gpu.children={5,6};gpu.gap=9;gpu.padding=50;
   Node a;a.id="cpu-reading-1";a.group=false;a.token="cpu.power";
   Node b=a;b.id="cpu-reading-2";
   Node c=a;c.id="gpu-reading-1";c.token="gpu.power";
   Node d=c;d.id="gpu-reading-2";
   std::vector<Node> groups={root,cpu,a,b,gpu,c,d};
-  auto sample=[&](float gap){groups[0].gap=gap;return prepare(groups,std::vector<Style>(7),frame.readings,{},0,{float(width),float(height)},Anchor::TopLeft,10,10,24,superscript);};
-  const auto tight=sample(0),wide=sample(31);
+  auto spacing_readings=frame.readings;spacing_readings["cpu.power"]={"8.6 W",font};spacing_readings["gpu.power"]={"12.4 W",font};
+  auto sample=[&](float gap){groups[0].gap=gap;return prepare(groups,std::vector<Style>(7),spacing_readings,{},0,{float(width),float(height)},Anchor::TopLeft,10,10,24,superscript);};
+  const auto tight=sample(0);
+  for(float gap:{0.f,1.f,240.f}){const auto wide=sample(gap);
   const auto& first=wide.geometry.boxes[1];const auto& second=wide.geometry.boxes[4];
-  assert(std::abs((axis==Axis::Row?second.x-first.x-first.w:second.y-first.y-first.h)-31)<.001f);
+  assert(std::abs((axis==Axis::Row?second.x-first.x-first.w:second.y-first.y-first.h)-gap)<.001f);
   assert(std::abs(first.w-tight.geometry.boxes[1].w)<.001f&&std::abs(first.h-tight.geometry.boxes[1].h)<.001f);
   assert(wide.nodes[1].gap==6&&wide.nodes[4].gap==9);
+  assert(std::abs(wide.geometry.boxes[2].x-first.x)<.001f);
+  assert(std::abs(wide.geometry.boxes[2].y-first.y)<.001f);
+  }
  }
  auto elevated=prepare(nodes,styles,frame.readings,frame.graph,0,{float(width),float(height)},document.anchor,document.x,document.y,24,true);
  assert(elevated.unit_superscript);
