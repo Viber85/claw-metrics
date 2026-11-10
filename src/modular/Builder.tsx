@@ -9,7 +9,7 @@ import {styleSlotIds} from '../style-presets';
 
 export type BuilderAppearance={rounding:number;opacity:number;graph_style:GraphStyle;unit_superscript:boolean};
 export type BuilderStyleStore={presets:Record<string,unknown>;names:Record<string,string>};
-export function Builder({initial,settings,onApply,onSaveStyle,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;closeModal?:()=>void}) {
+export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;onExport?:(doc:Layout,appearance:BuilderAppearance)=>void;closeModal?:()=>void}) {
  const [open,O]=useState<'element'|'spacing'|'appearance'|'position'|null>('element');
  const [layout,L]=useState(()=>validate(initial)),[selected,S]=useState(initial.root.id),[token,T]=useState('fps.average'),[past,P]=useState<Layout[]>([]),[future,F]=useState<Layout[]>([]),[error,E]=useState('');
  const stage=useRef<HTMLDivElement>(null),[zoom,Z]=useState(isHorizontalLayout(initial)?.45:.5);
@@ -105,6 +105,6 @@ export function Builder({initial,settings,onApply,onSaveStyle,closeModal}:{initi
  {saveSlot!=='new'&&<small>Replaces this style with the current editor draft.</small>}
  {button(saving?'Saving…':saveSlot==='new'?'Save new style':'Overwrite style',()=>void saveStyle(),saving||!onSaveStyle||(saveSlot==='new'&&!freeSlot))}
  {saveMessage&&<div role="status" style={{fontSize:12,padding:'4px 0'}}>{saveMessage}</div>}
- </Focusable>}<Focusable flow-children="row" className="claw-builder-actions">{button('Save style',()=>{if(!saveOpen&&saveSlot==='new'&&!freeSlot){const slot=styleSlotIds.find(id=>styleStore.presets[id])!;SaveSlot(slot);StyleName(styleStore.names[slot]||'');}SaveOpen(!saveOpen)},saving||!onSaveStyle)}{button('Apply layout',apply,saving)}{button('Cancel',close,saving)}</Focusable></Focusable></Focusable>{error&&<div role="alert" className="claw-builder-error">{error}</div>}</Focusable>
+ </Focusable>}<Focusable flow-children="row" className="claw-builder-actions">{button('Save style',()=>{if(!saveOpen&&saveSlot==='new'&&!freeSlot){const slot=styleSlotIds.find(id=>styleStore.presets[id])!;SaveSlot(slot);StyleName(styleStore.names[slot]||'');}SaveOpen(!saveOpen)},saving||!onSaveStyle)}{onExport&&button('Export JSON',()=>{try{onExport(validate(layout),appearance)}catch(e){E(String(e))}},saving)}{button('Apply layout',apply,saving)}{button('Cancel',close,saving)}</Focusable></Focusable></Focusable>{error&&<div role="alert" className="claw-builder-error">{error}</div>}</Focusable>
  </Focusable></Focusable>;
 }

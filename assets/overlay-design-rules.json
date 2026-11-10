@@ -1,0 +1,145 @@
+{
+  "ranges": {
+    "fontsize": [
+      12,
+      28
+    ],
+    "rounding": [
+      0,
+      1000
+    ],
+    "opacity": [
+      0,
+      100
+    ]
+  },
+  "enums": {
+    "font_weight": [
+      "light",
+      "regular",
+      "semibold",
+      "bold"
+    ],
+    "graph_style": [
+      "line",
+      "area",
+      "bars",
+      "dual",
+      "smooth",
+      "dual_layer"
+    ]
+  },
+  "booleans": [
+    "sans",
+    "unit_superscript"
+  ],
+  "colors": [
+    "text",
+    "separator",
+    "fps_label",
+    "fps_value",
+    "cpu",
+    "gpu",
+    "ram",
+    "vram",
+    "battery",
+    "graph",
+    "time",
+    "draw",
+    "tdp"
+  ],
+  "tokens": [
+    "fps.label",
+    "fps.value",
+    "fps.ms",
+    "cpu.label",
+    "cpu.load",
+    "cpu.temp",
+    "cpu.clock",
+    "cpu.power",
+    "gpu.label",
+    "gpu.load",
+    "gpu.temp",
+    "gpu.clock",
+    "gpu.power",
+    "gpu.junction",
+    "gpu.fan",
+    "gpu.voltage",
+    "ram.label",
+    "ram.value",
+    "vram.label",
+    "vram.value",
+    "vram.temp",
+    "vram.clock",
+    "battery.label",
+    "battery.value",
+    "battery.time",
+    "battery.power",
+    "time.value",
+    "tdp.value",
+    "fps.average",
+    "fps.low1",
+    "ram.game",
+    "ram.swap",
+    "tdp.label"
+  ],
+  "labels": [
+    "fps",
+    "cpu",
+    "gpu",
+    "ram",
+    "vram",
+    "battery",
+    "draw",
+    "tdp"
+  ],
+  "defaults": {
+    "fontsize": 18,
+    "sans": true,
+    "font_weight": "regular",
+    "token_weights": {},
+    "token_colors": {},
+    "colors": {
+      "text": "F0F2F5",
+      "separator": "777C87",
+      "fps_label": "30E5A0",
+      "fps_value": "30E5A0",
+      "cpu": "37C9EF",
+      "gpu": "8BDA62",
+      "ram": "B077DF",
+      "vram": "D76AB8",
+      "battery": "30E5A0",
+      "graph": "30E5A0",
+      "time": "F0F2F5",
+      "draw": "F0F2F5",
+      "tdp": "FFBD69"
+    },
+    "custom_labels": {},
+    "background": {
+      "mode": "solid",
+      "color": "161820",
+      "angle": 0,
+      "outline_enabled": false,
+      "outline_color": "6B7E99",
+      "outline_width": 1,
+      "outline_opacity": 100,
+      "center_x": 50,
+      "center_y": 50,
+      "radius": 70,
+      "stops": [
+        {
+          "position": 0,
+          "color": "101A2C"
+        },
+        {
+          "position": 100,
+          "color": "30204D"
+        }
+      ]
+    },
+    "rounding": 10,
+    "opacity": 80,
+    "graph_style": "line",
+    "unit_superscript": false
+  }
+}

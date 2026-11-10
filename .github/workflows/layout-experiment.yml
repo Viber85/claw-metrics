@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.109 ZIP
+name: Build Claw Metrics v0.2.4 test.110 ZIP
 on:
   push:
-    branches: [test/element-appearance-109]
+    branches: [feature/devlab-json-design-110]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.109
+  group: claw-metrics-v0.2.4-test.110
   cancel-in-progress: true
 
 jobs:
@@ -68,6 +68,9 @@ jobs:
           node tests/modular_builder.test.mjs
           node tests/modular_preview.test.mjs
           node tests/classic_layout.test.mjs
+          node tests/overlay_design.test.mjs
+          npm run build:devlab
+          node devlab/verify.mjs
       - name: Verify isolated Decky backend import
         run: python3 -m unittest discover -s tests -p test_decky_backend_import.py
       - name: Type-check QAM
@@ -248,23 +251,24 @@ jobs:
       - name: Package isolated experimental Decky ZIP
         run: |
           mkdir -p artifact/ClawMetrics
-          cp plugin.json package.json main.py sensors.py diagnostics.py claw_modular.py README.md artifact/ClawMetrics/
+          cp plugin.json package.json main.py sensors.py diagnostics.py claw_modular.py claw_design.py README.md artifact/ClawMetrics/
           mkdir -p artifact/ClawMetrics/py_modules
           cp updates.py artifact/ClawMetrics/py_modules/updates.py
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp claw_modular.py artifact/ClawMetrics/py_modules/claw_modular.py
+          cp claw_design.py artifact/ClawMetrics/py_modules/claw_design.py
           cp -r dist assets native64 artifact/ClawMetrics/
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.109.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.110.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so',
+              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -273,18 +277,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.109', package['version']
+              assert package['version'] == '0.2.4-test.110', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.109
-          path: ClawMetrics-v0.2.4-test.109.zip
+          name: ClawMetrics-v0.2.4-test.110
+          path: ClawMetrics-v0.2.4-test.110.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.109 ClawMetrics-v0.2.4-test.109.zip \
+          gh release create v0.2.4-test.110 ClawMetrics-v0.2.4-test.110.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.109 – Group corners and per-element font weight" \
-            --notes "Experimental test.109: Adds Corner radius (0-1000 px, including pill shapes) to each group in the editor. Background and outline use the same radius. Adds per-element Font weight: Automatic, Light, Regular, Semibold and Bold. Group choices apply to descendants unless an individual reading overrides them; Automatic restores group/plugin styling. Independent copies of the same metric can use different font faces. Uses bundled font weights, with an editor hint when bundled fonts are disabled. Both fields persist in Apply, Undo/Redo, JSON and shared saved styles. Native V5 transport retains V1-V4 compatibility. Browser/ImGui parity now covers mixed fonts, duplicate metrics and group radii, and native glyph UV tests verify the selected faces are drawn. Full frontend/backend, native Vulkan/OpenGL, ImGui layout and ZIP checks remain enabled. Retains test.108 stable widths and padding parity. Actual handheld appearance/controller focus still require device confirmation. Restart the game after installing."
+            --title "Claw Metrics v0.2.4-test.110 – Portable overlay design editor" \
+            --notes "Experimental test.110: Portable claw-overlay-design v1 JSON includes the modular layout, font size and weights, palette and element overrides, background and labels. Import opens an editor draft and applies only after Apply layout. Invalid and future JSON is rejected without changing the live overlay. Previous design restores the appearance saved before the last committed change, including classic renderer mode. Device export and the browser DevLab use the same format. Legacy modular-layout v1 remains readable and retains device appearance. The web editor bundles the actual plugin Builder and preview. Retains native V5 transport and test.109 rendering. Automated frontend/backend, browser/ImGui, Vulkan/OpenGL and ZIP checks are enabled. Actual handheld appearance and controller focus require device confirmation. Restart the game after installation."

@@ -12,7 +12,7 @@ const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/i
  calls.push([route,args]);
  if(route==='get_modular_preset')return structuredClone(args[0]==='vertical'?vertical:doc);
  if(route==='get_modular_info')return {home:'/home/test'};
- if(route==='import_modular_layout'){if(failImport)throw new Error('Invalid JSON');return structuredClone(doc)}
+ if(route==='import_overlay_design'){if(failImport)throw new Error('Invalid JSON');return {layout:structuredClone(doc),appearance:{fontsize:24,colors:{text:'ABCDEF'}}}}
  if(route==='export_modular_layout')return {path:'/home/test/export.json'};
  throw new Error(route);
 }};
@@ -53,7 +53,9 @@ button('Import JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(JSON.stringify(vm.settings.modular_layout),before);
 assert(render().some(n=>n.props.role==='status'&&text(n.props.children).includes('Invalid JSON')));
 failImport=false;button('Import JSON').props.onClick();await new Promise(setImmediate);
-assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);
+assert.equal(vm.settings.modular_layout.root.gap,13,'import stays a draft until Apply');
+assert.equal(page.initial.root.gap,doc.root.gap);assert.equal(page.settings.fontsize,24);
+page.onApply(page.initial,appearance);assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);assert.equal(vm.settings.fontsize,24);
 button('↕ Vertical').props.onClick();modal.props.onOK();await new Promise(setImmediate);
 assert.equal(page.initial.root.axis,'column');assert.equal(vm.settings.modular_layout.root.axis,'row');
 const toggle=render().find(n=>n.type==='ToggleField'&&n.props.label==='Use editable renderer (test)');toggle.props.onChange(false);assert(!vm.settings.modular_enabled);

@@ -1113,7 +1113,7 @@ def update_error_message(error):
         return type(error).__name__ + ": " + str(error)[:220]
 
 
-def read_modular_import(path):
+def read_modular_import(path, loader=None):
     import stat
     from claw_modular import load_layout
     descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
@@ -1125,7 +1125,7 @@ def read_modular_import(path):
             descriptor = -1
             data = source.read(1024 * 1024 + 1)
             if len(data) > 1024 * 1024: raise ValueError("File exceeds 1 MiB")
-            return load_layout(data.decode('utf-8'))
+            return (loader or load_layout)(data.decode('utf-8'))
     finally:
         if descriptor >= 0: os.close(descriptor)
 
@@ -1294,6 +1294,30 @@ class Plugin:
             raise ValueError("Invalid file path")
         return await asyncio.to_thread(read_modular_import, path)
 
+    async def import_overlay_design(self, path: str):
+        if not isinstance(path, str) or len(path) > 4096:
+            raise ValueError("Invalid file path")
+        from claw_design import load_design
+        return await asyncio.to_thread(read_modular_import, path, load_design)
+
+    async def export_overlay_design(self):
+        from claw_design import export_design
+        current = getattr(self, "_current_settings", None)
+        if current is None: current = await self.get_settings()
+        value = export_design(current)
+        target = BASE / "overlay-design-export.json"
+        write_atomic(target, json.dumps(value, indent=2) + "\n")
+        return {"path": str(target)}
+
+    async def get_previous_overlay_design(self):
+        from claw_design import appearance
+        try:
+            value = json.loads((BASE / "overlay-design-previous.json").read_text())
+            data = normalize(value)
+            return {**appearance(data), "modular_layout": data["modular_layout"], "modular_enabled": data["modular_enabled"], "active_style": None}
+        except (OSError, ValueError, TypeError):
+            raise ValueError("No previous design is available yet")
+
     async def export_modular_layout(self, layout=None):
         from claw_modular import validate_layout
         current = normalize(getattr(self, "_current_settings", {}))
@@ -1311,6 +1335,15 @@ class Plugin:
 
     async def save_settings(self, settings: dict):
         data = normalize(settings)
+        current = getattr(self, "_current_settings", None)
+        if current is None: current = await self.get_settings()
+        # A committed editor draft gets a full previous-design snapshot before
+        # any live files are replaced. Repeated identical saves keep that backup.
+        from claw_design import appearance
+        before = {**appearance(current), "modular_layout": current.get("modular_layout"), "modular_enabled": current.get("modular_enabled", False)}
+        after = {**appearance(data), "modular_layout": data.get("modular_layout"), "modular_enabled": data.get("modular_enabled", False)}
+        if before != after:
+            write_atomic(BASE / "overlay-design-previous.json", json.dumps(current, indent=2) + "\n")
         publish_modular(data)
         write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
         self._current_settings = data

@@ -1,3 +1,11 @@
+## Portable overlay designs (test.110)
+
+Build a design in the browser DevLab, then use **Export JSON**. Transfer `claw-overlay-design.json` to the handheld. In Decky open Claw Metrics → Layout builder → **Import JSON**, choose the file, inspect the editor preview, then choose **Apply layout**. Cancel keeps the current design. **Previous design** restores the appearance saved before your last committed layout or appearance change. **Export design JSON** exports the device design for further browser editing; the plugin displays its absolute file path.
+
+`claw-overlay-design` version 1 includes layout groups and readings, per-element spacing and font/color overrides, global font size/weight, colors, graph style, labels, units, background and opacity. It excludes telemetry, device paths, launch commands, style slots and operational settings. Imported defaults are explicit so designs render consistently across devices. Legacy `claw-modular-layout` v1 imports keep the device appearance. Files are limited to 1 MiB; unknown schemas/versions and invalid known fields are rejected before application.
+
+The DevLab uses `src/modular/Builder.tsx` and `Hud.tsx`, with browser adapters under `devlab/`. Run `npm install`, `npm run build:devlab`; serve `devlab/public/`. Use Apply layout to save a browser draft, or Export JSON to save and download. Preview readings are simulated. Browser and fixture checks do not confirm SteamOS controller focus or live game injection.
+
 # Claw Metrics v0.2.4-test.109 — Group corners and individual font weights
 
 Select a group in the editor and open **Appearance → Corner radius** to choose 0–1000 px, including a pill shape. Its background and outline follow the same curve. Overlay retains its existing global Corner radius control.

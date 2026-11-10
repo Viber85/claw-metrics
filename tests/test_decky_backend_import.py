@@ -31,6 +31,10 @@ assert hasattr(module.Plugin, "save_settings")
 assert hasattr(module.Plugin, "check_updates")
 assert hasattr(module.Plugin, "validate_github_releases")
 assert hasattr(module.Plugin, "import_modular_layout")
+assert hasattr(module.Plugin, "import_overlay_design")
+if (folder / "py_modules/claw_design.py").is_file():
+    from claw_design import appearance
+    assert appearance({})["fontsize"] == 18
 print("DECKY_SANDBOX_IMPORT_OK")
 """
 
@@ -46,6 +50,9 @@ class DeckySandboxImportTests(unittest.TestCase):
             shutil.copyfile(ROOT / "updates.py", p / "updates.py")
             shutil.copyfile(ROOT / "diagnostics.py", p / "diagnostics.py")
             shutil.copyfile(ROOT / "claw_modular.py", p / "claw_modular.py")
+            shutil.copyfile(ROOT / "claw_design.py", p / "claw_design.py")
+            (folder / "assets").mkdir()
+            shutil.copyfile(ROOT / "assets/overlay-design-rules.json", folder / "assets/overlay-design-rules.json")
 
     def decky_import(self, folder):
         return subprocess.run(

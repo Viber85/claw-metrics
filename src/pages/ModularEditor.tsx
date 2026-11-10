@@ -7,22 +7,24 @@ import {openEditorPage,editorRouteAvailable} from '../modular/editor-page';
 import {isHorizontalLayout,validate, type Layout} from '../modular/model';
 import type {ClawController} from '../controller';
 const preset=callable<[string],any>('get_modular_preset');
-const importLayout=callable<[string],any>('import_modular_layout');
+const importLayout=callable<[string],any>('import_overlay_design');
+const exportDesign=callable<[],{path:string}>('export_overlay_design');
+const previousDesign=callable<[],any>('get_previous_overlay_design');
 const getInfo=callable<[],{home:string}>('get_modular_info');
 export function ModularEditor({vm}:{vm:ClawController}){
  const {settings,ready,update}=vm;const [busy,Busy]=useState(false),[message,Message]=useState(''),[home,Home]=useState('/home'),[open,Open]=useState(true);
  useEffect(()=>{if(ready)void getInfo().then(v=>Home(v.home)).catch(()=>{});},[ready]);
  const canEdit=ready&&vm.info?.layout_spacing_supported!==false&&editorRouteAvailable();
  const doc=settings.modular_layout;
- const openBuilder=(layout:Layout)=>{
-  openEditorPage({initial:layout,settings,
+ const openBuilder=(layout:Layout,imported:Record<string,any>={})=>{
+  openEditorPage({initial:layout,settings:{...settings,...imported},
    onSaveStyle:async(slot,value,appearance,name)=>{
-    const ok=await vm.savePreset(slot,{modular_layout:value,modular_enabled:true,...appearance},name);
+    const ok=await vm.savePreset(slot,{modular_layout:value,modular_enabled:true,...imported,...appearance},name);
     if(!ok)throw new Error('Style was not saved. Try again.');
     const current=vm.current.current;
     return {presets:current.style_presets,names:current.style_names};
    },
-   onApply:(value,appearance,slot)=>update({modular_layout:value,modular_enabled:true,...appearance,...(slot?{active_style:slot}:{})})});
+   onApply:(value,appearance,slot)=>update({modular_layout:value,modular_enabled:true,...imported,...appearance,active_style:slot||null})});
  };
  const chooseTemplate=(id:'horizontal'|'vertical')=>{
   const label=id==='horizontal'?'Horizontal':'Vertical';
@@ -41,7 +43,8 @@ export function ModularEditor({vm}:{vm:ClawController}){
   <PanelSectionRow><ToggleField label="Use editable renderer (test)" checked={settings.modular_enabled} disabled={!canEdit||busy||!doc} onChange={value=>update({modular_enabled:value})}/></PanelSectionRow>
   <PanelSectionRow><GamepadGrid className="claw-tiles claw-modular-templates" columns={2} items={([['horizontal','↔ Horizontal'],['vertical','↕ Vertical']] as Array<['horizontal'|'vertical',string]>)} renderItem={([id,label])=><DialogButton key={id} aria-label={id+' template'} disabled={!canEdit||busy} style={{minWidth:0,minHeight:38,padding:'5px 4px',fontSize:12,background:"#1c3450",border:"1px solid #456987",borderRadius:8}} onClick={()=>chooseTemplate(id)}>{label}</DialogButton>}/></PanelSectionRow>
   <PanelSectionRow><Field label="CURRENT OVERLAY" description={doc?`${isHorizontalLayout(doc)?'Horizontal':'Vertical'} · Save it in Colors & Font → Styles to keep it for later.`:'Choose a template to begin.'}/></PanelSectionRow>
-  <PanelSectionRow><div className="claw-modular-actions"><DialogButton data-claw-builder-open disabled={!canEdit||busy||!doc} onClick={()=>doc&&openBuilder(doc)}>Edit overlay</DialogButton><DialogButton disabled={!canEdit||busy} onClick={()=>void action(async()=>{const file=await openFilePicker(FileSelectionType.FILE,home,true,false);if(!file?.realpath&&!file?.path)return;const value=await importLayout(file.realpath||file.path);update({modular_layout:value,modular_enabled:true});Message('Layout imported. Settings are saving.')})}>Import JSON</DialogButton></div></PanelSectionRow>
+  <PanelSectionRow><div className="claw-modular-actions"><DialogButton data-claw-builder-open disabled={!canEdit||busy||!doc} onClick={()=>doc&&openBuilder(doc)}>Edit overlay</DialogButton><DialogButton disabled={!canEdit||busy} onClick={()=>void action(async()=>{const file=await openFilePicker(FileSelectionType.FILE,home,true,false);if(!file?.realpath&&!file?.path)return;const value=await importLayout(file.realpath||file.path);openBuilder(validate(value.layout),value.appearance);Message('Design opened for preview. Apply layout to save it, or Cancel to keep the current overlay.')})}>Import JSON</DialogButton></div></PanelSectionRow>
+  <PanelSectionRow><div className="claw-modular-actions"><DialogButton disabled={!canEdit||busy||!doc} onClick={()=>void action(async()=>{const value=await exportDesign();Message('Design exported to '+value.path)})}>Export design JSON</DialogButton><DialogButton disabled={!canEdit||busy} onClick={()=>void action(async()=>{const value=await previousDesign();const dialog=showModal(<ConfirmModal strTitle="Restore previous design?" strDescription="Restore the design saved before your last appearance or layout change?" strOKButtonText="Restore" strCancelButtonText="Cancel" onCancel={()=>dialog.Close()} onOK={()=>{dialog.Close();void dialog.ClosedPromise.then(()=>update(value));}}/>);})}>Previous design</DialogButton></div></PanelSectionRow>
   {message&&<PanelSectionRow><div role="status" style={{overflowWrap:'anywhere',fontSize:12,padding:'6px 0'}}>{message}</div></PanelSectionRow>}
  </ControlGroup>
 }
