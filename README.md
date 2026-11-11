@@ -1,3 +1,11 @@
+## v0.2.4-test.114 — Editor viewport, Cancel safety and tight readings
+
+The routed Builder now reserves 80 px of the Steam/Decky viewport for platform navigation and fits the remaining space without clipping its footer. The preview height is reduced slightly to preserve property controls on the handheld. Scroll stays inside the preview and layout panels.
+
+Cancel and the gamepad B shortcut check whether the draft differs from the original layout/appearance. If unchanged, they exit immediately. If edited, a dialog offers **Apply layout**, **Discard changes**, or **Keep editing**. Saving a named style is independent of applying the live overlay.
+
+Individual readings use explicit X/Y padding only. Their hidden width reservation now follows the **current digit count**, using the widest zero/eight font shapes, instead of reserving three-digit temperatures or oversized RAM placeholders. Same-length readings remain stable; crossing a digit-count boundary expands naturally. Browser preview and native ImGui apply the same rule. Device confirmation remains required.
+
 ## v0.2.4-test.113 — JSON import file picker
 
 **Import JSON** now opens Decky's file picker in file-selection mode with folders visible for navigation and a `.json` filter. Enter folders, then choose a JSON design file. Accidentally confirming a folder shows a helpful message rather than sending the folder path to the backend. Canceling the picker is silent. Import still opens a draft preview and does not overwrite the current layout until **Apply layout**.
