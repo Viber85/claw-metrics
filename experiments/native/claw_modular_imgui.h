@@ -136,11 +136,14 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
             throw std::invalid_argument("Missing font or reading");
         auto extent=reading_size(text,token,size,unit_superscript,text.value);
         if(token!="fps.value"&&!text.slot.empty()){
-            // Barlow's zero is wider than eight. Reserve both references so
-            // clocks/memory do not shrink when e.g. 3500 MHz changes to 2545.
-            auto zeroes=text.slot;std::replace(zeroes.begin(),zeroes.end(),'8','0');
-            const std::string* references[]={&text.slot,&zeroes};
-            for(const auto* reference:references){
+            // Only reserve the CURRENT number of digits, avoiding invisible
+            // space from fixed "888°C" and "888.8 GiB" reference fields.
+            // The two extreme digit widths keep same-length values stable.
+            auto eights=text.value.empty()?text.slot:text.value;
+            for(char& digit:eights)if(digit>='0'&&digit<='9')digit='8';
+            auto zeroes=eights;
+            for(char& digit:zeroes)if(digit=='8')digit='0';
+            for(const auto* reference:{&eights,&zeroes}){
                 auto slot=reading_size(text,token,size,unit_superscript,*reference);
                 extent.w=std::max(extent.w,slot.w);extent.h=std::max(extent.h,slot.h);
             }
