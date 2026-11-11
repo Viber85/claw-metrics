@@ -1,3 +1,9 @@
+## v0.2.4-test.113 — JSON import file picker
+
+**Import JSON** now opens Decky's file picker in file-selection mode with folders visible for navigation and a `.json` filter. Enter folders, then choose a JSON design file. Accidentally confirming a folder shows a helpful message rather than sending the folder path to the backend. Canceling the picker is silent. Import still opens a draft preview and does not overwrite the current layout until **Apply layout**.
+
+The fix is limited to the plugin's picker. It does not change the shared Builder, native renderer, existing settings or DevLab design format. Frontend regression tests cover picker arguments, invalid folder selections and cancellation; SteamOS/Bazzite controller focus still requires device testing.
+
 ## Portable overlay designs (test.110)
 
 Build a design in the browser DevLab, then use **Export JSON**. Transfer `claw-overlay-design.json` to the handheld. In Decky open Claw Metrics → Layout builder → **Import JSON**, choose the file, inspect the editor preview, then choose **Apply layout**. Cancel keeps the current design. **Previous design** restores the appearance saved before your last committed layout or appearance change. **Export design JSON** exports the device design for further browser editing; the plugin displays its absolute file path.
