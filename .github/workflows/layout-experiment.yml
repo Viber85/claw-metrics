@@ -92,14 +92,24 @@ jobs:
         timeout-minutes: 6
         run: |
           apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=25 -o Acquire::https::Timeout=25)
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            # Use Ubuntu's primary archive when the runner's Azure mirror stalls.
-            ubuntu_sources=$(mktemp --suffix=.sources)
-            sed -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
-                -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
-                /etc/apt/sources.list.d/ubuntu.sources > "$ubuntu_sources"
-            apt_options+=(-o Dir::Etc::sourcelist="$ubuntu_sources" -o Dir::Etc::sourceparts=-)
-          fi
+          # GitHub's Ubuntu runner may route apt through a mirror+file Azure
+          # mirrorlist. Replacing the Azure hostname alone leaves that source
+          # active; use explicit signed archives to bypass the mirrorlist.
+          ubuntu_sources=$(mktemp --suffix=.sources)
+          cat > "$ubuntu_sources" <<'UBUNTU_SOURCES'
+          Types: deb
+          URIs: https://archive.ubuntu.com/ubuntu/
+          Suites: noble noble-updates noble-backports
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: https://security.ubuntu.com/ubuntu/
+          Suites: noble-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          UBUNTU_SOURCES
+          apt_options+=(-o Dir::Etc::sourcelist="$ubuntu_sources" -o Dir::Etc::sourceparts=-)
           sudo apt-get "${apt_options[@]}" update
           sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y --no-install-recommends \
             git g++ pkg-config meson ninja-build python3-mako \
