@@ -169,6 +169,23 @@ int main(int argc,char**argv){
    if(i==0)first_y=y;assert(std::abs(y-first_y)<.01f);
   }
  }
+ // No implicit oversized reading slot: reserve only current-length digits.
+ for(const auto& sample:std::vector<std::pair<std::string,std::pair<std::string,std::string>>>{
+     {"cpu.temp",{"54°C","888°C"}},{"gpu.temp",{"52°C","888°C"}},
+     {"ram.value",{"12.6 GiB","888.8 GiB"}},{"cpu.load",{"36%","100%"}}}){
+  Node root;root.id="tight-root";root.children={1};
+  Node metric;metric.id="tight-reading";metric.group=false;metric.token=sample.first;
+  Text value;value.font=font;value.value=sample.second.first;value.slot=sample.second.second;
+  auto measured=prepare({root,metric},std::vector<Style>(2),{{metric.token,value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  auto eights=value.value;
+  for(char& digit:eights)if(digit>='0'&&digit<='9')digit='8';
+  auto zeroes=eights;for(char& digit:zeroes)if(digit=='8')digit='0';
+  const float expected=std::max({reading_size(value,metric.token,24,false,value.value).w,
+    reading_size(value,metric.token,24,false,eights).w,
+    reading_size(value,metric.token,24,false,zeroes).w});
+  assert(std::abs(measured.geometry.boxes[1].w-expected)<.02f);
+  assert(measured.geometry.boxes[1].w+1<reading_size(value,metric.token,24,false,value.slot).w);
+ }
  // Charge transitions keep the reserved time width and draw a vector plug.
  for(bool raised:{false,true}){
   Node root;root.id="charging";root.children={1};Node timer;timer.id="time";timer.group=false;timer.token="battery.time";
