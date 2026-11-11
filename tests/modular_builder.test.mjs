@@ -3,13 +3,13 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false,saveStyleHandler,styleSettings={},picker;
-const ui=Object.fromEntries(['ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
+const ui=Object.fromEntries(['ConfirmModal','ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 ui.showModal=value=>{picker=value;return {Close(){},ClosedPromise:Promise.resolve()}};
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
 const styles=load('src/style-presets.ts');
 const {Builder}=load('src/modular/Builder.tsx',name=>{
- if(name==='react')return {useEffect:()=>{},useRef:()=>({current:null}),useState:initial=>{const i=cursor++;if(!(i in state))state[i]=typeof initial==='function'?initial():initial;return[state[i],next=>state[i]=typeof next==='function'?next(state[i]):next]}};
+ if(name==='react')return {useEffect:()=>{},useRef:initial=>({current:initial??null}),useState:initial=>{const i=cursor++;if(!(i in state))state[i]=typeof initial==='function'?initial():initial;return[state[i],next=>state[i]=typeof next==='function'?next(state[i]):next]}};
  if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
  if(name==='@decky/ui')return ui;
  if(name==='./model')return model;
@@ -29,6 +29,8 @@ const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.prop
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+assert(render().some(n=>n.type==='style'&&n.props.children.includes('height:calc(100dvh - 80px)')),'page reserves Steam top/bottom chrome');
+assert(render().some(n=>n.type==='style'&&n.props.children.includes('.claw-builder{width:100%;height:100%;min-height:0')),'inner editor stays within the routed page');
 assert(!render().some(n=>n.type==='ModalRoot'),'the editor is a routed page, not a Steam modal');
 assert(render().some(n=>n.props?.className==='claw-builder-page'));
 assert.equal(applied,undefined);
@@ -179,7 +181,12 @@ const editedLine=draft().root.children.at(-1).children[0];
 assert.deepEqual([editedLine.axis,editedLine.width,editedLine.cornerRadius,editedLine.separatorOpacity],['column',27,2,36]);
 assert.equal(draft().root.children.at(-1).children[0].height,4);
 const cyclic=model.move(draft(),draft().root.id,newGroup.id);assert.deepEqual(cyclic,draft());
-control('DialogButton','Cancel').onClick();assert(closed);assert.equal(applied,undefined);
+control('DialogButton','Cancel').onClick();assert.equal(closed,false,'dirty Cancel must not discard silently');assert.equal(applied,undefined);
+assert.equal(picker.type,ui.ConfirmModal);assert.equal(picker.props.strTitle,'Unsaved overlay changes');
+assert.equal(picker.props.strOKButtonText,'Apply layout');
+picker.props.onCancel();assert.equal(closed,false,'Keep editing must not exit');
+control('DialogButton','Cancel').onClick();picker.props.children.props.onClick();
+await new Promise(setImmediate);assert(closed,'Discard changes explicitly closes a dirty editor');
 closed=false;control('DialogButton','Apply layout').onClick();assert.equal(closed,false);assert.equal(applied.root.gap,23);assert.equal(applied.root.children.at(-1).name,'New group');
 assert.equal(appliedAppearance.rounding,14);assert.equal(appliedAppearance.opacity,52);
 assert.equal(appliedAppearance.unit_superscript,true);
@@ -284,8 +291,22 @@ saveStyleHandler=async()=>{throw new Error('Offline')};
 control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
 assert(render().some(n=>n.props?.role==='status'&&text(n.props.children).includes('Offline')));
 assert.equal(closed,false);assert.equal(applied,undefined);
-control('DialogButton','Cancel').onClick();assert.equal(closed,true);
+control('DialogButton','Cancel').onClick();assert.equal(closed,false);picker.props.children.props.onClick();await new Promise(setImmediate);assert.equal(closed,true);
 console.log('PASS editor Save style: new/overwrite shared slots, latest draft, names, error/retry and no implicit Apply or close.');
+ 
+// Clean cancel exits immediately; dirty B/Cancel offers Apply/Discard/Keep editing.
+state.length=0;closed=false;applied=undefined;styleSettings={};
+control('DialogButton','Cancel').onClick();
+assert.equal(closed,true,'clean Cancel has no modal');
+state.length=0;closed=false;applied=undefined;
+control('TextField','Name').onChange({target:{value:'Modified via gamepad'}});
+let prevented=false,stopped=false;
+render().find(n=>n.props?.className==='claw-builder-page').props.onCancelButton({preventDefault(){prevented=true},stopPropagation(){stopped=true}});
+assert(prevented&&stopped);assert.equal(closed,false,'B button must guard dirty edits');
+assert.equal(picker.props.strTitle,'Unsaved overlay changes');
+picker.props.onOK();await new Promise(setImmediate);
+assert.equal(applied.root.name,'Modified via gamepad','Apply from prompt saves the draft');
+assert.equal(closed,false,'routed editor Apply is responsible for navigation');
 
 state.length=0;closed=false;applied=undefined;styleSettings={};
 render().find(n=>n.type==='preview').props.onSelect(graph.id);section('Appearance');
