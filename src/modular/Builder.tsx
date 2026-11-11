@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState, type ReactNode} from 'react';
-import {DialogButton,DropdownItem,Focusable,TextField,ToggleField,showModal} from '@decky/ui';
+import {ConfirmModal,DialogButton,DropdownItem,Focusable,TextField,ToggleField,showModal} from '@decky/ui';
 import {OpaqueColorPicker,graphStyleChoices,type GraphStyle} from '../controller';
 import {LayoutSliderField} from '../components/LayoutSliderField';
 import {ModularHud,initialData} from './Hud';
@@ -19,6 +19,7 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
  const [styleStore,SS]=useState<BuilderStyleStore>(()=>({presets:settings.style_presets||{},names:settings.style_names||{}}));
  const [saveOpen,SaveOpen]=useState(false),[saveSlot,SaveSlot]=useState('new'),[styleName,StyleName]=useState(''),[saving,Saving]=useState(false),[saveMessage,SaveMessage]=useState('');
  const [saved,Saved]=useState<{slot:string;snapshot:string}|null>(null);
+ const initialSnapshot=useRef(JSON.stringify([validate(initial),{rounding:settings.rounding??10,opacity:settings.opacity??80,graph_style:settings.graph_style??'line',unit_superscript:settings.unit_superscript??false}]));
  useEffect(()=>{if(!stage.current)return;const element=stage.current;element.scrollLeft=layout.anchor.endsWith('right')?1280*zoom:layout.anchor.endsWith('center')?(1280*zoom-element.clientWidth)/2:0;element.scrollTop=layout.anchor.startsWith('center-')?Math.max(0,(800*zoom-element.clientHeight)/2):layout.anchor.startsWith('bottom')?800*zoom:0},[layout.anchor,zoom]);
  const active=find(layout.root,selected)||layout.root,all=flatten(layout.root),owner=parent(layout.root,active.id);
  const commit=(next:Layout)=>{try{const valid=validate(next);if(JSON.stringify(valid)===JSON.stringify(layout))return;P([...past.slice(-39),layout]);AP([...appearancePast.slice(-39),appearance]);F([]);AF([]);L(valid);E('')}catch(e){E(String(e))}};
@@ -48,7 +49,17 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
    SaveMessage('Saved: '+(store.names[slot]||'Style '+slot));
   }catch(error){SaveMessage('Save failed: '+String(error))}finally{Saving(false)}
  };
- const close=()=>{if(!saving)closeModal?.()};
+ const close=()=>{
+   if(saving)return;
+   if(snapshot()===initialSnapshot.current){closeModal?.();return;}
+   const dialog=showModal(<ConfirmModal strTitle="Unsaved overlay changes"
+    strDescription="You have changes that have not been applied to the current overlay."
+    strOKButtonText="Apply layout" strCancelButtonText="Keep editing"
+    onOK={()=>{dialog.Close();void dialog.ClosedPromise.then(()=>apply())}}
+    onCancel={()=>dialog.Close()}>
+    <DialogButton onClick={()=>{dialog.Close();void dialog.ClosedPromise.then(()=>closeModal?.())}}>Discard changes</DialogButton>
+   </ConfirmModal>,undefined,{bNeverPopOut:true});
+  };
  const guardTextEnter=(event:any)=>{
   const target=event.target;
   if(event.key==='Enter'&&(target?.tagName==='INPUT'||target?.tagName==='TEXTAREA')&&!['range','checkbox','button'].includes(target.type)){
@@ -59,9 +70,9 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
  return <Focusable flow-children="column" className="claw-builder-page" onCancelButton={event=>{event.preventDefault();event.stopPropagation();close()}}>
  <style>{previewFontCSS}</style>
  <style>{`
- .claw-builder-page{width:100%;height:100vh;padding:8px;background:#0b1016;box-sizing:border-box;overflow:hidden}
- .claw-builder{width:100%;height:calc(100vh - 24px);min-height:320px;display:grid;grid-template-columns:minmax(0,1fr) clamp(330px,30vw,420px);gap:8px;color:#e9eef5;box-sizing:border-box}
- .claw-builder[data-orientation="horizontal"]{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(145px,19vh,175px) minmax(0,1fr)}
+ .claw-builder-page{width:100%;height:calc(100dvh - 80px);max-height:calc(100dvh - 80px);min-height:0;padding:8px;background:#0b1016;box-sizing:border-box;overflow:hidden}
+ .claw-builder{width:100%;height:100%;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(330px,30vw,420px);gap:8px;color:#e9eef5;box-sizing:border-box}
+ .claw-builder[data-orientation="horizontal"]{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(125px,17dvh,155px) minmax(0,1fr)}
  .claw-builder[data-orientation="vertical"]{grid-template-columns:clamp(310px,29vw,380px) minmax(0,1fr)}
  .claw-builder[data-orientation="horizontal"] .claw-builder-properties{max-width:none}
  .claw-builder *{box-sizing:border-box}.claw-builder-preview,.claw-builder-panel{background:#121922;border:1px solid #2b3544;border-radius:10px;min-width:0;min-height:0}
