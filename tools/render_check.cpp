@@ -68,5 +68,31 @@ int main(int argc,char**argv){
  const auto a=claw_horizontal_separator::geometry(ImVec2(0,4),5,18,100,50,1);
  const auto b=claw_horizontal_separator::geometry(ImVec2(0,4),5,18,200,150,6);
  if(a.end.y-a.start.y>=b.end.y-b.start.y || a.thickness!=1 || b.thickness!=6)return 4;
+ // Exercise the geometry and rounded/alpha drawing used by the new renderer.
+ using namespace claw_horizontal_separator;
+ for (bool strip : {false, true}) {
+  for (unsigned orientation : {Horizontal, Vertical}) {
+   const auto d = claw_horizontal_separator::size(strip, orientation, 52, 6, 100, 18, 260);
+   if (d.x != (orientation==Vertical?6:52) || d.y != (orientation==Vertical?52:6)) return 5;
+  }
+  const auto automatic = claw_horizontal_separator::size(strip, Auto, 0, 6, 100, 18, 260);
+  if (strip ? automatic.x!=6 : automatic.y!=6) return 6;
+  const auto disabled = claw_horizontal_separator::size(strip, Off, 52, 6, 100, 18, 260);
+  if (disabled.x!=0 || disabled.y!=0) return 7;
+ }
+ ImGui::NewFrame();
+ ImGui::Begin("Separator fixture");
+ ImDrawList* line_draw = ImGui::GetWindowDrawList();
+ const int start = line_draw->VtxBuffer.Size;
+ draw(*line_draw,{10,10},{52,6},0x37c9ef,3,0);
+ if (line_draw->VtxBuffer.Size!=start) return 8;
+ draw(*line_draw,{10,10},{52,6},0x37c9ef,3,40);
+ if (line_draw->VtxBuffer.Size<=start+4) return 9;
+ bool color_found = false;
+ for(int i=start; i<line_draw->VtxBuffer.Size; ++i)
+  color_found |= line_draw->VtxBuffer[i].col==IM_COL32(55,201,239,102);
+ if(!color_found) return 10;
+ ImGui::End();
+ ImGui::Render();
  ImGui::DestroyContext();
 }

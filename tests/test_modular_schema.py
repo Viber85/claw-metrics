@@ -112,7 +112,7 @@ class ModularSchemaTests(unittest.TestCase):
         self.layout['root']['id'] = 'čćž' * 20
         self.layout['root'].update(background='#112233', opacity=44, outline=True)
         text = schema.encode_native(self.layout)
-        self.assertTrue(text.startswith('CLAW_MODULAR_V5\n'))
+        self.assertTrue(text.startswith('CLAW_MODULAR_V6\n'))
         self.assertIn(self.layout['root']['id'].encode().hex(), text)
         self.assertIn('112233 44 1', text)
         with self.assertRaises(ValueError): schema.encode_native({'schema': 'unknown'})
@@ -122,17 +122,22 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'end'
         out = schema.validate_layout(self.layout)
         self.assertEqual(out['root']['children'][0]['selfAlign'], 'end')
-        self.assertIn('CLAW_MODULAR_V5', schema.encode_native(out))
+        self.assertIn('CLAW_MODULAR_V6', schema.encode_native(out))
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
     def test_separator_is_validated_and_has_no_sensor_source(self):
         separator = copy.deepcopy(self.layout['root']['children'][0]['children'][0])
-        separator.update(id='line', token='separator', name='Separator line', width=180, height=2, color='#ABCDEF')
+        separator.update(id='line', token='separator', name='Separator line', axis='column', width=18, height=2, color='#ABCDEF', cornerRadius=1, separatorOpacity=0)
         self.layout['root']['children'].append(separator)
         out = schema.validate_layout(self.layout)
         self.assertEqual(out['root']['children'][-1]['height'], 2)
+        self.assertEqual(out['root']['children'][-1]['axis'], 'column')
+        self.assertEqual(out['root']['children'][-1]['separatorOpacity'], 0)
         self.assertIn('separator', schema.encode_native(out))
+        separator['separatorOpacity'] = 101
+        with self.assertRaises(ValueError): schema.validate_layout(self.layout)
+        separator['separatorOpacity'] = 0
         separator['height'] = 0
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 

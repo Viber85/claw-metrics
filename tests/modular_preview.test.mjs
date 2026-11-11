@@ -24,7 +24,7 @@ for(const enabled of [false,true])for(const [token,value,unit] of [['cpu.power',
 const layout=JSON.parse(readFileSync('assets/modular/horizontal.json'));
 const gpu=layout.root.children.find(n=>n.name==='GPU');
 gpu.align='center';gpu.children[1].selfAlign='start';
-const line={...structuredClone(gpu.children[1]),id:'test-line',name:'Separator line',token:'separator',width:160,height:2,color:'#ABCDEF'};
+const line={...structuredClone(gpu.children[1]),id:'test-line',name:'Separator line',token:'separator',axis:'column',width:48,height:4,color:'#ABCDEF',cornerRadius:2,separatorOpacity:40};
 gpu.children.push(line);
 const settings={enabled:true,sans:true,fontsize:18,font_weight:'regular',fps_scale:100,colors:{text:'F0F2F5',graph:'30E5A0'},background:{mode:'solid',color:'#111820',stops:[]},opacity:80,rounding:6,graph_style:'line'};
 function walk(n){if(!n||typeof n!=='object')return [];if(Array.isArray(n))return n.flatMap(walk);return[n,...walk(n.props?.children)]}
@@ -42,11 +42,14 @@ const temperature=nodes.find(n=>n.props?.['data-node-id']===gpu.children.find(n=
 assert(walk(temperature).some(n=>n.type==='span'&&n.props.style?.fontSize==='.7em'&&n.props.children==='°C'));
 settings.unit_superscript=false;
 const separator=nodes.find(n=>n.props?.['data-node-id']==='test-line');
-assert.equal(walk(separator).find(n=>n.type==='span').props.style.height,2);
-assert.equal(walk(separator).find(n=>n.type==='span').props.style.background,'#ABCDEF');
-const inherited=structuredClone(line);inherited.id='global-separator';inherited.color='';gpu.children.push(inherited);
+const lineStyle=walk(separator).find(n=>n.type==='span').props.style;
+assert.equal(lineStyle.width,4);
+assert.equal(lineStyle.height,48);
+assert.equal(lineStyle.borderRadius,2);
+assert.equal(lineStyle.background,'rgba(171,205,239,0.4)');
+const inherited=structuredClone(line);inherited.id='global-separator';inherited.color='';inherited.separatorOpacity=undefined;gpu.children.push(inherited);
 nodes=walk(ModularHud({layout,settings:{...settings,colors:{...settings.colors,separator:'AA7733'}},data:{gpu:72},selected:'none',onSelect:()=>{}}));
-assert.equal(walk(nodes.find(n=>n.props?.['data-node-id']==='global-separator')).find(n=>n.type==='span').props.style.background,'#AA7733');
+assert.equal(walk(nodes.find(n=>n.props?.['data-node-id']==='global-separator')).find(n=>n.type==='span').props.style.background,'rgba(170,119,51,1)');
 settings.sans=false;
 nodes=walk(ModularHud({layout,settings,data:{gpu:72},selected:'none',onSelect:()=>{}}));
 assert.equal(nodes.find(n=>n.props?.className==='modular-hud').props.style.fontFamily,'ClawPreviewSans');

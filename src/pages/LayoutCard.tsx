@@ -5,6 +5,7 @@ import {
   ConfirmModal,
   showModal,
   DialogButton,
+  DropdownItem,
   Focusable,
   Field,
   PanelSection,
@@ -181,23 +182,37 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
 
 
           </ControlGroup>
-          {settings.hud_orientation==="horizontal" && <ControlGroup title="Separators" summary="Color · height · thickness"
+          <ControlGroup title="Separators" summary="Style of the lines between groups"
             open={layoutPanel==="separators"} onToggle={()=>toggleLayoutPanel("separators")}>
+            <PanelSectionRow><DropdownItem label="Separator orientation"
+              description="Auto places the line across the direction of the HUD."
+              rgOptions={[{label:"Auto",data:"auto"},{label:"Horizontal",data:"horizontal"},
+                {label:"Vertical",data:"vertical"},{label:"Off",data:"off"}]}
+              selectedOption={settings.separator_orientation} disabled={!ready || !info?.layout_spacing_supported}
+              onChange={option=>update({separator_orientation:option.data as Core.SeparatorOrientation})}/></PanelSectionRow>
+            {settings.separator_orientation!=="off" && <>
             <PanelSectionRow><DialogButton className="claw-control-button" disabled={!ready || !info?.layout_spacing_supported}
               style={{width:"100%",minWidth:0,minHeight:36,padding:"5px 10px",display:"flex",alignItems:"center",gap:8}}
               onClick={()=>openColorPicker("separator","Separator color")}>
               <span aria-hidden="true" style={{width:16,height:16,flexShrink:0,borderRadius:3,
                 border:"1px solid #bccbd9",background:"#"+settings.colors.separator}}/>Separator color
             </DialogButton></PanelSectionRow>
-            <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Separator height (%)"
-              value={settings.separator_height} min={50} max={150} step={5} showValue
-              disabled={!ready || !info?.layout_spacing_supported}
-              onChange={separator_height=>update({separator_height})}/></div></PanelSectionRow>
-            <PanelSectionRow><div className="claw-layout-slider"><LayoutSliderField label="Separator thickness (px)"
-              value={settings.separator_thickness} min={1} max={6} step={1} showValue
-              disabled={!ready || !info?.layout_spacing_supported}
-              onChange={separator_thickness=>update({separator_thickness})}/></div></PanelSectionRow>
-          </ControlGroup>}
+            {([
+              ["separator_length","Separator length (px, 0 = auto)",0,1000,1],
+              ["separator_thickness","Separator thickness (px)",1,20,1],
+              ["separator_rounding","Separator corner radius (px)",0,10,1],
+              ["separator_opacity","Separator opacity (%)",0,100,1],
+              ...(settings.separator_length===0 &&
+                (settings.separator_orientation==="vertical" ||
+                  (settings.separator_orientation==="auto" && settings.hud_orientation==="horizontal"))
+                ? [["separator_height","Automatic height (%)",50,150,5] as const] : []),
+            ] as const).map(([key,label,min,max,step])=>
+              <PanelSectionRow key={key}><div className="claw-layout-slider"><LayoutSliderField
+                label={label} value={settings[key]} min={min} max={max} step={step} showValue
+                disabled={!ready || !info?.layout_spacing_supported}
+                onChange={value=>update({[key]:value})}/></div></PanelSectionRow>)}
+            </>}
+          </ControlGroup>
           <ControlGroup title="Frametime graph" summary="Graph style and width"
             open={layoutPanel==="frametime"} onToggle={()=>toggleLayoutPanel("frametime")}>
             {settings.frametime && settings.metrics.graph ? <>
@@ -253,6 +268,8 @@ export function LayoutCard({vm}:{vm:Core.ClawController}) {
           element_gap:defaults.element_gap,table_gap:defaults.table_gap,inner_gap:defaults.inner_gap,group_gap_x:defaults.group_gap_x,unit_superscript:defaults.unit_superscript,
           vertical_value_gap:defaults.vertical_value_gap,vertical_category_gap:defaults.vertical_category_gap,vertical_graph_width:defaults.vertical_graph_width,vertical_graph_height:defaults.vertical_graph_height,
           graph_width:defaults.graph_width,separator_height:defaults.separator_height,separator_thickness:defaults.separator_thickness,
+          separator_orientation:defaults.separator_orientation,separator_length:defaults.separator_length,
+          separator_rounding:defaults.separator_rounding,separator_opacity:defaults.separator_opacity,
           graph_style:defaults.graph_style,vertical_graph_style:defaults.vertical_graph_style,inline_metrics:defaults.inline_metrics
         }))}>
             Reset layout to defaults

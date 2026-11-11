@@ -1,7 +1,7 @@
 export const styleSlotIds=Array.from({length:12},(_,index)=>String(index+1));
 // A style snapshots appearance + enabled metric groups/submetrics. Renamed labels and
 // manual metric order remain global; legacy appearance-only styles stay compatible.
-export const styleLayoutKeys = ['modular_enabled','modular_layout','background','sans','fontsize','fps_scale','center_horizontal','hud_position','hud_orientation','vertical_width','vertical_value_gap','vertical_category_gap','vertical_graph_width','vertical_graph_height','vertical_graph_style','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','group_gap_x','inner_gap','graph_width','separator_height','separator_thickness','graph_style','inline_metrics','unit_superscript'] as const;
+export const styleLayoutKeys = ['modular_enabled','modular_layout','background','sans','fontsize','fps_scale','center_horizontal','hud_position','hud_orientation','vertical_width','vertical_value_gap','vertical_category_gap','vertical_graph_width','vertical_graph_height','vertical_graph_style','opacity','rounding','padding_x','padding_y','offset_x','offset_y','element_gap','table_gap','group_gap_x','inner_gap','graph_width','separator_height','separator_thickness','separator_orientation','separator_length','separator_rounding','separator_opacity','graph_style','inline_metrics','unit_superscript'] as const;
 export function styleLayoutFrom(value:any){
  const result:any={};
  for(const key of styleLayoutKeys){
@@ -12,6 +12,7 @@ export function styleLayoutFrom(value:any){
   else if(key==='sans'||key==='inline_metrics'||key==='center_horizontal'||key==='unit_superscript'){if(typeof v==='boolean')result[key]=v}
   else if(key==='hud_position'){if(['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right','center-left','center-right'].includes(v))result[key]=v}
   else if(key==='hud_orientation'){if(v==='horizontal'||v==='vertical')result[key]=v}
+  else if(key==='separator_orientation'){if(['auto','horizontal','vertical','off'].includes(v))result[key]=v}
   else if(key==='graph_style'){if(['area','line','bars','dual','smooth','dual_layer'].includes(v))result[key]=v}
   else if(key==='vertical_graph_style'){if(['area','line','bars','dual','smooth','dual_layer'].includes(v))result[key]=v}
   else if(typeof v==='number'&&Number.isFinite(v))result[key]=v;

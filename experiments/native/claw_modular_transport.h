@@ -10,7 +10,7 @@
 namespace claw_modular {
 struct Appearance {
     std::string color,background; // Six-digit RGB, empty means inherited/transparent.
-    float opacity=100,corner_radius=-1;
+    float opacity=100,corner_radius=-1,separator_opacity=100;
     bool outline=false;
     float outline_width=1,outline_opacity=100;
     std::string outline_color="8FB8D9";
@@ -44,10 +44,10 @@ inline Document decode(const std::string& bytes){
     if(bytes.size()>1024*1024)throw std::invalid_argument("Native layout exceeds 1 MiB");
     std::istringstream input(bytes);input.imbue(std::locale::classic());
     std::string magic;int anchor=0,count=0;Document doc;
-    if(!(input>>magic>>anchor>>doc.x>>doc.y>>count)||(magic!="CLAW_MODULAR_V1"&&magic!="CLAW_MODULAR_V2"&&magic!="CLAW_MODULAR_V3"&&magic!="CLAW_MODULAR_V4"&&magic!="CLAW_MODULAR_V5")||anchor<0||anchor>7||count<1||count>96)
+    if(!(input>>magic>>anchor>>doc.x>>doc.y>>count)||(magic!="CLAW_MODULAR_V1"&&magic!="CLAW_MODULAR_V2"&&magic!="CLAW_MODULAR_V3"&&magic!="CLAW_MODULAR_V4"&&magic!="CLAW_MODULAR_V5"&&magic!="CLAW_MODULAR_V6")||anchor<0||anchor>7||count<1||count>96)
         throw std::invalid_argument("Invalid transport header");
     doc.anchor=static_cast<Anchor>(anchor);doc.nodes.resize(count);doc.appearance.resize(count);
-    if((magic=="CLAW_MODULAR_V3"||magic=="CLAW_MODULAR_V4"||magic=="CLAW_MODULAR_V5")&&!(input>>doc.nodes[0].overlay_padding_x>>doc.nodes[0].overlay_padding_y))throw std::invalid_argument("Invalid overlay padding");
+    if((magic=="CLAW_MODULAR_V3"||magic=="CLAW_MODULAR_V4"||magic=="CLAW_MODULAR_V5"||magic=="CLAW_MODULAR_V6")&&!(input>>doc.nodes[0].overlay_padding_x>>doc.nodes[0].overlay_padding_y))throw std::invalid_argument("Invalid overlay padding");
     const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value graph separator ";
     for(int i=0;i<count;++i){
         auto& n=doc.nodes[i];auto& style=doc.appearance[i];std::string id;int group,visible,axis,align,self_align=0,outline,children;
@@ -59,7 +59,7 @@ inline Document decode(const std::string& bytes){
            !range(style.opacity,0,100)||!valid_color(style.color)||!valid_color(style.background)||tokens.find(" "+n.token+" ")==std::string::npos)
             throw std::invalid_argument("Invalid transport record");
         n.id=decode_id(id);n.group=group;n.visible=visible;n.axis=static_cast<Axis>(axis);n.align=static_cast<Align>(align);n.self_align=static_cast<SelfAlign>(self_align);style.outline=outline;
-        if(magic=="CLAW_MODULAR_V4"||magic=="CLAW_MODULAR_V5"){
+        if(magic=="CLAW_MODULAR_V4"||magic=="CLAW_MODULAR_V5"||magic=="CLAW_MODULAR_V6"){
             float px=0,py=0;
             if(!(input>>px>>py>>style.outline_width>>style.outline_color>>style.outline_opacity)||
                !range(px,0,160)||!range(py,0,160)||!range(style.outline_width,0,12)||!range(style.outline_opacity,0,100)||
@@ -67,10 +67,13 @@ inline Document decode(const std::string& bytes){
             if(i>0){n.overlay_padding_x=px;n.overlay_padding_y=py;}
             if(style.outline_color=="-")style.outline_color="8FB8D9";
         }
-        if(magic=="CLAW_MODULAR_V5"){
+        if(magic=="CLAW_MODULAR_V5"||magic=="CLAW_MODULAR_V6"){
             if(!(input>>style.corner_radius>>n.font_weight)||(style.corner_radius!=-1&&!range(style.corner_radius,0,1000))||n.font_weight<0||n.font_weight>4)
                 throw std::invalid_argument("Invalid radius or font weight");
         }
+        if(magic=="CLAW_MODULAR_V6"&&(!(input>>style.separator_opacity)||!range(style.separator_opacity,0,100)))
+            throw std::invalid_argument("Invalid separator opacity");
+        if(magic!="CLAW_MODULAR_V6"&&n.token=="separator")n.axis=Axis::Row;
         if(style.color=="-")style.color.clear();
         if(style.background=="-")style.background.clear();
         for(int j=0;j<children;++j){int child;if(!(input>>child)||child<0||child>=count)throw std::invalid_argument("Invalid child index");n.children.push_back(static_cast<size_t>(child));}

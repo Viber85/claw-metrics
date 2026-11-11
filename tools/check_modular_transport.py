@@ -21,7 +21,11 @@ with tempfile.TemporaryDirectory() as directory:
         doc['root'].update(id='čćž'*20,background='#112233',opacity=44,outline=True)
         last=doc['root']
         while last['children']:last=last['children'][-1]
-        last['color']='#ABCDEF'
+        from copy import deepcopy
+        separator=deepcopy(last)
+        separator.update(id='separator-v6',token='separator',color='#ABCDEF',axis='column',
+                         width=38,height=4,cornerRadius=2,separatorOpacity=37)
+        doc['root']['children'].append(separator)
         doc['root']['children'][0].update(selfAlign='end',paddingX=9,paddingY=5,outline=True,outlineColor='#FFAA22',outlineWidth=4,outlineOpacity=35,cornerRadius=1000,fontWeight='semibold')
         encoded=tmp/(name+'.layout');encoded.write_text(schema.encode_native(doc))
         subprocess.run([str(binary),str(encoded)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})

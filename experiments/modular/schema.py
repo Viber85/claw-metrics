@@ -40,7 +40,7 @@ def validate_layout(value):
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
         out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
-        for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', 0 if v['kind'] == 'metric' and v['token'] == 'graph' else 40, 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
+        for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', ({'graph': 0, 'separator': 4}.get(v['token'], 40) if v['kind'] == 'metric' else 40), 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
             out[key] = number(v.get(key, 0) if key == 'padding' and v['kind'] == 'group' else v.get(key), low, high)
         # Legacy scalar padding remains readable; explicit X/Y padding defaults to zero.
         out['padding'] = 0
@@ -49,7 +49,9 @@ def validate_layout(value):
         for key,limit in (('outlineWidth',12),('outlineOpacity',100)):
             if key in v:out[key]=number(v[key],0,limit)
         if 'outlineColor' in v:out['outlineColor']=color(v['outlineColor'])
-        if depth>0 and v['kind']=='group' and 'cornerRadius' in v:out['cornerRadius']=number(v['cornerRadius'],0,1000)
+        if depth>0 and (v['kind']=='group' or v['token']=='separator') and 'cornerRadius' in v:out['cornerRadius']=number(v['cornerRadius'],0,1000)
+        if v['kind']=='metric' and v['token']=='separator' and 'separatorOpacity' in v:
+            out['separatorOpacity']=number(v['separatorOpacity'],0,100)
         if 'fontWeight' in v:
             if v['fontWeight'] not in ('light','regular','semibold','bold'):raise ValueError('Invalid font weight')
             out['fontWeight']=v['fontWeight']
@@ -88,7 +90,7 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V5', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
+    lines = ['CLAW_MODULAR_V6', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
     for n, children in nodes:
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),
@@ -101,6 +103,7 @@ def encode_native(value):
         fields += [numeric(n.get(key,0)) for key in ('paddingX','paddingY')]
         fields += [numeric(n.get('outlineWidth',1)), n.get('outlineColor','')[1:] or '8FB8D9', numeric(n.get('outlineOpacity',100))]
         fields += [numeric(n.get('cornerRadius',-1)), str(('', 'light', 'regular', 'semibold', 'bold').index(n.get('fontWeight','')))]
+        fields += [numeric(n.get('separatorOpacity',100))]
         fields += [str(index) for index in children]
         lines.append(' '.join(fields))
     encoded = '\n'.join(lines) + '\n'

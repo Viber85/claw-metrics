@@ -11,6 +11,26 @@
     "opacity": [
       0,
       100
+    ],
+    "separator_height": [
+      50,
+      150
+    ],
+    "separator_thickness": [
+      1,
+      20
+    ],
+    "separator_length": [
+      0,
+      1000
+    ],
+    "separator_rounding": [
+      0,
+      10
+    ],
+    "separator_opacity": [
+      0,
+      100
     ]
   },
   "enums": {
@@ -27,6 +47,16 @@
       "dual",
       "smooth",
       "dual_layer"
+    ],
+    "separator_orientation": [
+      "auto",
+      "horizontal",
+      "vertical",
+      "off"
+    ],
+    "hud_orientation": [
+      "horizontal",
+      "vertical"
     ]
   },
   "booleans": [

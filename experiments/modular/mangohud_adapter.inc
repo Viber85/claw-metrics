@@ -110,6 +110,7 @@ bool ClawTryModular() {
         const auto& a=active->appearance[i];
         if(!a.background.empty())styles[i].fill=packed(a.background,a.opacity);
         styles[i].text=packed(a.color,100);
+        styles[i].separator_opacity=a.separator_opacity;
         if(i)styles[i].rounding=a.corner_radius>=0?a.corner_radius:(a.outline?6:0);
         if(a.outline){styles[i].outline=packed(a.outline_color,a.outline_opacity);styles[i].outline_width=a.outline_width;if(!i)styles[i].rounding=p.round_corners;}
     }

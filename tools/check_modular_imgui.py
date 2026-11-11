@@ -141,7 +141,7 @@ def run(args):
             if name=='separator':
                 from copy import deepcopy
                 line=deepcopy(document['root']['children'][-1])
-                line.update(id='fixture-separator',token='separator',name='Separator line',width=160,height=2,color='#ABCDEF')
+                line.update(id='fixture-separator',token='separator',name='Separator line',axis='column',width=54,height=5,color='#ABCDEF',cornerRadius=2,separatorOpacity=55)
                 document['root']['children'].insert(1,line)
                 document=schema.validate_layout(document)
             if name=='horizontal':

@@ -76,12 +76,14 @@ STYLE_LAYOUT_RANGES = {
     "offset_x": (-1920, 1920), "offset_y": (-1200, 1200),
     "element_gap": (0, 20), "table_gap": (0, 12), "group_gap_x": (0, 60),
     "inner_gap": (0, 16), "graph_width": (80, 200),
-    "separator_height": (50, 150), "separator_thickness": (1, 6),
+    "separator_height": (50, 150), "separator_thickness": (1, 20),
+    "separator_length": (0, 1000), "separator_rounding": (0, 10), "separator_opacity": (0, 100),
     "vertical_value_gap": (0, 16), "vertical_category_gap": (0, 20),
     "vertical_graph_width": (0, 420),
     "vertical_graph_height": (16, 120),
     "vertical_width": (0, 420),  # 0 means MangoHud native automatic width
 }
+SEPARATOR_ORIENTATIONS = ("auto", "horizontal", "vertical", "off")
 STYLE_LAYOUT_FLAGS = ("sans", "inline_metrics", "center_horizontal")
 HUD_POSITIONS = ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "center-left", "center-right")
 HUD_ORIENTATIONS = ("horizontal", "vertical")
@@ -181,6 +183,8 @@ def normalize_style_presets(payload):
                 preset[field] = item[field]
         if item.get("hud_orientation") in HUD_ORIENTATIONS:
             preset["hud_orientation"] = item["hud_orientation"]
+        if item.get("separator_orientation") in SEPARATOR_ORIENTATIONS:
+            preset["separator_orientation"] = item["separator_orientation"]
         if item.get("hud_position") in HUD_POSITIONS:
             preset["hud_position"] = item["hud_position"]
         elif preset.get("center_horizontal") is True:
@@ -262,6 +266,7 @@ DEFAULTS = {
     # until a separately validated compatible renderer is installed.
     "padding_x": 5, "element_gap": 8, "table_gap": 4, "graph_width": 150,
     "separator_height": 100, "separator_thickness": 2,
+    "separator_orientation": "auto", "separator_length": 0, "separator_rounding": 0, "separator_opacity": 100,
     "group_gap_x": 0, "inner_gap": 4, "inline_metrics": True, "fps_bold": True, "graph_style": "line", "unit_superscript": False,
     "vertical_graph_style": "smooth",
     "colors": COLORS,
@@ -753,16 +758,7 @@ def normalize(payload):
         v = payload.get(key)
         if type(default) is bool and type(v) is bool:
             d[key] = v
-    for key, low, high in (("fontsize", 12, 28), ("fps_scale", 100, 200), ("opacity", 0, 100),
-                           ("rounding", 0, 1000), ("offset_x", -1920, 1920),
-                           ("offset_y", -1200, 1200), ("padding_y", 0, 24),
-                           ("padding_x", 0, 24), ("element_gap", 0, 20),
-                           ("table_gap", 0, 12), ("group_gap_x", 0, 60), ("graph_width", 80, 200),
-                           ("separator_height", 50, 150), ("separator_thickness", 1, 6),
-                           ("inner_gap", 0, 16), ("vertical_width", 0, 420),
-                           ("vertical_value_gap", 0, 16), ("vertical_category_gap", 0, 20),
-                           ("vertical_graph_width", 0, 420),
-                           ("vertical_graph_height", 16, 120)):
+    for key, (low, high) in STYLE_LAYOUT_RANGES.items():
         v = payload.get(key)
         if type(v) is int:
             d[key] = min(high, max(low, v))
@@ -775,6 +771,8 @@ def normalize(payload):
     # Existing settings do not contain orientation: keep the old horizontal HUD.
     if payload.get("hud_orientation") in HUD_ORIENTATIONS:
         d["hud_orientation"] = payload["hud_orientation"]
+    if payload.get("separator_orientation") in SEPARATOR_ORIENTATIONS:
+        d["separator_orientation"] = payload["separator_orientation"]
     # Migrate old center_horizontal profiles while making a new anchor authoritative.
     if payload.get("hud_position") in HUD_POSITIONS:
         d["hud_position"] = payload["hud_position"]
@@ -1013,6 +1011,8 @@ def mango_config(settings, native_spacing=False):
         vertical_width = d["vertical_width"]
         if native_spacing and not vertical_width:
             vertical_width = min(420, max(260, d["fontsize"] * 15))
+        if native_spacing and d["separator_orientation"] in ("auto", "horizontal") and d["separator_length"]:
+            vertical_width = max(vertical_width, d["separator_length"] + 2 * d["padding_x"])
         if vertical_width:
             lines.append("width=" + str(vertical_width))
     if native_spacing:
@@ -1042,6 +1042,10 @@ def mango_config(settings, native_spacing=False):
             "claw_graph_width=" + str(d["graph_width"]),
             "claw_separator_height=" + str(d["separator_height"]),
             "claw_separator_thickness=" + str(d["separator_thickness"]),
+            "claw_separator_orientation=" + str(SEPARATOR_ORIENTATIONS.index(d["separator_orientation"])),
+            "claw_separator_length=" + str(d["separator_length"]),
+            "claw_separator_rounding=" + str(d["separator_rounding"]),
+            "claw_separator_opacity=" + str(d["separator_opacity"]),
             "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
             "claw_unit_superscript=" + str(int(d["unit_superscript"])),
             "claw_center_vertical=" + str(int(position.startswith("center-"))),

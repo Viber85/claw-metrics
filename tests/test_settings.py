@@ -119,6 +119,19 @@ class Settings(unittest.TestCase):
         self.assertIn('claw_fps_bold=0\n', off)
         self.assertIn('fps_text=FPS*\n', patched)
 
+    def test_classic_separator_config_and_saved_styles(self):
+        settings = {"hud_orientation": "vertical", "separator_orientation": "horizontal",
+                    "separator_length": 400, "separator_thickness": 9,
+                    "separator_rounding": 4, "separator_opacity": 0}
+        config = main.mango_config(main.normalize(settings), native_spacing=True)
+        self.assertIn("width=410\n", config)
+        for key, expected in (("orientation", 1), ("length", 400), ("thickness", 9),
+                              ("rounding", 4), ("opacity", 0)):
+            self.assertIn(f"claw_separator_{key}={expected}\n", config)
+        saved = main.normalize_style_presets({"1": settings})["1"]
+        for key, value in settings.items():
+            self.assertEqual(saved[key], value)
+
     def test_custom_colors_are_validated_and_persist_in_both_profiles(self):
         overrides = {
             'separator': '#ff0099', 'text': '0123ab', 'cpu': 'A1B2C3',

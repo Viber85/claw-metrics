@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
-const ui=Object.fromEntries(['ButtonItem','DialogButton','Focusable','Field','PanelSection','PanelSectionRow','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
+const ui=Object.fromEntries(['ButtonItem','DialogButton','DropdownItem','Focusable','Field','PanelSection','PanelSectionRow','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 const controller=readFileSync('src/controller.tsx','utf8');
 const positions=runInNewContext('('+controller.match(/export const hudPositions[^=]*=\s*(\[[\s\S]*?\]);/)[1]+')');
 const core={hudPositions:positions,defaults:{},graphStyleChoices:[],GraphStyleIcon:()=>null,
@@ -19,7 +19,7 @@ runInNewContext(ts.transpileModule(readFileSync('src/pages/LayoutCard.tsx','utf8
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
 for(const hud_orientation of ['horizontal','vertical'])for(const supported of [false,true]){
  const updates=[];
- const vm={settings:{hud_orientation,hud_position:'center-right',unit_superscript:false,group_gap_x:0,vertical_category_gap:6,colors:{separator:'777777'},metrics:{graph:false}},info:{layout_spacing_supported:supported},ready:true,update:v=>updates.push(v),toggleSection:()=>{},toggleLayoutPanel:()=>{}};
+ const vm={settings:{hud_orientation,hud_position:'center-right',unit_superscript:false,group_gap_x:0,vertical_category_gap:6,separator_orientation:'auto',separator_length:0,colors:{separator:'777777'},metrics:{graph:false}},info:{layout_spacing_supported:supported},ready:true,update:v=>updates.push(v),toggleSection:()=>{},toggleLayoutPanel:()=>{}};
  const nodes=walk(module.exports.LayoutCard({vm}));
  const unit=nodes.find(n=>n.type==='ToggleField'&&n.props.label==='Superscript units');assert(unit);
  assert.equal(unit.props.disabled,!supported);unit.props.onChange(true);assert.equal(updates.at(-1).unit_superscript,true);
@@ -27,6 +27,13 @@ for(const hud_orientation of ['horizontal','vertical'])for(const supported of [f
   const anchor=nodes.find(n=>n.props?.['data-anchor-position']===id);assert(anchor);
   assert.equal(anchor.props.disabled,!supported);anchor.props.onClick();assert.equal(updates.at(-1).hud_position,id);
   assert.equal(anchor.props.style.gridColumn,id==='center-left'?1:3);
+ }
+ const orientation=nodes.find(n=>n.type==='DropdownItem'&&n.props.label==='Separator orientation');assert(orientation);
+ assert.equal(orientation.props.disabled,!supported);
+ orientation.props.onChange({data:'vertical'});assert.equal(updates.at(-1).separator_orientation,'vertical');
+ for(const [label,key] of [['Separator length (px, 0 = auto)','separator_length'],['Separator thickness (px)','separator_thickness'],['Separator corner radius (px)','separator_rounding'],['Separator opacity (%)','separator_opacity']]){
+  const slider=nodes.find(n=>n.type==='slider'&&n.props.label===label);assert(slider);
+  slider.props.onChange(8);assert.equal(updates.at(-1)[key],8);
  }
  const label=hud_orientation==='horizontal'?'Horizontal group spacing (px)':'Vertical group spacing (px)';
  const gap=nodes.find(n=>n.type==='slider'&&n.props.label===label);assert(gap);assert.equal(gap.props.disabled,!supported);

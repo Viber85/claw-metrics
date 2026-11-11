@@ -24,17 +24,22 @@ int main(int argc,char**argv){
  assert(doc.nodes[1].self_align==SelfAlign::End);
  std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";
  std::string v2="CLAW_MODULAR_V2\n"+line+"\n";std::getline(old_input,line);
+ std::string v5="CLAW_MODULAR_V5\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  std::string v4="CLAW_MODULAR_V4\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  std::string v3="CLAW_MODULAR_V3\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  while(std::getline(old_input,line)){
   if(line.empty())continue;
   std::istringstream record(line);std::vector<std::string> fields;std::string field;while(record>>field)fields.push_back(field);
-  assert(fields.size()>=24);
+  assert(fields.size()>=25);
   auto join=[](const std::vector<std::string>& values){std::string out;for(size_t j=0;j<values.size();++j){if(j)out+=' ';out+=values[j];}return out+"\n";};
+  fields.erase(fields.begin()+24);v5+=join(fields);
   fields.erase(fields.begin()+22,fields.begin()+24);v4+=join(fields);
   fields.erase(fields.begin()+17,fields.begin()+22);
   v2+=join(fields);v3+=join(fields);fields.erase(fields.begin()+6);legacy+=join(fields);
  }
+ auto v5_doc=decode(v5);
+ assert(v5_doc.nodes.back().axis==Axis::Row&&v5_doc.appearance.back().separator_opacity==100);
+ assert(doc.nodes.back().axis==Axis::Column&&doc.appearance.back().separator_opacity==37);
  auto v4_doc=decode(v4);assert(v4_doc.appearance[1].corner_radius==-1&&v4_doc.nodes[1].font_weight==0);
  assert(doc.appearance[1].corner_radius==1000&&doc.nodes[1].font_weight==3);
  auto prior=decode(v3);assert(prior.nodes[0].overlay_padding_x==27&&prior.nodes[0].overlay_padding_y==13);

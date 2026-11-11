@@ -24,7 +24,7 @@ struct Text {
 };
 struct Style {
     ImU32 fill=0,outline=0,text=0;
-    float rounding=0,outline_width=1;
+    float rounding=0,outline_width=1,separator_opacity=100;
 };
 using FontFaces=std::array<ImFont*,5>; // 0 is automatic.
 struct Frame {
@@ -104,7 +104,7 @@ inline Frame prepare(std::vector<Node> nodes,std::vector<Style> styles,
                      std::map<std::string,Text> readings, std::vector<float> graph,
                      size_t root,Size screen,Anchor anchor,float x,float y,float font,bool unit_superscript=false,const FontFaces& faces={}) {
     if(nodes.empty()||nodes.size()>96||root>=nodes.size()||styles.size()!=nodes.size()||graph.size()>30000)throw std::invalid_argument("Invalid drawing snapshot");
-    for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,12))throw std::invalid_argument("Invalid drawing style");
+    for(const auto& s:styles)if(!range(s.rounding,0,1000)||!range(s.outline_width,0,12)||!range(s.separator_opacity,0,100))throw std::invalid_argument("Invalid drawing style");
     for(float value:graph)if(!range(value,0,1000000))throw std::invalid_argument("Invalid graph sample");
     Frame frame;frame.nodes=std::move(nodes);frame.styles=std::move(styles);
     frame.readings=std::move(readings);frame.graph=std::move(graph);
@@ -187,7 +187,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             visit(child,scale,alignment);
         }return;}
         if(n.token=="separator"){
-            draw->AddRectFilled(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),style.text?style.text:frame.separator_color);
+            const ImU32 rgb=style.text?style.text:frame.separator_color;
+            const auto alpha=static_cast<ImU32>(std::round(style.separator_opacity*255.f/100.f));
+            const float line_radius=std::min(style.rounding,std::min(n.width,n.height)*.5f);
+            draw->AddRectFilled(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),
+                ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),(rgb&0xffffff)|(alpha<<24),line_radius);
             return;
         }
         if(n.token=="graph"){

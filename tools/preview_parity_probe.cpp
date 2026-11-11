@@ -29,6 +29,7 @@ int main(int argc,char**argv){
  }
  std::vector<Style> styles(doc.nodes.size());
  for(size_t i=0;i<styles.size();++i){const auto& a=doc.appearance[i];
+  styles[i].separator_opacity=a.separator_opacity;
   styles[i].rounding=a.corner_radius>=0?a.corner_radius:(a.outline?6:0);
   if(a.outline){const unsigned rgb=std::stoul(a.outline_color,nullptr,16);styles[i].outline=IM_COL32(rgb>>16,(rgb>>8)&255,rgb&255,int(a.outline_opacity*255/100));styles[i].outline_width=a.outline_width;}
   if(!a.background.empty()){const unsigned rgb=std::stoul(a.background,nullptr,16);styles[i].fill=IM_COL32(rgb>>16,(rgb>>8)&255,rgb&255,255);}

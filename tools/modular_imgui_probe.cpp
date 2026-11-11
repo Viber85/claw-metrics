@@ -33,6 +33,7 @@ int main(int argc,char**argv){
   };
   if(!appearance.background.empty())styles[i].fill=packed(appearance.background,appearance.opacity);
   styles[i].text=packed(appearance.color,100);
+  styles[i].separator_opacity=appearance.separator_opacity;
   if(i)styles[i].rounding=appearance.corner_radius>=0?appearance.corner_radius:(appearance.outline?6:0);
   if(appearance.outline){styles[i].outline=packed(appearance.outline_color,appearance.outline_opacity);styles[i].outline_width=appearance.outline_width;styles[i].rounding=i?6:styles[i].rounding;}
  }

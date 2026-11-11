@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.110 ZIP
+name: Build Claw Metrics v0.2.4 test.112 ZIP
 on:
   push:
-    branches: [feature/devlab-json-design-110]
+    branches: [test/unified-separators-112]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.110
+  group: claw-metrics-v0.2.4-test.112
   cancel-in-progress: true
 
 jobs:
@@ -201,8 +201,9 @@ jobs:
           grep -q 'const std::string label = has_value' src/hud_elements.cpp
           grep -q 'const int token = item.value.find("tdp.txt")' src/hud_elements.cpp
           grep -q 'Adaptive, padded graph scale' src/hud_elements.cpp
-          grep -q 'ImGuiCol_TableBorderLight' src/overlay.cpp
-          grep -q 'ImGuiTableFlags_BordersInnerH' src/overlay.cpp
+          python3 ../experiments/enable_separator_controls.py src
+          grep -q 'ClawClassicSeparator(params, strip)' src/overlay.cpp
+          grep -q 'parse_claw_separator_opacity' src/overlay_params.cpp
           # Use the exact licensed wrap patches without WrapDB/API outages.
           # The helper verifies all bytes against the cloned upstream wrap pins.
           python3 ../tools/cache_native_wraps.py subprojects ../.github/native-wraps
@@ -261,7 +262,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.110.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.112.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -277,18 +278,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.110', package['version']
+              assert package['version'] == '0.2.4-test.112', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.110
-          path: ClawMetrics-v0.2.4-test.110.zip
+          name: ClawMetrics-v0.2.4-test.112
+          path: ClawMetrics-v0.2.4-test.112.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.110 ClawMetrics-v0.2.4-test.110.zip \
+          gh release create v0.2.4-test.112 ClawMetrics-v0.2.4-test.112.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.110 – Portable overlay design editor" \
-            --notes "Experimental test.110: Portable claw-overlay-design v1 JSON includes the modular layout, font size and weights, palette and element overrides, background and labels. Import opens an editor draft and applies only after Apply layout. Invalid and future JSON is rejected without changing the live overlay. Previous design restores the appearance saved before the last committed change, including classic renderer mode. Device export and the browser DevLab use the same format. Legacy modular-layout v1 remains readable and retains device appearance. The web editor bundles the actual plugin Builder and preview. Retains native V5 transport and test.109 rendering. Automated frontend/backend, browser/ImGui, Vulkan/OpenGL and ZIP checks are enabled. Actual handheld appearance and controller focus require device confirmation. Restart the game after installation."
+            --title "Claw Metrics v0.2.4-test.112 – Classic and Builder separators" \
+            --notes "Classic horizontal and vertical HUDs now have configurable group separators in Layout. Choose Auto, Horizontal, Vertical or Off and set length, thickness, corner radius, color and opacity. The Layout Builder offers the same styling independently for every Separator line. Existing layouts remain readable. Restart the game after updating. Actual handheld rendering requires device confirmation."
