@@ -4,11 +4,11 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const doc=JSON.parse(readFileSync('assets/modular/horizontal.json','utf8'));
 const vertical=JSON.parse(readFileSync('assets/modular/vertical.json','utf8'));
-const state=[],updates=[],calls=[],timers=[];let cursor=0,failImport=false;
+const state=[],updates=[],calls=[],timers=[],pickerCalls=[];let cursor=0,failImport=false,pickerCancel=false,picked={realpath:'/tmp/import.json'};
 const jsx=(type,props)=>({type,props:props||{}});
 const ui=Object.fromEntries(['ButtonItem','DialogButton','Field','PanelSectionRow','ToggleField','ConfirmModal'].map(k=>[k,p=>jsx(k==='ButtonItem'||k==='DialogButton'?'button':k,p)]));
 let modal,resolveClosed,modalOptions,closeCalls=0,page;ui.showModal=(value,_parent,options)=>{modal=value;modalOptions=options;return {Close(){closeCalls++;queueMicrotask(()=>resolveClosed())},ClosedPromise:new Promise(resolve=>resolveClosed=resolve)}};
-const api={FileSelectionType:{FILE:0},openFilePicker:async()=>({realpath:'/tmp/import.json'}),callable:route=>async(...args)=>{
+const api={FileSelectionType:{FILE:0},openFilePicker:async(...args)=>{pickerCalls.push(args);if(pickerCancel)throw 'User canceled';return picked},callable:route=>async(...args)=>{
  calls.push([route,args]);
  if(route==='get_modular_preset')return structuredClone(args[0]==='vertical'?vertical:doc);
  if(route==='get_modular_info')return {home:'/home/test'};
@@ -52,7 +52,17 @@ const before=JSON.stringify(vm.settings.modular_layout);failImport=true;
 button('Import JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(JSON.stringify(vm.settings.modular_layout),before);
 assert(render().some(n=>n.props.role==='status'&&text(n.props.children).includes('Invalid JSON')));
-failImport=false;button('Import JSON').props.onClick();await new Promise(setImmediate);
+assert.deepEqual(pickerCalls.at(-1).slice(0,4),[0,'/home',true,true],'JSON import must expose folders for navigation');
+assert.deepEqual(pickerCalls.at(-1).slice(5,8),[['json'],false,false],'only .json files should be selectable');
+failImport=false;
+const importedBefore=calls.filter(c=>c[0]==='import_overlay_design').length;
+picked={realpath:'/home/test/overlays'};button('Import JSON').props.onClick();await new Promise(setImmediate);
+assert.equal(calls.filter(c=>c[0]==='import_overlay_design').length,importedBefore,'selecting a folder must never trigger backend import');
+assert(render().some(n=>n.props.role==='status'&&text(n.props.children).includes('select a .json file')));
+pickerCancel=true;button('Import JSON').props.onClick();await new Promise(setImmediate);
+assert(!render().some(n=>n.props.role==='status'&&text(n.props.children).includes('User canceled')),'cancel must be silent');
+pickerCancel=false;picked={path:'/tmp/import.JSON',realpath:'/tmp/import.JSON'};
+button('Import JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(vm.settings.modular_layout.root.gap,13,'import stays a draft until Apply');
 assert.equal(page.initial.root.gap,doc.root.gap);assert.equal(page.settings.fontsize,24);
 page.onApply(page.initial,appearance);assert.equal(vm.settings.modular_layout.root.gap,doc.root.gap);assert.equal(vm.settings.fontsize,24);
@@ -68,4 +78,4 @@ assert.equal(saved.names['2'],'My overlay');assert.equal(savedStyle.draft.modula
 assert.equal(closeCalls,beforeSaveClose);assert.equal(JSON.stringify(vm.settings.modular_layout),liveLayout);
 vm.savePreset=async()=>false;
 await assert.rejects(()=>page.onSaveStyle('2',draft,appearance,'Retry'),/not saved/);
-console.log('PASS routed editor bridge: templates remain drafts, no fullscreen modal, shared style save, Apply metadata and rejected import retention. Steam focus untested.');
+console.log('PASS routed editor bridge: templates remain drafts, JSON picker folder navigation/extension filter/cancel behavior, shared style save, Apply metadata and rejected import retention. Steam focus untested.');
