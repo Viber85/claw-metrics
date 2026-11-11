@@ -89,9 +89,15 @@ jobs:
           name: preview-native-parity
           path: preview-parity/
       - name: Install native build prerequisites
+        timeout-minutes: 6
         run: |
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+          apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=25 -o Acquire::https::Timeout=25)
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            # All native build dependencies come from Ubuntu's repositories.
+            apt_options+=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)
+          fi
+          sudo apt-get "${apt_options[@]}" update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y --no-install-recommends \
             git g++ pkg-config meson ninja-build python3-mako \
             libvulkan-dev glslang-tools libgl-dev libegl-dev \
             libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
