@@ -53,7 +53,7 @@ button('Import JSON').props.onClick();await new Promise(setImmediate);
 assert.equal(JSON.stringify(vm.settings.modular_layout),before);
 assert(render().some(n=>n.props.role==='status'&&text(n.props.children).includes('Invalid JSON')));
 assert.deepEqual(pickerCalls.at(-1).slice(0,4),[0,'/home',true,true],'JSON import must expose folders for navigation');
-assert.deepEqual(pickerCalls.at(-1).slice(5,8),[['json'],false,false],'only .json files should be selectable');
+assert.equal(JSON.stringify(pickerCalls.at(-1).slice(5,8)),JSON.stringify([['json'],false,false]),'only .json files should be selectable');
 failImport=false;
 const importedBefore=calls.filter(c=>c[0]==='import_overlay_design').length;
 picked={realpath:'/home/test/overlays'};button('Import JSON').props.onClick();await new Promise(setImmediate);
