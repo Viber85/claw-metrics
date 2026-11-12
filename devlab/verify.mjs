@@ -9,7 +9,7 @@ const {document}=dom.window;
 
 const button=label=>{const el=[...document.querySelectorAll('button')].find(v=>v.textContent===label);assert(el,'Missing '+label);return el};
 try{
- await wait();assert(document.querySelector('[aria-label="DevLab controls"]'),'Missing extended control panels');assert(document.querySelectorAll('.lab-panel').length>=5,'Missing DevLab sections');assert(document.querySelector('[aria-label="Overlay preview"]'));
+ await wait();assert(document.querySelector('[aria-label="DevLab controls"]'),'Missing extended control panels');assert(document.querySelectorAll('.lab-panel').length>=5,'Missing DevLab sections');assert(document.querySelector('[aria-label="Scrollable overlay preview"]'));
  assert(document.querySelectorAll('.hud-node').length>8);
  button('Export JSON').click();await wait();assert.equal(downloads.length,1);
  let design=JSON.parse(await downloads[0].text());assert.equal(design.schema,'claw-overlay-design');assert.equal(design.version,1);assert.equal(design.appearance.fontsize,18);assert.equal(design.layout.root.axis,'row');
