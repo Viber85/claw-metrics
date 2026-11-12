@@ -202,7 +202,7 @@ assert(render().some(n=>n.props?.className==='claw-builder-stage'),'preview rema
 assert(control('DialogButton','+ Reading'),'element list remains available while editing');control('DialogButton','+ Reading').onClick();assert.equal(model.find(draft().root,newGroup.id).children.length,1);
 control('DropdownItem','Move to group').onChange({data:initial.root.id});assert.equal(model.find(draft().root,newGroup.id).children.length,0);
 control('DialogButton','Move earlier').onClick();assert.equal(draft().root.children.at(-1).id,newGroup.id);
-control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(initial.root).length+1);
+control('DialogButton','Delete element').onClick();assert.equal(model.flatten(draft().root).length,model.flatten(model.splitLegacyTdp(initial).root).length+1);
 render().find(n=>n.type==='preview').props.onSelect(newGroup.id);
 control('DropdownItem','Reading').onChange({data:'separator'});
 control('DialogButton','+ Reading').onClick();
