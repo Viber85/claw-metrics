@@ -269,13 +269,16 @@ int main(int argc,char**argv){
  }
  ImDrawList units(ImGui::GetDrawListSharedData());units._ResetForNewFrame();units.PushClipRectFullScreen();
  paint(elevated,&units);assert(units.VtxBuffer.Size>0);
- // Real glyph vertices must move with a column's start/center/end setting,
- // while the reserved width remains stable for changing readings.
+ // Real glyph vertices must move with column start/center/end when a
+ // sibling creates genuinely available width. One tight reading alone cannot
+ // align within phantom space previously reserved for "100%".
  auto draw_alignment=[&](Align align,SelfAlign item_alignment=SelfAlign::Auto){
-  Node root;root.id="alignment";root.axis=Axis::Column;root.align=align;root.children={1};
+  Node root;root.id="alignment";root.axis=Axis::Column;root.align=align;root.children={1,2};
   Node child;child.id="reading";child.group=false;child.token="cpu.load";child.self_align=item_alignment;
+  Node graph;graph.id="wide-graph";graph.group=false;graph.token="graph";graph.width=160;graph.height=4;
   Text value;value.value="2%";value.slot="100%";value.font=font;
-  auto sample=prepare({root,child},std::vector<Style>(2),{{"cpu.load",value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  // No graph samples are drawn; the measured glyphs come from the reading.
+  auto sample=prepare({root,child,graph},std::vector<Style>(3),{{"cpu.load",value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
   ImDrawList list(ImGui::GetDrawListSharedData());list._ResetForNewFrame();list.PushClipRectFullScreen();
   const int before=list.VtxBuffer.Size;paint(sample,&list);assert(list.VtxBuffer.Size>before);
   float first=std::numeric_limits<float>::max();
