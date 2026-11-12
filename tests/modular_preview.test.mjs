@@ -44,8 +44,11 @@ assert.equal(module.exports.readingReference('54°C','888°C'),'88°C','temperat
 assert.equal(module.exports.readingReference('12.6 GiB','888.8 GiB'),'88.8 GiB','RAM reserves its current precision only');
 assert.equal(module.exports.readingReference('3500 MHz','8888 MHz'),'8888 MHz','clock remains stable for equal digit count');
 assert.equal(module.exports.readingReference('','88:88'),'88:88','plugged battery keeps its reference');
-const hiddenTemp=walk(temperature).find(n=>n.props?.['aria-hidden']==='true');
-assert(hiddenTemp,'temperature includes a hidden digit-width reference');
+const tempReservation=walk(temperature).find(n=>n.type===module.exports.ReservedReading);
+assert(tempReservation,'temperature includes the reference component');
+assert.equal(tempReservation.props.reference,'88°C','temperature reserves only its two live digits');
+const hiddenTemp=module.exports.ReservedReading(tempReservation.props);
+assert.equal(hiddenTemp.props['aria-hidden'],'true');
 assert.equal(hiddenTemp.props.children[0].props.children.props.children[0].props.children,'88','temperature reservation keeps exactly two digits');
 assert.equal(temperature.props.style.paddingLeft,0,'reading has no implicit inset');
 settings.unit_superscript=false;
