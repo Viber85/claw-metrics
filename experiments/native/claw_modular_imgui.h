@@ -49,7 +49,7 @@ inline std::pair<std::string,std::string> unit_parts(const std::string& token,co
     else if(token=="cpu.clock"||token=="gpu.clock"||token=="vram.clock")suffix=" MHz";
     else if(token=="ram.value"||token=="vram.value"||token=="ram.game"||token=="ram.swap")suffix=" GiB";
     else if(token=="fps.ms")suffix=" ms";
-    else if(token=="cpu.power"||token=="gpu.power"||token=="battery.power"||token=="tdp.value")suffix="W";
+    else if(token=="cpu.power"||token=="gpu.power"||token=="battery.power"||token=="tdp.value"||token=="tdp.reading")suffix="W";
     else if(token=="cpu.load"||token=="gpu.load"||token=="battery.value")suffix="%";
     else if(token=="gpu.voltage")suffix=" mV";
     else if(token=="gpu.fan")suffix=value.find("RPM")!=std::string::npos?" RPM":"% FAN";
