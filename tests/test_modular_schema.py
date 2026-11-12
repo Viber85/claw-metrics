@@ -126,6 +126,24 @@ class ModularSchemaTests(unittest.TestCase):
         child['selfAlign'] = 'diagonal'
         with self.assertRaises(ValueError): schema.validate_layout(self.layout)
 
+    def test_separate_tdp_label_and_reading_roundtrip(self):
+        doc=copy.deepcopy(self.layout)
+        parent=doc['root']['children'][0]
+        example=copy.deepcopy(parent['children'][0])
+        label=copy.deepcopy(example);label.update(id='tdp-test-label',name='TDP label',token='tdp.label',fontWeight='light',color='#AA1133')
+        reading=copy.deepcopy(example);reading.update(id='tdp-test-reading',name='TDP reading',token='tdp.reading',fontWeight='bold',color='#44DD22')
+        parent['children'].extend((label,reading))
+        normalized=schema.validate_layout(doc)
+        self.assertEqual(normalized['root']['children'][0]['children'][-2]['token'],'tdp.label')
+        self.assertEqual(normalized['root']['children'][0]['children'][-1]['token'],'tdp.reading')
+        self.assertEqual(schema.load_layout(json.dumps(normalized)),normalized)
+        encoded=schema.encode_native(normalized)
+        self.assertIn('tdp.label',encoded)
+        self.assertIn('tdp.reading',encoded)
+        self.assertIn('AA1133',encoded)
+        self.assertIn('44DD22',encoded)
+        self.assertIn('tdp.label', (ROOT / 'claw_modular.py').read_text())
+
     def test_separator_is_validated_and_has_no_sensor_source(self):
         separator = copy.deepcopy(self.layout['root']['children'][0]['children'][0])
         separator.update(id='line', token='separator', name='Separator line', axis='column', width=18, height=2, color='#ABCDEF', cornerRadius=1, separatorOpacity=0)
