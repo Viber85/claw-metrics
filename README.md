@@ -1,3 +1,7 @@
+## v0.2.4-test.115 — Compact scrollable preview
+
+The horizontal Layout Builder preview is shorter so the property editor has more vertical room. The preview shows the scaled game screen inside a separate 24 px UI safety margin; this margin is **not part of the overlay design**. Oversized screens can be inspected by scrolling in both axes with touch/pointer, scrollbars or arrow keys when the preview is focused. The editor's sticky footer and the test.114 Cancel-with-unsaved-changes guard are retained. Verify on the handheld that the top preview remains fully visible.
+
 ## v0.2.4-test.114 — Editor viewport, Cancel safety and tight readings
 
 The routed Builder now reserves 80 px of the Steam/Decky viewport for platform navigation and fits the remaining space without clipping its footer. The preview height is reduced slightly to preserve property controls on the handheld. Scroll stays inside the preview and layout panels.
