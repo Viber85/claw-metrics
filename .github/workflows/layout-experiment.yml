@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.115 ZIP
+name: Build Claw Metrics v0.2.4 test.116 ZIP
 on:
   push:
-    branches: [test/scrollable-safe-preview-115]
+    branches: [test/preview-overflow-tdp-split-116]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 # Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.115-scrollable-preview
+  group: claw-metrics-v0.2.4-test.116-tdp-preview
   cancel-in-progress: true
 
 jobs:
@@ -283,7 +283,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.115.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.116.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -299,18 +299,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.115', package['version']
+              assert package['version'] == '0.2.4-test.116', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.115
-          path: ClawMetrics-v0.2.4-test.115.zip
+          name: ClawMetrics-v0.2.4-test.116
+          path: ClawMetrics-v0.2.4-test.116.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.115 ClawMetrics-v0.2.4-test.115.zip \
+          gh release create v0.2.4-test.116 ClawMetrics-v0.2.4-test.116.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.115 – Compact scrollable preview and safe inset" \
-            --notes "Builder horizontal preview is more compact, safely inset from the viewport edge and scrollable horizontally/vertically for oversized layouts. Touch and arrow keys can pan the scaled screen. Existing overlay element padding remains unchanged; this is preview-only UI spacing. Contains all test.114 fixes: viewport, draft Cancel confirmation, accurate metric geometry. Restart Decky after updating. Handheld scroll behavior still requires device confirmation."
+            --title "Claw Metrics v0.2.4-test.116 – Conditional preview scrolling and independent TDP controls" \
+            --notes "Preview now uses actual overlay bounds: no unnecessary scroll when the overlay fits, and screen anchors match the visible preview edges instead of a centered 1280px virtual canvas. TDP label and numeric reading are independently editable for font/weight, color, scale and padding, with legacy combined TDP layouts upgraded when opened in the editor. Older JSON documents still render. Includes all test.115 fixes. Restart Decky after updating; confirm scroll/alignment on MSI Claw."
