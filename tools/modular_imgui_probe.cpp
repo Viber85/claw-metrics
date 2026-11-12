@@ -275,7 +275,7 @@ int main(int argc,char**argv){
  auto draw_alignment=[&](Align align,SelfAlign item_alignment=SelfAlign::Auto){
   Node root;root.id="alignment";root.axis=Axis::Column;root.align=align;root.children={1,2};
   Node child;child.id="reading";child.group=false;child.token="cpu.load";child.self_align=item_alignment;
-  Node graph;graph.id="wide-graph";graph.group=false;graph.token="graph";graph.width=160;graph.height=4;
+  Node graph;graph.id="wide-graph";graph.group=false;graph.token="graph";graph.width=160;graph.height=16;
   Text value;value.value="2%";value.slot="100%";value.font=font;
   // No graph samples are drawn; the measured glyphs come from the reading.
   auto sample=prepare({root,child,graph},std::vector<Style>(3),{{"cpu.load",value}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
