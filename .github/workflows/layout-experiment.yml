@@ -7,9 +7,10 @@ on:
 permissions:
   contents: write
 
+# Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.114
+  group: claw-metrics-v0.2.4-test.114-post-outage-recovery
   cancel-in-progress: true
 
 jobs:
