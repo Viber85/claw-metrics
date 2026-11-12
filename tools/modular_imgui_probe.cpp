@@ -267,6 +267,20 @@ int main(int argc,char**argv){
   }
   assert(custom&&global);
  }
+ // Independent TDP nodes are measured and painted as separate native readings.
+ {
+  Node tdpRoot;tdpRoot.id="split-tdp";tdpRoot.children={1,2};tdpRoot.axis=Axis::Row;
+  Node label;label.id="split-tdp-label";label.group=false;label.token="tdp.label";
+  Node number;number.id="split-tdp-number";number.group=false;number.token="tdp.reading";
+  Text title;title.font=font;title.value="TDP";title.color=IM_COL32(252,177,60,255);
+  Text reading;reading.font=font;reading.value="28 W";reading.slot="88 W";reading.color=IM_COL32(210,229,255,255);
+  auto split=prepare({tdpRoot,label,number},std::vector<Style>(3),
+    {{"tdp.label",title},{"tdp.reading",reading}},{},0,{float(width),float(height)},Anchor::TopLeft,20,30,24);
+  assert(split.geometry.boxes[2].x>split.geometry.boxes[1].x+1);
+  assert(split.node_readings[1].value=="TDP"&&split.node_readings[2].value=="28 W");
+  assert(split.node_readings[1].color!=split.node_readings[2].color);
+  assert(unit_parts("tdp.reading","28 W").second=="W");
+ }
  ImDrawList units(ImGui::GetDrawListSharedData());units._ResetForNewFrame();units.PushClipRectFullScreen();
  paint(elevated,&units);assert(units.VtxBuffer.Size>0);
  // Real glyph vertices must move with column start/center/end when a
