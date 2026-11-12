@@ -6,7 +6,7 @@ TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.loa
               'cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction '
               'gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value '
               'vram.temp vram.clock battery.label battery.value battery.time battery.power '
-              'time.value tdp.value graph separator').split())
+              'time.value tdp.value tdp.label tdp.reading graph separator').split())
 ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center-left', 'center-right')
 
 
