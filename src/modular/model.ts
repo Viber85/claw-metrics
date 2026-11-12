@@ -8,7 +8,7 @@ export const catalog:Record<string,string>={
  'cpu.label':'CPU label','cpu.load':'CPU load','cpu.temp':'CPU temperature','cpu.clock':'CPU clock','cpu.power':'CPU power',
  'gpu.label':'GPU label','gpu.load':'GPU load','gpu.temp':'GPU temperature','gpu.clock':'GPU clock','gpu.power':'GPU power','gpu.junction':'GPU junction','gpu.fan':'GPU fan','gpu.voltage':'GPU voltage',
  'ram.label':'RAM label','ram.value':'RAM usage','ram.game':'Game RAM','ram.swap':'SWAP','vram.label':'VRAM label','vram.value':'VRAM usage','vram.temp':'VRAM temperature','vram.clock':'VRAM clock',
- 'battery.label':'Battery label','battery.value':'Battery charge','battery.time':'Battery time','battery.power':'Power draw','time.value':'Clock','tdp.value':'TDP','graph':'Frametime graph','separator':'Separator line'};
+ 'battery.label':'Battery label','battery.value':'Battery charge','battery.time':'Battery time','battery.power':'Power draw','time.value':'Clock','tdp.label':'TDP label','tdp.reading':'TDP reading','tdp.value':'TDP (legacy combined)','graph':'Frametime graph','separator':'Separator line'};
 let serial=0;
 export const uid=()=>`n-${Date.now().toString(36)}-${++serial}`;
 export function node(kind:Node['kind'],name:string,extra:Partial<Node>={}):Node{return {id:uid(),kind,name,visible:true,axis:'row',gap:8,padding:0,align:'center',selfAlign:'auto',scale:100,color:'',background:'',opacity:85,outline:false,children:[],token:'fps.value',width:180,height:44,...extra}}
@@ -60,15 +60,35 @@ export function isHorizontalLayout(layout:Layout):boolean{
  const {root}=layout;
  return root.axis==='row'||(root.axis==='column'&&root.children.length===2&&root.children[0].kind==='group'&&root.children[0].axis==='row'&&root.children[1].kind==='metric'&&root.children[1].token==='graph');
 }
+// Legacy layouts still render unchanged. When opened for editing, convert the
+// combined TDP reading to independent label and value elements.
+export function splitLegacyTdp(layout:Layout):Layout{
+ const next=structuredClone(layout);
+ let count=flatten(next.root).length;
+ function visit(groupNode:Node):void{
+  for(let i=0;i<groupNode.children.length;i++){
+   const child=groupNode.children[i];
+   if(child.kind==='metric'&&child.token==='tdp.value'&&count+2<=96){
+    const label=metric('tdp.label',{color:child.color,visible:child.visible});
+    const reading=metric('tdp.reading',{color:child.color,visible:child.visible,fontWeight:child.fontWeight});
+    const container:Node={...child,kind:'group',name:'TDP',axis:'row',gap:4,children:[label,reading],fontWeight:undefined};
+    groupNode.children[i]=container;count+=2;
+   }else if(child.kind==='group')visit(child);
+  }
+ }
+ visit(next.root);
+ return next;
+}
 const tokens=(...keys:string[])=>keys.map(k=>metric(k));
+const tdp=()=>group('TDP',tokens('tdp.label','tdp.reading'),{gap:4});
 const cpu=(s?:any)=>group('CPU',tokens('cpu.label','cpu.load',...(!s||s.metrics.cpu_temp?['cpu.temp']:[]),...(!s||s.metrics.cpu_mhz?['cpu.clock']:[]),...(!s||s.metrics.cpu_power?['cpu.power']:[])));
 const gpu=(s?:any)=>group('GPU',tokens('gpu.label','gpu.load',...(!s||s.metrics.gpu_temp?['gpu.temp']:[]),...(!s||s.metrics.gpu_core_clock?['gpu.clock']:[]),...(!s||s.metrics.gpu_power?['gpu.power']:[])));
 export function preset(kind:string,s:any):Layout{
  const fps=group('FPS',tokens('fps.label','fps.value'),{gap:8});fps.children[1].scale=200;
  let children:Node[],axis:Axis='row';
- if(kind==='two-rows')children=[fps,group('System & graphics',[group('System row',[cpu(),metric('tdp.value'),metric('battery.power')],{gap:20}),group('Graphics row',[gpu(),group('RAM',tokens('ram.label','ram.value')),group('VRAM',tokens('vram.label','vram.value')),metric('graph',{width:110,height:28})],{gap:20})],{axis:'column',align:'start',gap:8})];
- else if(kind==='graph-focus'){axis='column';children=[group('Performance',[group('Frame rate',[fps,metric('fps.ms')],{axis:'column',align:'start'}),metric('graph',{width:520,height:70})],{gap:24}),group('Readings',[cpu(),gpu(),metric('tdp.value'),metric('battery.power')],{gap:20})]}
- else {axis=kind==='vertical'?'column':'row';const map:Record<string,()=>Node>={fps:()=>group('FPS',tokens('fps.label','fps.value',...(s.metrics?.fps_ms?['fps.ms']:[]),...(s.metrics?.fps_average?['fps.average']:[]),...(s.metrics?.fps_low1?['fps.low1']:[]))),cpu:()=>cpu(s),gpu:()=>gpu(s),ram:()=>group('RAM',tokens('ram.label','ram.value',...(s.metrics?.ram_game?['ram.game']:[]),...(s.metrics?.ram_swap?['ram.swap']:[]))),vram:()=>group('VRAM',tokens('vram.label','vram.value')),battery:()=>group('Battery',tokens('battery.label','battery.value',...(s.metrics?.battery_time?['battery.time']:[]))),tdp:()=>metric('tdp.value'),draw:()=>metric('battery.power'),time:()=>metric('time.value'),frametime:()=>metric('graph',{width:s.graph_width||150,height:44})};children=(s.order||Object.keys(map)).filter((k:string)=>s[k]&&map[k]&&(k!=='frametime'||s.metrics?.graph)).map((k:string)=>map[k]());}
+ if(kind==='two-rows')children=[fps,group('System & graphics',[group('System row',[cpu(),tdp(),metric('battery.power')],{gap:20}),group('Graphics row',[gpu(),group('RAM',tokens('ram.label','ram.value')),group('VRAM',tokens('vram.label','vram.value')),metric('graph',{width:110,height:28})],{gap:20})],{axis:'column',align:'start',gap:8})];
+ else if(kind==='graph-focus'){axis='column';children=[group('Performance',[group('Frame rate',[fps,metric('fps.ms')],{axis:'column',align:'start'}),metric('graph',{width:520,height:70})],{gap:24}),group('Readings',[cpu(),gpu(),tdp(),metric('battery.power')],{gap:20})]}
+ else {axis=kind==='vertical'?'column':'row';const map:Record<string,()=>Node>={fps:()=>group('FPS',tokens('fps.label','fps.value',...(s.metrics?.fps_ms?['fps.ms']:[]),...(s.metrics?.fps_average?['fps.average']:[]),...(s.metrics?.fps_low1?['fps.low1']:[]))),cpu:()=>cpu(s),gpu:()=>gpu(s),ram:()=>group('RAM',tokens('ram.label','ram.value',...(s.metrics?.ram_game?['ram.game']:[]),...(s.metrics?.ram_swap?['ram.swap']:[]))),vram:()=>group('VRAM',tokens('vram.label','vram.value')),battery:()=>group('Battery',tokens('battery.label','battery.value',...(s.metrics?.battery_time?['battery.time']:[]))),tdp:()=>tdp(),draw:()=>metric('battery.power'),time:()=>metric('time.value'),frametime:()=>metric('graph',{width:s.graph_width||150,height:44})};children=(s.order||Object.keys(map)).filter((k:string)=>s[k]&&map[k]&&(k!=='frametime'||s.metrics?.graph)).map((k:string)=>map[k]());}
  return {schema:'claw-modular-layout',version:1,anchor:'top-center',x:16,y:20,root:group('Overlay',children,{axis,gap:16,padding:0})};
 }
 export function validate(input:any):Layout{
