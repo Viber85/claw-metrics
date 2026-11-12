@@ -42,11 +42,11 @@ assert.equal(safeCanvas.props.style.padding,24,'scaled game screen always has a 
 assert(safeCanvas.props.style.width>1280*.45,'screen and margin are both part of scroll width');
 const gameCanvas=walk(previewStage).find(n=>n.props?.className==='claw-builder-game-screen');
 assert.equal(gameCanvas.props.style.overflow,'hidden','virtual game screen clips only content beyond 1280x800 bounds');
-let moved;let prevented=false,stopped=false;
+let moved;let previewPrevented=false,previewStopped=false;
 const host={scrollBy:v=>{moved=v}};
-previewStage.props.onKeyDown({key:'ArrowDown',target:host,currentTarget:host,preventDefault(){prevented=true},stopPropagation(){stopped=true}});
+previewStage.props.onKeyDown({key:'ArrowDown',target:host,currentTarget:host,preventDefault(){previewPrevented=true},stopPropagation(){previewStopped=true}});
 assert.equal(moved.top,60,'keyboard Down pans stage without touching the layout');
-assert(prevented&&stopped);
+assert(previewPrevented&&previewStopped);
 console.log('PASS compact scrollable preview: top/bottom safe margin, scaled screen bounds, touch and keyboard panning.');
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('height:calc(100dvh - 80px)')),'page reserves Steam top/bottom chrome');
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('.claw-builder{width:100%;height:100%;min-height:0')),'inner editor stays within the routed page');
