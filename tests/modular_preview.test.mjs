@@ -89,6 +89,30 @@ for(const enabled of [false,true]){
  assert.equal(walk(row).filter(n=>n.props?.children==='Power Limit').length,1);
 }
 console.log('PASS modular TDP preview: independent category/value colors and weights, custom title and both unit modes.');
+assert.equal(unitParts('tdp.reading','28 W').join('|'),'28|W');
+const modelModule={exports:{}};
+runInNewContext(ts.transpileModule(readFileSync('src/modular/model.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{module:modelModule,exports:modelModule.exports,structuredClone});
+const splitLayout=modelModule.exports.splitLegacyTdp(layout);
+const nodesTdp=modelModule.exports.flatten(splitLayout.root);
+const labelNode=nodesTdp.find(n=>n.token==='tdp.label'),valueNode=nodesTdp.find(n=>n.token==='tdp.reading');
+assert(labelNode&&valueNode,'both independent TDP nodes exist');
+let splitRendered=walk(ModularHud({layout:splitLayout,settings:tdpSettings,data:{tdp:20},selected:'none',onSelect:()=>{}}));
+let titleNode=splitRendered.find(n=>n.props?.['data-node-id']===labelNode.id);
+let readingNode=splitRendered.find(n=>n.props?.['data-node-id']===valueNode.id);
+assert.equal(titleNode.props.style.color,'#FFAC12');
+assert.equal(titleNode.props.style.fontWeight,700);
+assert.equal(titleNode.props.children.props.children[0].props.children,'Power Limit');
+assert.equal(readingNode.props.style.color,'#DDEEFF');
+assert.equal(readingNode.props.style.fontWeight,300);
+valueNode.color='#234567';valueNode.fontWeight='bold';labelNode.color='#AABBCC';labelNode.fontWeight='light';
+splitRendered=walk(ModularHud({layout:splitLayout,settings:tdpSettings,data:{tdp:20},selected:'none',onSelect:()=>{}}));
+titleNode=splitRendered.find(n=>n.props?.['data-node-id']===labelNode.id);
+readingNode=splitRendered.find(n=>n.props?.['data-node-id']===valueNode.id);
+assert.equal(titleNode.props.style.color,'#AABBCC');
+assert.equal(titleNode.props.style.fontWeight,300);
+assert.equal(readingNode.props.style.color,'#234567');
+assert.equal(readingNode.props.style.fontWeight,700);
+console.log('PASS split TDP renderer: independent label/value font, color and inherited classic settings.');
 
 // Raw older layouts also preview without group insets before normalization.
 for(const node of [layout.root,gpu])node.padding=77;
