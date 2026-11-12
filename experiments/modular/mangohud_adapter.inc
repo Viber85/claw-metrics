@@ -88,6 +88,18 @@ bool ClawTryModular() {
     tdp.prefix=tdp_parts.first;tdp.value=tdp_parts.second;tdp.slot="100 W";
     tdp.prefix_font=ClawFontForToken(32);if(!tdp.prefix_font)tdp.prefix_font=ImGui::GetFont();
     tdp.prefix_color=ImGui::ColorConvertFloat4ToU32(ClawColorForToken(32,HUDElements.colors.engine));
+    // Independent TDP label/value nodes, with legacy combined token retained.
+    auto tdp_reading=tdp;
+    tdp_reading.prefix.clear();
+    tdp_reading.prefix_font=nullptr;
+    readings["tdp.reading"]=std::move(tdp_reading);
+    ImFont* tdp_label_font=ClawFontForToken(32);
+    if(!tdp_label_font)tdp_label_font=ImGui::GetFont();
+    Text tdp_label;
+    tdp_label.value=tdp_parts.first;
+    tdp_label.font=tdp_label_font;
+    tdp_label.color=tdp.prefix_color;
+    readings["tdp.label"]=std::move(tdp_label);
     data.stat_selector=OVERLAY_PLOTS_frame_timing;
     data.time_dividor=1000000.0f;
     std::vector<float> graph;
