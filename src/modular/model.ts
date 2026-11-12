@@ -69,8 +69,8 @@ export function splitLegacyTdp(layout:Layout):Layout{
   for(let i=0;i<groupNode.children.length;i++){
    const child=groupNode.children[i];
    if(child.kind==='metric'&&child.token==='tdp.value'&&count+2<=96){
-    const label=metric('tdp.label',{color:child.color,visible:child.visible});
-    const reading=metric('tdp.reading',{color:child.color,visible:child.visible,fontWeight:child.fontWeight});
+    const label=metric('tdp.label',{id:child.id.slice(0,85)+'-tdp-label',color:child.color,visible:child.visible});
+    const reading=metric('tdp.reading',{id:child.id.slice(0,84)+'-tdp-value',color:child.color,visible:child.visible,fontWeight:child.fontWeight});
     const container:Node={...child,kind:'group',name:'TDP',axis:'row',gap:4,children:[label,reading],fontWeight:undefined};
     groupNode.children[i]=container;count+=2;
    }else if(child.kind==='group')visit(child);
