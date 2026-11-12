@@ -4,7 +4,7 @@ import {fpsFontMetrics} from './fps-font-metrics';
 const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
 // do not change when sample values are shorter than live values.
-const slots:Record<string,string>={'fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB'};
+const slots:Record<string,string>={'fps.ms':'888.8 ms','cpu.load':'100%','cpu.temp':'888°C','cpu.clock':'8888 MHz','cpu.power':'88.8 W','gpu.load':'100%','gpu.temp':'888°C','gpu.clock':'8888 MHz','gpu.power':'88.8 W','gpu.junction':'888°C','gpu.fan':'88888 RPM','gpu.voltage':'8888 mV','ram.value':'888.8 GiB','vram.value':'888.8 GiB','vram.temp':'888°C','vram.clock':'8888 MHz','battery.value':'100%','battery.time':'88:88','time.value':'88:88','fps.average':'AVG 8888.8','fps.low1':'1% LOW 8888.8','ram.game':'GAME 888.8 GiB','ram.swap':'SWAP 888.8 GiB','tdp.reading':'100 W'};
 export const initialData={fps:84,ms:11.9,average:81,low1:62,cpu:36,cpuTemp:54,cpuClock:3500,cpuPower:8.6,gpu:72,gpuTemp:52,gpuClock:1750,gpuPower:12.4,ram:12.6,gameRam:3.2,swap:0.4,vram:7.4,battery:79,batteryStatus:'Discharging',batteryHours:2.25,draw:27,tdp:28};
 export function unitParts(token:string,value:string):[string,string]{
  const temperature=['cpu.temp','gpu.temp','gpu.junction','vram.temp'].includes(token);
@@ -12,7 +12,7 @@ export function unitParts(token:string,value:string):[string,string]{
   ['cpu.clock','gpu.clock','vram.clock'].includes(token)?' MHz':
   ['ram.value','vram.value','ram.game','ram.swap'].includes(token)?' GiB':
   token==='fps.ms'?' ms':
-  ['cpu.power','gpu.power','battery.power','tdp.value'].includes(token)?'W':
+  ['cpu.power','gpu.power','battery.power','tdp.value','tdp.reading'].includes(token)?'W':
   ['cpu.load','gpu.load','battery.value'].includes(token)?'%':
   token==='gpu.voltage'?' mV':token==='gpu.fan'?(value.includes('RPM')?' RPM':'% FAN'):'';
  if(!suffix||!value.endsWith(suffix))return [value,''];
@@ -94,15 +94,17 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   return()=>{alive=false};
  },[layout,s.fontsize,s.sans,s.font_weight,s.token_weights,s.unit_superscript]);
  const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25,d.batteryPlugged??false);
- const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'time.value':'22:15'};
- const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT'};
+ const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'tdp.reading':`${d.tdp} W`,'time.value':'22:15'};
+ const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT',tdp:'TDP'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row',inheritedWeight?:string):React.ReactNode{
   if(!n.visible)return null;
   const [category,part]=n.token.split('.');
-  const override=n.fontWeight||inheritedWeight,weight=override||s.token_weights?.[n.token]||s.font_weight||'regular';
+  const override=n.fontWeight||inheritedWeight;
+  const inheritedToken=n.token==='tdp.reading'?'tdp.value':n.token;
+  const weight=override||s.token_weights?.[n.token]||s.token_weights?.[inheritedToken]||s.font_weight||'regular';
   const fontWeight=s.sans?(weights[weight]||400):400;
   const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='time.value'?'time':n.token==='graph'?'graph':n.token==='separator'?'separator':part==='label'?category:'text';
-  const color=n.color||'#'+(s.token_colors?.[n.token]||s.colors[palette]||s.colors.text);
+  const color=n.color||'#'+(s.token_colors?.[n.token]||s.token_colors?.[inheritedToken]||s.colors[palette]||s.colors.text);
   const px=(root?layout.paddingX:n.paddingX)??0,py=(root?layout.paddingY:n.paddingY)??0;
   const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:0,paddingLeft:px,paddingRight:px,paddingTop:py,paddingBottom:py,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:n.kind==='group'?(n.cornerRadius??(n.outline?6:0)):6,fontWeight:n.kind==='metric'?fontWeight:undefined,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:`inset 0 0 0 ${n.outlineWidth??1}px ${rgba(n.outlineColor||'#8fb8d9',n.outlineOpacity??100)}`} :{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:0};
   const graphWidth=n.width===0?(fitWidths[n.id]??180):n.width;
