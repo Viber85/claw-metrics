@@ -8,7 +8,7 @@ ui.showModal=value=>{picker=value;return {Close(){},ClosedPromise:Promise.resolv
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
 const model=load('src/modular/model.ts');
 const styles=load('src/style-presets.ts');
-const {Builder}=load('src/modular/Builder.tsx',name=>{
+const {Builder,previewCanvasSize}=load('src/modular/Builder.tsx',name=>{
  if(name==='react')return {useEffect:()=>{},useRef:initial=>({current:initial??null}),useState:initial=>{const i=cursor++;if(!(i in state))state[i]=typeof initial==='function'?initial():initial;return[state[i],next=>state[i]=typeof next==='function'?next(state[i]):next]}};
  if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
  if(name==='@decky/ui')return ui;
@@ -38,16 +38,34 @@ assert.equal(previewStage.props.tabIndex,0,'preview can receive keyboard focus f
 assert.equal(previewStage.props.role,'region');
 const safeCanvas=walk(previewStage).find(n=>n.props?.className==='claw-builder-screen');
 assert(safeCanvas,'game canvas is nested inside the scrollable viewport');
-assert.equal(safeCanvas.props.style.padding,24,'scaled game screen always has a separate safety margin');
+assert.equal(safeCanvas.props.style.padding,10,'UI camera gutter is not overlay padding');
+assert.equal(safeCanvas.props.style.width,760,'a fitting overlay must not force 1280px of scrolling');
+assert.equal(safeCanvas.props.style.height,100,'a fitting overlay must not force 800px of scrolling');
 assert(safeCanvas.props.style.width>1280*.45,'screen and margin are both part of scroll width');
 const gameCanvas=walk(previewStage).find(n=>n.props?.className==='claw-builder-game-screen');
-assert.equal(gameCanvas.props.style.overflow,'hidden','virtual game screen clips only content beyond 1280x800 bounds');
+assert.equal(gameCanvas.props.style.overflow,'hidden','virtual camera has real clipping bounds');
+assert.deepEqual(JSON.parse(JSON.stringify(previewCanvasSize({width:760,height:100},{width:250,height:35},.45,{x:12,y:12}))),{width:760,height:100},'fitting overlay must not scroll');
+const oversized=previewCanvasSize({width:760,height:100},{width:980,height:145},.45,{x:12,y:12});
+assert(oversized.width>760&&oversized.height>100,'only oversized overlay grows scrollable canvas');
 let moved;let previewPrevented=false,previewStopped=false;
-const host={scrollBy:v=>{moved=v}};
+const host={scrollWidth:900,clientWidth:760,scrollHeight:200,clientHeight:100,scrollBy:v=>{moved=v}};
 previewStage.props.onKeyDown({key:'ArrowDown',target:host,currentTarget:host,preventDefault(){previewPrevented=true},stopPropagation(){previewStopped=true}});
 assert.equal(moved.top,60,'keyboard Down pans stage without touching the layout');
 assert(previewPrevented&&previewStopped);
+const noScroll={scrollWidth:760,clientWidth:760,scrollHeight:100,clientHeight:100,scrollBy:()=>{throw Error('No scroll expected')}};
+previewStage.props.onKeyDown({key:'ArrowDown',target:noScroll,currentTarget:noScroll,preventDefault(){throw Error('Do not consume gamepad arrows without overflow')},stopPropagation(){}});
 console.log('PASS compact scrollable preview: top/bottom safe margin, scaled screen bounds, touch and keyboard panning.');
+const legacyTdp=model.flatten(initial.root).find(n=>n.token==='tdp.value');
+assert(legacyTdp,'original layouts still contain the legacy combined TDP');
+const upgraded=model.splitLegacyTdp(initial);
+const converted=model.find(upgraded.root,legacyTdp.id);
+assert.equal(converted.kind,'group');
+assert.deepEqual(Array.from(converted.children,n=>n.token),['tdp.label','tdp.reading']);
+assert.equal(JSON.stringify(model.splitLegacyTdp(initial)),JSON.stringify(model.splitLegacyTdp(initial)),'conversion has repeatable IDs and clean Cancel');
+assert.equal(model.flatten(draft().root).some(n=>n.token==='tdp.value'),false,'editor opens legacy layouts as separate controls');
+assert.equal(model.flatten(draft().root).some(n=>n.token==='tdp.label'),true);
+assert.equal(model.flatten(draft().root).some(n=>n.token==='tdp.reading'),true);
+console.log('PASS independent TDP editor controls and deterministic legacy-layout conversion.');
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('height:calc(100dvh - 80px)')),'page reserves Steam top/bottom chrome');
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('.claw-builder{width:100%;height:100%;min-height:0')),'inner editor stays within the routed page');
 assert(!render().some(n=>n.type==='ModalRoot'),'the editor is a routed page, not a Steam modal');
@@ -102,7 +120,7 @@ assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'))
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children).includes('Guides')));
 assert.equal(control('slider','Zoom (%)').max,100);
 assert.equal(control('slider','Zoom (%)').value,90);
-control('slider','Zoom (%)').onChange(100);assert.equal(state[7],.5);
+control('slider','Zoom (%)').onChange(100);assert.equal(control('slider','Zoom (%)').value,100);
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Fit'));
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('grid-template-columns:minmax(0,1fr) 188px')),'zoom controls have a reserved column outside the preview');
 const graph=model.flatten(initial.root).find(n=>n.token==='graph');
