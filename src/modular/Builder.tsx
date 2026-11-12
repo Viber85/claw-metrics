@@ -4,35 +4,55 @@ import {OpaqueColorPicker,graphStyleChoices,type GraphStyle} from '../controller
 import {LayoutSliderField} from '../components/LayoutSliderField';
 import {ModularHud,initialData} from './Hud';
 import {previewFontCSS} from './preview-fonts';
-import {anchors,catalog,find,flatten,group,isHorizontalLayout,metric,move,parent,placeGraphBelow,spacingAncestors,validate,type Layout,type Node,type FontWeight} from './model';
+import {anchors,catalog,find,flatten,group,isHorizontalLayout,metric,move,parent,placeGraphBelow,spacingAncestors,splitLegacyTdp,validate,type Layout,type Node,type FontWeight} from './model';
 import {styleSlotIds} from '../style-presets';
 
-// UI-space around the scaled 1280x800 preview; does not alter overlay padding.
-const PREVIEW_SAFE_MARGIN=24;
+// UI-only safety margin; never part of the saved overlay.
+export const PREVIEW_SAFE_MARGIN=10;
+export function previewCanvasSize(viewport:{width:number;height:number},overlay:{width:number;height:number},zoom:number,offset:{x:number;y:number}){
+ return {width:Math.max(viewport.width,Math.ceil(overlay.width+2*PREVIEW_SAFE_MARGIN+Math.abs(offset.x)*zoom)),
+   height:Math.max(viewport.height,Math.ceil(overlay.height+2*PREVIEW_SAFE_MARGIN+Math.abs(offset.y)*zoom))};
+}
 export type BuilderAppearance={rounding:number;opacity:number;graph_style:GraphStyle;unit_superscript:boolean};
 export type BuilderStyleStore={presets:Record<string,unknown>;names:Record<string,string>};
 export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;onExport?:(doc:Layout,appearance:BuilderAppearance)=>void;closeModal?:()=>void}) {
  const [open,O]=useState<'element'|'spacing'|'appearance'|'position'|null>('element');
- const [layout,L]=useState(()=>validate(initial)),[selected,S]=useState(initial.root.id),[token,T]=useState('fps.average'),[past,P]=useState<Layout[]>([]),[future,F]=useState<Layout[]>([]),[error,E]=useState('');
+ const [layout,L]=useState(()=>validate(splitLegacyTdp(initial))),[selected,S]=useState(initial.root.id),[token,T]=useState('fps.average'),[past,P]=useState<Layout[]>([]),[future,F]=useState<Layout[]>([]),[error,E]=useState('');
  const stage=useRef<HTMLDivElement>(null),[zoom,Z]=useState(isHorizontalLayout(initial)?.45:.5);
- const [structureOpen,SO]=useState(true),[collapsed,C]=useState<Set<string>>(()=>new Set(flatten(initial.root).filter(n=>n.kind==='group'&&n.id!==initial.root.id).map(n=>n.id)));
+ const [previewViewport,PV]=useState({width:760,height:100}),[overlaySize,OS]=useState({width:0,height:0});
+ const [structureOpen,SO]=useState(true),[collapsed,C]=useState<Set<string>>(()=>new Set(flatten(splitLegacyTdp(initial).root).filter(n=>n.kind==='group'&&n.id!==initial.root.id).map(n=>n.id)));
  const [appearance,A]=useState<BuilderAppearance>(()=>({rounding:settings.rounding??10,opacity:settings.opacity??80,graph_style:settings.graph_style??'line',unit_superscript:settings.unit_superscript??false}));
  const [appearancePast,AP]=useState<BuilderAppearance[]>([]),[appearanceFuture,AF]=useState<BuilderAppearance[]>([]);
  const [styleStore,SS]=useState<BuilderStyleStore>(()=>({presets:settings.style_presets||{},names:settings.style_names||{}}));
  const [saveOpen,SaveOpen]=useState(false),[saveSlot,SaveSlot]=useState('new'),[styleName,StyleName]=useState(''),[saving,Saving]=useState(false),[saveMessage,SaveMessage]=useState('');
  const [saved,Saved]=useState<{slot:string;snapshot:string}|null>(null);
- const initialSnapshot=useRef(JSON.stringify([validate(initial),{rounding:settings.rounding??10,opacity:settings.opacity??80,graph_style:settings.graph_style??'line',unit_superscript:settings.unit_superscript??false}]));
+ const initialSnapshot=useRef(JSON.stringify([validate(splitLegacyTdp(initial)),{rounding:settings.rounding??10,opacity:settings.opacity??80,graph_style:settings.graph_style??'line',unit_superscript:settings.unit_superscript??false}]));
+ useEffect(()=>{
+   const el=stage.current;if(!el)return;
+   const read=()=>{const width=el.clientWidth,height=el.clientHeight;
+     if(width>0&&height>0)PV(old=>old.width===width&&old.height===height?old:{width,height});};
+   read();
+   if(typeof ResizeObserver==='undefined')return;
+   const observer=new ResizeObserver(read);observer.observe(el);
+   return ()=>observer.disconnect();
+ },[]);
+ useEffect(()=>{
+   const node=stage.current?.querySelector<HTMLElement>('.modular-hud > .hud-group-node');
+   if(!node)return;
+   const read=()=>{const bounds=node.getBoundingClientRect(),width=Math.ceil(bounds.width),height=Math.ceil(bounds.height);
+     if(width>0&&height>0)OS(old=>old.width===width&&old.height===height?old:{width,height});};
+   read();
+   if(typeof ResizeObserver==='undefined')return;
+   const observer=new ResizeObserver(read);observer.observe(node);
+   return ()=>observer.disconnect();
+ },[layout,appearance,zoom,previewViewport.width,previewViewport.height,settings.fontsize,settings.sans]);
+ const previewContent=previewCanvasSize(previewViewport,overlaySize,zoom,layout);
  useEffect(()=>{
    const element=stage.current;if(!element)return;
-   // Scroll to the configured screen edge rather than hiding the overlay's top.
-   // Safe margin stays outside the scaled game screen and never changes layout coordinates.
-   const contentWidth=1280*zoom+PREVIEW_SAFE_MARGIN*2;
-   const contentHeight=800*zoom+PREVIEW_SAFE_MARGIN*2;
-   const maxX=Math.max(0,contentWidth-element.clientWidth);
-   const maxY=Math.max(0,contentHeight-element.clientHeight);
+   const maxX=Math.max(0,element.scrollWidth-element.clientWidth),maxY=Math.max(0,element.scrollHeight-element.clientHeight);
    element.scrollLeft=layout.anchor.endsWith('right')?maxX:layout.anchor.endsWith('center')?maxX/2:0;
    element.scrollTop=layout.anchor.startsWith('bottom')?maxY:layout.anchor.startsWith('center-')?maxY/2:0;
-  },[layout.anchor,zoom]);
+ },[layout.anchor,zoom,previewContent.width,previewContent.height]);
  const active=find(layout.root,selected)||layout.root,all=flatten(layout.root),owner=parent(layout.root,active.id);
  const commit=(next:Layout)=>{try{const valid=validate(next);if(JSON.stringify(valid)===JSON.stringify(layout))return;P([...past.slice(-39),layout]);AP([...appearancePast.slice(-39),appearance]);F([]);AF([]);L(valid);E('')}catch(e){E(String(e))}};
  const patchAppearance=(values:Partial<BuilderAppearance>)=>{const next={...appearance,...values};if(JSON.stringify(next)===JSON.stringify(appearance))return;P([...past.slice(-39),layout]);AP([...appearancePast.slice(-39),appearance]);F([]);AF([]);A(next)};
@@ -89,7 +109,7 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
  .claw-builder[data-orientation="horizontal"] .claw-builder-properties{max-width:none}
  .claw-builder *{box-sizing:border-box}.claw-builder-preview,.claw-builder-panel{background:#121922;border:1px solid #2b3544;border-radius:10px;min-width:0;min-height:0}
  .claw-builder-preview{display:flex;flex-direction:column;padding:7px}.claw-builder-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px}.claw-builder-preview-head strong{font-size:16px}.claw-builder small{color:#9eafc5;font-size:12px;line-height:1.35}
- .claw-builder-preview-tools{display:flex;align-items:center;gap:6px}.claw-builder-preview-tools button{width:auto!important;min-width:75px!important;padding:5px 10px!important;font-size:12px!important}.claw-builder-stage{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#6a859b #172c38;touch-action:pan-x pan-y;border:1px solid #456078;border-radius:8px;background:linear-gradient(150deg,#587687,#172c38 75%)}.claw-builder-stage:focus-visible{outline:2px solid #96c6ee;outline-offset:-2px}.claw-builder-screen{position:relative;margin-inline:auto}.claw-builder .modular-hud{width:max-content}.claw-builder .hud-node{white-space:nowrap;min-width:0}.claw-builder-preview-note{padding-top:6px}
+ .claw-builder-preview-tools{display:flex;align-items:center;gap:6px}.claw-builder-preview-tools button{width:auto!important;min-width:75px!important;padding:5px 10px!important;font-size:12px!important}.claw-builder-stage{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#6a859b #172c38;touch-action:pan-x pan-y;border:1px solid #456078;border-radius:8px;background:linear-gradient(150deg,#587687,#172c38 75%)}.claw-builder-stage:focus-visible{outline:2px solid #96c6ee;outline-offset:-2px}.claw-builder-screen{position:relative;margin-inline:0}.claw-builder .modular-hud{width:max-content}.claw-builder .hud-node{white-space:nowrap;min-width:0}.claw-builder-preview-note{padding-top:6px}
  .claw-builder-panel{display:flex;flex-direction:column;padding:10px;overflow:hidden}.claw-builder-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px}.claw-builder-panel-head strong{font-size:15px}.claw-builder-panel-head button{width:auto!important;min-width:72px!important;font-size:12px!important;padding:5px 10px!important}
  .claw-builder-menu{flex:1;overflow:auto;scrollbar-width:thin;padding:2px}.claw-builder-accordion{background:#10161e;border:1px solid #29333f;border-radius:10px;overflow:hidden;margin-bottom:8px}.claw-builder-accordion[data-selected=true]{background:#151d27;border-color:#3b5678}.claw-builder-accordion-button{width:100%!important;min-height:58px!important;margin:0!important;padding:8px!important;border:0!important;border-radius:0!important;background:#121a23!important;text-align:left!important;display:flex!important;align-items:center;gap:10px}.claw-builder-accordion[data-selected=true] .claw-builder-accordion-button{background:#1b2c43!important}.claw-builder-icon{display:flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:7px;background:#243449;color:#e1e6ed}.claw-builder-card-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.claw-builder-card-title strong{font-size:15px}.claw-builder-card-body{padding:10px 8px 12px;border-top:1px solid #2b3643;min-width:0}.claw-builder-card-body>div{margin-bottom:9px}
  .claw-builder-tools{display:flex;gap:8px;margin:8px 0}.claw-builder-tools>*{min-width:0;flex:1}.claw-builder-tree{max-height:42vh;overflow:auto;scrollbar-width:thin}.claw-builder h3{font-size:14px;margin:12px 0 7px}.claw-builder button{white-space:normal!important}.claw-builder button:disabled{opacity:.45}.claw-builder button:focus{background-color:#365270!important}.claw-builder-error{color:#ffb9b9;padding:8px}
@@ -105,7 +125,7 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
  {/* Keep preview → controls in a column so Up/Down leaves Zoom; Left/Right stays available to its native slider. The menu below supplies cross-panel navigation. */}
  <Focusable flow-children="column" className="claw-builder" onKeyDownCapture={guardTextEnter} onKeyUpCapture={guardTextEnter} data-orientation={isHorizontalLayout(layout)?'horizontal':'vertical'}>
  <Focusable flow-children="column" className="claw-builder-preview"><div className="claw-builder-preview-head"><Focusable flow-children="row" className="claw-builder-preview-controls"><LayoutSliderField label="Zoom (%)" value={Math.round(zoom*200)} min={20} max={100} step={10} onChange={value=>Z(value/200)}/></Focusable></div>
- <div ref={stage} className="claw-builder-stage" tabIndex={0} role="region" aria-label="Scrollable overlay preview" title="Scroll to inspect larger overlays" onKeyDown={event=>{if(event.target!==event.currentTarget)return;const directions:Record<string,[number,number]>={ArrowLeft:[-60,0],ArrowRight:[60,0],ArrowUp:[0,-60],ArrowDown:[0,60]};const delta=directions[event.key];if(delta){event.preventDefault();event.stopPropagation();event.currentTarget.scrollBy({left:delta[0],top:delta[1],behavior:'auto'})}}}><div className="claw-builder-screen" style={{width:1280*zoom+PREVIEW_SAFE_MARGIN*2,height:800*zoom+PREVIEW_SAFE_MARGIN*2,padding:PREVIEW_SAFE_MARGIN}}><div className="claw-builder-game-screen" style={{position:'relative',width:1280*zoom,height:800*zoom,overflow:'hidden'}}><div style={{position:'relative',width:1280,height:800,transform:`scale(${zoom})`,transformOrigin:'top left'}}><ModularHud layout={layout} settings={{...settings,...appearance,enabled:true}} data={initialData} selected={active.id} onSelect={choose}/></div></div></div></div>
+ <div ref={stage} className="claw-builder-stage" tabIndex={0} role="region" aria-label="Scrollable overlay preview" title="Scroll only when the overlay exceeds this view" onKeyDown={event=>{if(event.target!==event.currentTarget)return;const directions:Record<string,[number,number]>={ArrowLeft:[-60,0],ArrowRight:[60,0],ArrowUp:[0,-60],ArrowDown:[0,60]};const delta=directions[event.key];if(delta&&(event.currentTarget.scrollWidth>event.currentTarget.clientWidth||event.currentTarget.scrollHeight>event.currentTarget.clientHeight)){event.preventDefault();event.stopPropagation();event.currentTarget.scrollBy({left:delta[0],top:delta[1],behavior:'auto'})}}}><div className="claw-builder-screen" style={{width:previewContent.width,height:previewContent.height,padding:PREVIEW_SAFE_MARGIN}}><div className="claw-builder-game-screen" style={{position:'relative',width:previewContent.width-PREVIEW_SAFE_MARGIN*2,height:previewContent.height-PREVIEW_SAFE_MARGIN*2,overflow:'hidden'}}><div style={{position:'relative',width:(previewContent.width-PREVIEW_SAFE_MARGIN*2)/zoom,height:(previewContent.height-PREVIEW_SAFE_MARGIN*2)/zoom,transform:`scale(${zoom})`,transformOrigin:'top left'}}><ModularHud layout={layout} settings={{...settings,...appearance,enabled:true}} data={initialData} selected={active.id} onSelect={choose}/></div></div></div></div>
  </Focusable>
  <Focusable flow-children="column" className="claw-builder-panel"><div className="claw-builder-panel-head"><strong>Layout controls</strong><Focusable flow-children="row" className="claw-builder-tools">{button('Undo',()=>{const prev=past[past.length-1];if(prev){F([layout,...future]);AF([appearance,...appearanceFuture]);P(past.slice(0,-1));AP(appearancePast.slice(0,-1));L(prev);A(appearancePast[appearancePast.length-1])}},!past.length)}{button('Redo',()=>{const next=future[0];if(next){P([...past,layout]);AP([...appearancePast,appearance]);F(future.slice(1));AF(appearanceFuture.slice(1));L(next);A(appearanceFuture[0])}},!future.length)}</Focusable></div>
  <Focusable flow-children="row" className="claw-builder-menu"><Focusable flow-children="column" className="claw-builder-navigator">
