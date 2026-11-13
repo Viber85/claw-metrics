@@ -2,6 +2,7 @@
 #include "claw_modular_transport.h"
 #include <condition_variable>
 #include <chrono>
+#include <atomic>
 #include <fcntl.h>
 #include <unistd.h>
 #include <thread>
@@ -12,6 +13,7 @@ namespace claw_modular {
 class FileLoader {
     Exchange exchange;
     std::string path,last_attempt;
+    std::atomic<bool> live_enabled{true}; // Backward-compatible when the companion state file is absent.
     std::mutex mutex;
     std::condition_variable wake;
     bool stopped=false;
@@ -21,7 +23,19 @@ class FileLoader {
         while(!stopped){
             lock.unlock();
             try {
-                struct Descriptor { int fd; ~Descriptor(){if(fd>=0)::close(fd);} } file{::open(path.c_str(),O_RDONLY|O_CLOEXEC|O_NONBLOCK)};
+                struct Descriptor { int fd; ~Descriptor(){if(fd>=0)::close(fd);} };
+                // This state file is written atomically by the Decky backend.
+                // Always read it on the worker, never synchronously on a render frame.
+                Descriptor state{::open((path+".enabled").c_str(),O_RDONLY|O_CLOEXEC|O_NONBLOCK)};
+                if(state.fd>=0){
+                    struct stat status{};
+                    if(!::fstat(state.fd,&status)&&S_ISREG(status.st_mode)&&status.st_size>0&&status.st_size<=4){
+                        char flag[4]={};
+                        const auto n=::read(state.fd,flag,sizeof(flag));
+                        if(n>0&&(flag[0]=='0'||flag[0]=='1'))live_enabled.store(flag[0]=='1',std::memory_order_release);
+                    }
+                }
+                Descriptor file{::open(path.c_str(),O_RDONLY|O_CLOEXEC|O_NONBLOCK)};
                 struct stat info{};
                 if(file.fd>=0&&!::fstat(file.fd,&info)&&S_ISREG(info.st_mode)&&info.st_size>=0&&info.st_size<=1024*1024){
                     std::string bytes;bytes.reserve(static_cast<size_t>(info.st_size));
@@ -51,5 +65,6 @@ public:
         wake.notify_all();if(worker.joinable())worker.join();
     }
     std::shared_ptr<const Document> take(){return exchange.take();}
+    bool enabled() const{return live_enabled.load(std::memory_order_acquire);}
 };
 } // namespace claw_modular
