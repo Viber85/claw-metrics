@@ -137,16 +137,16 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
             flag=Path(directory)/'modular.layout.enabled'
             doc=copy.deepcopy(self.doc)
             main.publish_modular({'modular_layout':doc,'modular_enabled':False})
-            self.assertEqual(flag.read_text(),'0\\n')
+            self.assertEqual(flag.read_text(),'0\n')
             self.assertTrue((Path(directory)/'modular.layout').is_file())
             main.publish_modular({'modular_layout':doc,'modular_enabled':True})
-            self.assertEqual(flag.read_text(),'1\\n')
+            self.assertEqual(flag.read_text(),'1\n')
             doc['root']['name']='Live after Apply'
             main.publish_modular({'modular_layout':doc,'modular_enabled':True})
-            self.assertEqual(flag.read_text(),'1\\n')
+            self.assertEqual(flag.read_text(),'1\n')
             self.assertEqual((Path(directory)/'modular-layout-backup.json').is_file(),True)
             main.publish_modular({'modular_layout':doc,'modular_enabled':False})
-            self.assertEqual(flag.read_text(),'0\\n')
+            self.assertEqual(flag.read_text(),'0\n')
 
     async def test_apply_activates_file_but_draft_style_does_not(self):
         plugin=main.Plugin()
@@ -155,17 +155,16 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
             plugin._current_settings=inactive
             main.publish_modular(inactive)
             flag=Path(directory)/'modular.layout.enabled'
-            self.assertEqual(flag.read_text(),'0\\n')
+            self.assertEqual(flag.read_text(),'0\n')
             draft=copy.deepcopy(self.doc)
             draft['root']['name']='Saved named style'
             style={'version':3,'modular_enabled':True,'modular_layout':draft}
             result=await plugin.save_style_settings({**inactive,'style_presets':{'2':style},'style_names':{'2':'Custom'}})
             self.assertTrue(result['ok'])
-            self.assertEqual(flag.read_text(),'0\\n','Save style alone must not activate the running HUD')
+            self.assertEqual(flag.read_text(),'0\n','Save style alone must not activate the running HUD')
             activated=await plugin.save_settings({**inactive,'modular_enabled':True,'modular_layout':draft,'active_style':'2','style_presets':{'2':style},'style_names':{'2':'Custom'}})
             self.assertTrue(activated['ok'])
-            self.assertEqual(flag.read_text(),'1\\n')
-            self.assertEqual(main.Plugin().get_installed_version is not None,True)
+            self.assertEqual(flag.read_text(),'1\n')
             self.assertEqual((Path(directory)/'modular-layout-backup.json').is_file(),True)
             self.assertEqual(main.normalize(json.loads((Path(directory)/'settings.json').read_text()))['modular_layout']['root']['name'],'Saved named style')
 
