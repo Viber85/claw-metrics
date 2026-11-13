@@ -345,7 +345,7 @@ control('DialogButton','Apply layout').onClick();assert.equal(appliedSlot,'1','O
 saveStyleHandler=async()=>{throw new Error('Offline')};
 control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
 assert(render().some(n=>n.props?.role==='status'&&text(n.props.children).includes('Offline')));
-assert.equal(closed,false);assert.equal(applied,undefined);
+assert.equal(closed,false);assert.equal(applied.root.name,'Unsaved editor draft');assert.equal(appliedSlot,'1','failed overwrite must not silently replace the last applied style');
 control('DialogButton','Cancel').onClick();assert.equal(closed,false);picker.props.children.props.onClick();await new Promise(setImmediate);assert.equal(closed,true);
 console.log('PASS editor Save style: new/overwrite shared slots, latest draft, names, error/retry and no implicit Apply or close.');
  
