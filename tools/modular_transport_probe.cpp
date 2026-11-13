@@ -72,7 +72,7 @@ int main(int argc,char**argv){
   for(int i=0;i<100&&!loaded;++i){std::this_thread::sleep_for(std::chrono::milliseconds(10));loaded=loader.take();}
   assert(loaded);assert(loader.enabled()); // No companion flag: legacy opt-in still works.
   const std::string state=live+".enabled";
-  auto write_state=[&](const char* flag){std::ofstream out(state);out<<flag<<"\\n";};
+  auto write_state=[&](const char* flag){std::ofstream out(state);out<<flag<<std::endl;};
   auto wait_enabled=[&](bool expected){
    for(int i=0;i<100&&loader.enabled()!=expected;++i)std::this_thread::sleep_for(std::chrono::milliseconds(20));
    assert(loader.enabled()==expected);
