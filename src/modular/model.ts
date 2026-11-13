@@ -24,6 +24,31 @@ export function spacingAncestors(root:Node,id:string):Node[]{
  return out;
 }
 export function flatten(root:Node):Node[]{return [root,...root.children.flatMap(flatten)]}
+/**
+ * Copy a metric or an entire nested group as the next sibling, preserving every
+ * appearance/spacing option but allocating independent IDs for every node.
+ * Validation catches malformed source layouts and guarantees max 96 elements.
+ */
+export function duplicateElement(layout:Layout,id:string):{layout:Layout;id:string}{
+ const current=validate(layout);
+ const original=find(current.root,id),container=parent(current.root,id);
+ if(!original||!container)throw new Error('Select a metric or group, not the Overlay root.');
+ const count=flatten(original).length;
+ if(flatten(current.root).length+count>96)throw new Error('Element limit: the duplicate would exceed 96 elements.');
+ const used=new Set(flatten(current.root).map(n=>n.id));
+ const next=structuredClone(current);
+ const source=find(next.root,id)!,target=parent(next.root,id)!;
+ const makeCopy=(n:Node):Node=>{
+   let newId=uid();while(used.has(newId))newId=uid();
+   used.add(newId);
+   return {...n,id:newId,children:n.children.map(makeCopy)};
+ };
+ const copied=makeCopy(source);
+ copied.name=(source.name.slice(0,75)+' copy').slice(0,80);
+ const index=target.children.findIndex(n=>n.id===id);
+ target.children.splice(index+1,0,copied);
+ return {layout:validate(next),id:copied.id};
+}
 export function move(layout:Layout,id:string,targetId:string,index?:number):Layout{
  const out=structuredClone(layout),item=find(out.root,id),target=find(out.root,targetId),from=parent(out.root,id);
  if(!item||!target||!from||target.kind!=='group'||find(item,targetId))return layout;
