@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.118 ZIP
+name: Build Claw Metrics v0.2.4 test.119 ZIP
 on:
   push:
-    branches: [test/zoom-duplicate-elements-118]
+    branches: [test/live-style-activation-119]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 # Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.118-duplicate-zoom
+  group: claw-metrics-v0.2.4-test.119-live-apply
   cancel-in-progress: true
 
 jobs:
@@ -283,7 +283,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.118.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.119.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -299,18 +299,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.118', package['version']
+              assert package['version'] == '0.2.4-test.119', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.118
-          path: ClawMetrics-v0.2.4-test.118.zip
+          name: ClawMetrics-v0.2.4-test.119
+          path: ClawMetrics-v0.2.4-test.119.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.118 ClawMetrics-v0.2.4-test.118.zip \
+          gh release create v0.2.4-test.119 ClawMetrics-v0.2.4-test.119.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.118 – Zoom 100–200% and deep duplicate metric/group" \
-            --notes "Builder preview zoom now ranges 100–200%, with its previous 100% size as the new minimum. A new Duplicate reading / Duplicate group action places a full copy immediately after the selected element, retaining all colors, type, spacing, borders, graph/separator settings and every nested child with fresh unique IDs; Undo/Redo and Apply still work. Max 96 elements is enforced. Preserves test.117 SteamOS header fix and test.116 TDP controls. Restart Decky after installation and confirm on MSI Claw."
+            --title "Claw Metrics v0.2.4-test.119 – Live Apply of saved styles in running games" \
+            --notes "Fix saved styles appearing as an old/classic overlay in a running game. The modified MangoHud layer now monitors an atomically published active-layout flag plus the modular layout file, so Save style does not change the running HUD and Apply layout switches Classic/Modular live. Previously the layout file was only registered if modular mode was enabled at game launch. Preserves all test.118 zoom, Duplicate and editor changes. Important: restart each game ONCE after installing test.119 to load this new native library; after that, edits should activate without further restarts if the modified renderer is active."
