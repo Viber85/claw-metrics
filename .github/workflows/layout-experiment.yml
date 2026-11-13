@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.116 ZIP
+name: Build Claw Metrics v0.2.4 test.117 ZIP
 on:
   push:
-    branches: [test/preview-overflow-tdp-split-116]
+    branches: [test/steam-header-safe-area-117]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 # Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.116-tdp-preview
+  group: claw-metrics-v0.2.4-test.117-steam-header
   cancel-in-progress: true
 
 jobs:
@@ -283,7 +283,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.116.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.117.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -299,18 +299,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.116', package['version']
+              assert package['version'] == '0.2.4-test.117', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.116
-          path: ClawMetrics-v0.2.4-test.116.zip
+          name: ClawMetrics-v0.2.4-test.117
+          path: ClawMetrics-v0.2.4-test.117.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.116 ClawMetrics-v0.2.4-test.116.zip \
+          gh release create v0.2.4-test.117 ClawMetrics-v0.2.4-test.117.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.116 – Conditional preview scrolling and independent TDP controls" \
-            --notes "Preview now uses actual overlay bounds: no unnecessary scroll when the overlay fits, and screen anchors match the visible preview edges instead of a centered 1280px virtual canvas. TDP label and numeric reading are independently editable for font/weight, color, scale and padding, with legacy combined TDP layouts upgraded when opened in the editor. Older JSON documents still render. Includes all test.115 fixes. Restart Decky after updating; confirm scroll/alignment on MSI Claw."
+            --title "Claw Metrics v0.2.4-test.117 – SteamOS status-bar safe area for fullscreen editor" \
+            --notes "Reserve a separate 56px SteamOS status-bar safe area above the routed Builder so the preview is no longer covered by Game Mode top navigation. The reserved space is internal padding in the existing fixed-height editor; bottom Save style, Apply layout and Cancel remain anchored. DevLab browser preview is unchanged. Preserves all test.116 overlay rendering and independent TDP controls. Restart Decky after updating and confirm top edge on the MSI Claw."
