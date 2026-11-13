@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,closed=false,saveStyleHandler,styleSettings={},picker;
+const jsx=(type,props)=>({type,props:props||{}}),state=[];let cursor=0,applied,appliedAppearance,appliedSlot,closed=false,saveStyleHandler,styleSettings={},picker;
 const ui=Object.fromEntries(['ConfirmModal','ModalRoot','DialogButton','DropdownItem','Focusable','TextField','ToggleField'].map(k=>[k,p=>jsx(k,p)]));
 ui.showModal=value=>{picker=value;return {Close(){},ClosedPromise:Promise.resolve()}};
 function load(path,require=()=>{throw Error('Unexpected import')}){const module={exports:{}};runInNewContext(ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require,structuredClone,console});return module.exports}
@@ -22,7 +22,7 @@ const {Builder,previewCanvasSize}=load('src/modular/Builder.tsx',name=>{
 });
 const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
-function renderTree(topSafeInset=0){cursor=0;return Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true,topSafeInset})}
+function renderTree(topSafeInset=0){cursor=0;return Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a,slot)=>{applied=d;appliedAppearance=a;appliedSlot=slot},closeModal:()=>closed=true,topSafeInset})}
 function render(){return walk(renderTree())}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
@@ -334,10 +334,14 @@ assert.equal(styleCalls[0].slot,'2');assert.equal(styleCalls[0].doc.root.name,'U
 assert.equal(styleCalls[0].name,'From editor');assert.equal(closed,false);assert.equal(applied,undefined);
 assert.equal(control('DropdownItem','Style slot').selectedOption,'2');
 assert(render().some(n=>n.props?.role==='status'&&text(n.props.children)==='Saved: From editor'));
+control('DialogButton','Apply layout').onClick();
+assert.equal(appliedSlot,'2','Apply immediately after saving a style must activate the saved named slot');
+assert.equal(applied.root.name,'Unsaved editor draft');
 control('DropdownItem','Style slot').onChange({data:'1'});
 assert.equal(control('TextField','Style name').value,'Existing');
 control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
 assert.equal(styleCalls[1].slot,'1');assert.equal(styleCalls[1].doc.root.name,'Unsaved editor draft');
+control('DialogButton','Apply layout').onClick();assert.equal(appliedSlot,'1','Overwritten style must activate its own slot');
 saveStyleHandler=async()=>{throw new Error('Offline')};
 control('DialogButton','Overwrite style').onClick();await new Promise(setImmediate);
 assert(render().some(n=>n.props?.role==='status'&&text(n.props.children).includes('Offline')));
