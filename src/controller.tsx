@@ -654,7 +654,7 @@ export function useClawController() {
       try {
         const result = await withTimeout(stylesOnly?saveStyleSettings(next):save(next));
         if (!result.ok) throw new Error("Backend did not confirm the save.");
-        if (id === revision.current) setStatus(stylesOnly?"Style saved.":"Saved. Restart the game to apply changes.");
+        if (id === revision.current) setStatus(stylesOnly?"Style saved.":"Saved. Layout changes should refresh in games using the modified renderer; restart the game if the HUD stays unchanged.");
         traceEditor("settings_saved",String(id));
         complete(true);
       } catch (error) {
