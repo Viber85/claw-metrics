@@ -55,5 +55,6 @@ const routedBuilder=route.props.children;
 assert.equal(routedBuilder.type,'MockBuilder');
 assert.equal(routedBuilder.props.topSafeInset,56,'route explicitly reserves SteamOS top status bar');
 routedBuilder.props.closeModal();
-assert.deepEqual(routeLeaves[0],[42,undefined],'closing the editor retains routed navigation');
+assert.equal(routeLeaves[0][0],42,'closing editor retains routed navigation');
+assert.equal(routeLeaves[0].length,1,'Cancel still has no pending Apply callback');
 console.log('PASS SteamOS route-only top safe area: Builder receives 56px without changing DevLab rendering.');
