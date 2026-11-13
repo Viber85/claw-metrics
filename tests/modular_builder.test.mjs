@@ -22,13 +22,22 @@ const {Builder,previewCanvasSize}=load('src/modular/Builder.tsx',name=>{
 });
 const initial=JSON.parse(readFileSync('assets/modular/two-rows.json'));
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
-function renderTree(){cursor=0;return Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true})}
+function renderTree(topSafeInset=0){cursor=0;return Builder({initial,settings:{rounding:10,opacity:80,graph_style:'line',...styleSettings},onSaveStyle:saveStyleHandler,onApply:(d,a)=>{applied=d;appliedAppearance=a},closeModal:()=>closed=true,topSafeInset})}
 function render(){return walk(renderTree())}
 const text=v=>Array.isArray(v)?v.map(text).join(''):v&&typeof v==='object'?text(v.props?.children):String(v??'');
 const control=(type,label)=>{const found=render().find(n=>n.type===type&&(n.props.label===label||text(n.props.children)===label));assert(found,`${type}: ${label}`);return found.props};
 const section=(label)=>{const found=render().find(n=>n.type==='DialogButton'&&n.props.className==='claw-builder-accordion-button'&&text(n.props.children).includes(label));assert(found,`section: ${label}`);found.props.onClick()};
 const draft=()=>state[1];
 assert(render().some(n=>n.props?.className==='claw-builder-stage'));
+const plainPage=render().find(n=>n.props?.className==='claw-builder-page');
+assert.equal(plainPage.props.style.paddingTop,8,'standalone browser DevLab retains original top padding');
+const steamPage=walk(renderTree(56)).find(n=>n.props?.className==='claw-builder-page');
+assert.equal(steamPage.props.style.paddingTop,64,'SteamOS route reserves 56 px ABOVE its 8 px inner padding');
+const steamCSS=walk(renderTree(56)).find(n=>n.type==='style'&&n.props.children.includes('.claw-builder-page')).props.children;
+assert(steamCSS.includes('height:calc(100dvh - 80px)'),'fixed page height remains unchanged');
+assert(steamCSS.includes('box-sizing:border-box;overflow:hidden'),'safe inset is INSIDE fixed box, not extra document height');
+assert(steamCSS.includes('.claw-builder-actions{flex:none'),'footer remains sticky while content area shrinks');
+console.log('PASS SteamOS status-bar safe inset: route moves content down without moving or clipping footer; DevLab unchanged.');
 const previewCSS=render().find(n=>n.type==='style'&&typeof n.props.children==='string'&&n.props.children.includes('.claw-builder-page')).props.children;
 assert(previewCSS.includes('grid-template-rows:clamp(106px,13dvh,126px)'),'horizontal preview must be compact and leave room for properties');
 assert(previewCSS.includes('overflow:auto;overscroll-behavior:contain'),'preview must scroll in both axes without scrolling routed page');
