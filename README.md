@@ -1,3 +1,9 @@
+## v0.2.4-test.118 — Practical zoom and one-click duplication
+
+The Layout Builder starts with **100% zoom**, which has the exact same visual scale as the previous release's maximum 100%; the new scale range is **100–200%** in 10% increments. This is preview-only and does not change any saved metric size or overlay position.
+
+Use **Duplicate reading** to copy a selected metric with its font, color, scale, X/Y padding, outline and other settings. Use **Duplicate group** to clone an entire group, including all nested readings/groups and their settings. The duplicate is inserted immediately after the original and becomes selected. Clones use independent IDs, preserve existing saved styles through Apply or Save style, support Undo/Redo, and respect the 96-element cap.
+
 ## v0.2.4-test.117 — SteamOS safe-area fix for the editor
 
 In Game Mode, the SteamOS status bar can overlay the top of a routed Decky plugin page. The Builder now receives a **56 px top-only safe inset** from its SteamOS route. This inset is applied **inside the existing fixed-height page**, keeping Save style, Apply layout, and Cancel fixed at the previous bottom position and preventing top-preview clipping. The separate DevLab/browser Builder uses zero additional inset. No overlay anchor positions, zoom, per-element padding, styling, or stored layout coordinates are changed.
