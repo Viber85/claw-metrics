@@ -1,3 +1,11 @@
+## v0.2.4-test.119 — Fix saved editor styles not appearing in running games
+
+When a game started with Classic active, the native MangoHud layer did not register the modular layout file. Later saving an editor style and choosing **Apply layout** updated Decky configuration and the saved design, but the already-running game still used its old classic overlay. This looked like Apply had loaded an unrelated style.
+
+The experimental native renderer now registers the modular layout source at game launch even when Classic is active. The backend writes a separate atomically updated `modular.layout.enabled` switch only for **Apply/layout-mode changes**. The native background worker watches the switch and the document every 250 ms; the render thread reads only an atomic bool and the immutable layout. **Save style** continues to persist a named draft without modifying the currently active renderer. Toggling Classic again hides the custom renderer without losing its layout.
+
+**Important:** On installing test.119, fully restart the running game **once** so it loads the upgraded native library. Subsequent Apply actions can activate the saved design in a running game using the modified Claw Metrics renderer; if the game is using stock MangoHud or another launch command, this feature cannot control it. Sensor availability may still depend on initial game configuration.
+
 ## v0.2.4-test.118 — Practical zoom and one-click duplication
 
 The Layout Builder starts with **100% zoom**, which has the exact same visual scale as the previous release's maximum 100%; the new scale range is **100–200%** in 10% increments. This is preview-only and does not change any saved metric size or overlay position.
