@@ -31,7 +31,7 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  throw new Error(name);
 },JSON,window:{innerWidth:1280,innerHeight:800,setTimeout:fn=>{timers.push(fn);return timers.length}},document:{activeElement:{isConnected:true,focus:()=>{throw Error('Modal close should not force DOM focus')}}},requestAnimationFrame:fn=>fn()});
 let failApply=false;
-const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value};return Promise.resolve(!failApply)}};
+const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{if(failApply)return Promise.resolve(false);updates.push(value);vm.settings={...vm.settings,...value};return Promise.resolve(true)}};
 function walk(value){if(!value||typeof value!=='object')return [];if(Array.isArray(value))return value.flatMap(walk);if(typeof value.type==='function')return walk(value.type(value.props));return [value,...walk(value.props.children)]}
 function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
 const text=value=>Array.isArray(value)?value.map(text).join(''):value&&typeof value==='object'?text(value.props?.children):String(value??'');
