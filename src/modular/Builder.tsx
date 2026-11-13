@@ -15,7 +15,7 @@ export function previewCanvasSize(viewport:{width:number;height:number},overlay:
 }
 export type BuilderAppearance={rounding:number;opacity:number;graph_style:GraphStyle;unit_superscript:boolean};
 export type BuilderStyleStore={presets:Record<string,unknown>;names:Record<string,string>};
-export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModal}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;onExport?:(doc:Layout,appearance:BuilderAppearance)=>void;closeModal?:()=>void}) {
+export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModal,topSafeInset=0}:{initial:Layout;settings:any;onApply:(doc:Layout,appearance:BuilderAppearance,styleSlot?:string)=>void;onSaveStyle?:(slot:string,doc:Layout,appearance:BuilderAppearance,name:string)=>Promise<BuilderStyleStore>;onExport?:(doc:Layout,appearance:BuilderAppearance)=>void;closeModal?:()=>void;topSafeInset?:number}) {
  const [open,O]=useState<'element'|'spacing'|'appearance'|'position'|null>('element');
  const [layout,L]=useState(()=>validate(splitLegacyTdp(initial))),[selected,S]=useState(initial.root.id),[token,T]=useState('fps.average'),[past,P]=useState<Layout[]>([]),[future,F]=useState<Layout[]>([]),[error,E]=useState('');
  const stage=useRef<HTMLDivElement>(null),[zoom,Z]=useState(isHorizontalLayout(initial)?.45:.5);
@@ -99,7 +99,10 @@ export function Builder({initial,settings,onApply,onSaveStyle,onExport,closeModa
   }
  };
  const setAnchor=(anchor:string)=>commit({...layout,anchor,y:anchor.startsWith('center-')?(layout.anchor.startsWith('center-')?layout.y:0):Math.max(0,layout.y)});
- return <Focusable flow-children="column" className="claw-builder-page" onCancelButton={event=>{event.preventDefault();event.stopPropagation();close()}}>
+ // SteamOS draws the status/navigation row over routed plugin pages. Reserve
+ // its height INSIDE the fixed page box so the footer remains at its old Y.
+ // DevLab uses zero inset because its page has no SteamOS status overlay.
+ return <Focusable flow-children="column" className="claw-builder-page" style={{paddingTop:8+Math.max(0,topSafeInset)}} onCancelButton={event=>{event.preventDefault();event.stopPropagation();close()}}>
  <style>{previewFontCSS}</style>
  <style>{`
  .claw-builder-page{width:100%;height:calc(100dvh - 80px);max-height:calc(100dvh - 80px);min-height:0;padding:8px;background:#0b1016;box-sizing:border-box;overflow:hidden}
