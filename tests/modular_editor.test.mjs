@@ -30,7 +30,8 @@ runInNewContext(source,{module,exports:module.exports,require:name=>{
  if(name.includes('ControlGroup'))return {ControlGroup:p=>jsx('group',p)};
  throw new Error(name);
 },JSON,window:{innerWidth:1280,innerHeight:800,setTimeout:fn=>{timers.push(fn);return timers.length}},document:{activeElement:{isConnected:true,focus:()=>{throw Error('Modal close should not force DOM focus')}}},requestAnimationFrame:fn=>fn()});
-const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value}}};
+let failApply=false;
+const vm={ready:true,settings:{modular_enabled:false,modular_layout:null},update:value=>{updates.push(value);vm.settings={...vm.settings,...value};return Promise.resolve(!failApply)}};
 function walk(value){if(!value||typeof value!=='object')return [];if(Array.isArray(value))return value.flatMap(walk);if(typeof value.type==='function')return walk(value.type(value.props));return [value,...walk(value.props.children)]}
 function render(){cursor=0;return walk(module.exports.ModularEditor({vm}))}
 const text=value=>Array.isArray(value)?value.map(text).join(''):value&&typeof value==='object'?text(value.props?.children):String(value??'');
@@ -75,6 +76,7 @@ vm.savePreset=async(slot,draft,name)=>{savedStyle={slot,draft,name};vm.current.c
 const beforeSaveClose=closeCalls,liveLayout=JSON.stringify(vm.settings.modular_layout);
 const saved=await page.onSaveStyle('2',draft,appearance,'My overlay');
 assert.equal(saved.names['2'],'My overlay');assert.equal(savedStyle.draft.modular_layout.root.gap,13);assert.equal(savedStyle.draft.opacity,67);
+failApply=true;await assert.rejects(()=>page.onApply(draft,appearance,'2'),/Apply layout could not be saved/);failApply=false;
 assert.equal(closeCalls,beforeSaveClose);assert.equal(JSON.stringify(vm.settings.modular_layout),liveLayout);
 vm.savePreset=async()=>false;
 await assert.rejects(()=>page.onSaveStyle('2',draft,appearance,'Retry'),/not saved/);
