@@ -127,9 +127,14 @@ assert(!render().some(n=>n.type==='ConfirmModal'),'the builder uses its own righ
 assert(render().some(n=>n.props?.className==='claw-builder-actions'));
 assert(!render().some(n=>n.type==='strong'&&text(n.props.children)==='Preview'));
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children).includes('Guides')));
-assert.equal(control('slider','Zoom (%)').max,100);
-assert.equal(control('slider','Zoom (%)').value,90);
+assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Duplicate group'),'root overlay cannot be duplicated');
+assert.equal(control('slider','Zoom (%)').min,100);
+assert.equal(control('slider','Zoom (%)').max,200);
+assert.equal(control('slider','Zoom (%)').value,100,'previous maximum becomes the new minimum');
+control('slider','Zoom (%)').onChange(200);assert.equal(control('slider','Zoom (%)').value,200);
+assert.equal(state[7],1,'200% preview corresponds to the unscaled 1280x800 virtual screen');
 control('slider','Zoom (%)').onChange(100);assert.equal(control('slider','Zoom (%)').value,100);
+assert.equal(state[7],.5,'new 100% remains the old 100% visual size');
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Fit'));
 assert(render().some(n=>n.type==='style'&&n.props.children.includes('grid-template-columns:minmax(0,1fr) 188px')),'zoom controls have a reserved column outside the preview');
 const graph=model.flatten(initial.root).find(n=>n.token==='graph');
@@ -440,3 +445,79 @@ assert.equal(model.find(draft().root,localReading.id).fontWeight,undefined);
 render().find(n=>n.type==='preview').props.onSelect(graph.id);section('Appearance');
 assert(!render().some(n=>n.type==='DropdownItem'&&n.props.label==='Font weight'));
 console.log('PASS group radius and per-item font: controls, automatic reset, undo/redo, Apply and Save style.');
+
+
+// Duplicate is a single gesture on the selected element, not a "copy styles"
+// mode. Verify all nested metrics, appearance and geometry survive unchanged.
+{
+ const source=model.validate(model.splitLegacyTdp(initial));
+ const cpu=model.flatten(source.root).find(n=>n.kind==='group'&&n.name==='CPU');
+ assert(cpu?.children?.length,'fixture has a nested CPU group');
+ Object.assign(cpu,{color:'#AABBCC',background:'#142030',opacity:61,scale:125,
+  paddingX:17,paddingY:8,outline:true,outlineWidth:3,outlineColor:'#C0FFEE',
+  outlineOpacity:72,cornerRadius:18,fontWeight:'semibold',gap:24,selfAlign:'end'});
+ const sensor=cpu.children.find(n=>n.kind==='metric');
+ Object.assign(sensor,{color:'#FF8800',background:'#222222',opacity:47,scale:155,
+   paddingX:11,paddingY:6,outline:true,outlineWidth:2,outlineColor:'#FAFAFA',
+   outlineOpacity:58,fontWeight:'bold'});
+ const original=JSON.stringify(source);
+ const cloned=model.duplicateElement(source,cpu.id);
+ assert.equal(JSON.stringify(source),original,'duplication must not mutate the source');
+ const originalGroup=model.find(cloned.layout.root,cpu.id),copy=model.find(cloned.layout.root,cloned.id);
+ assert(copy&&copy.kind==='group'&&copy.id!==cpu.id);
+ assert.equal(copy.name,cpu.name+' copy');
+ const parent=model.parent(cloned.layout.root,cpu.id);
+ assert.equal(parent.children[parent.children.findIndex(n=>n.id===cpu.id)+1].id,copy.id,'clone is inserted immediately after original');
+ const clean=n=>JSON.stringify((function strip(x){const {id,name,children,...rest}=x;return {...rest,children:children.map(strip)}})(n));
+ assert.equal(clean(copy),clean(originalGroup),'all group properties and child settings are copied verbatim');
+ assert.equal(copy.children.length,cpu.children.length);
+ const ids=model.flatten(cloned.layout.root).map(n=>n.id);
+ assert.equal(new Set(ids).size,ids.length,'cloned subtree must use unique IDs');
+ assert.equal(ids.length,model.flatten(source.root).length+model.flatten(cpu).length);
+ copy.children[0].color='#123456';
+ assert.notEqual(copy.children[0].color,originalGroup.children[0].color,'style changes on copy cannot affect original');
+ const metricResult=model.duplicateElement(source,sensor.id);
+ const copyMetric=model.find(metricResult.layout.root,metricResult.id);
+ assert.equal(copyMetric.token,sensor.token);
+ assert.equal(copyMetric.color,sensor.color);
+ assert.equal(copyMetric.fontWeight,sensor.fontWeight);
+ assert.equal(copyMetric.paddingX,sensor.paddingX);
+ assert.equal(copyMetric.paddingY,sensor.paddingY);
+ assert.equal(copyMetric.outlineColor,sensor.outlineColor);
+ assert.equal(copyMetric.name,sensor.name+' copy');
+ assert.equal(model.parent(metricResult.layout.root,copyMetric.id).id,cpu.id);
+ assert.throws(()=>model.duplicateElement(source,source.root.id),/not the Overlay root/);
+ const saturated=model.validate({...source,root:{...source.root,children:Array.from({length:95},(_,i)=>model.metric('cpu.load',{id:'limit-'+i}))}});
+ assert.equal(model.flatten(saturated.root).length,96);
+ assert.throws(()=>model.duplicateElement(saturated,'limit-0'),/96 elements/);
+ console.log('PASS duplicate model: full nested subtree, style/outline/padding parity, independent IDs, original unchanged, sibling order, limits.');
+}
+
+// Validate the real Decky builder's Duplicate buttons, selection and undo/redo.
+{
+ state.length=0;closed=false;applied=undefined;styleSettings={};
+ const root=model.splitLegacyTdp(initial).root;
+ const cpu=model.flatten(root).find(n=>n.kind==='group'&&n.name==='CPU');
+ render().find(n=>n.type==='preview').props.onSelect(cpu.id);
+ const before=model.flatten(draft().root).length;
+ const originalSiblings=model.parent(draft().root,cpu.id).children.length;
+ assert(control('DialogButton','Duplicate group'),'a selected group exposes one-click duplication');
+ control('DialogButton','Duplicate group').onClick();
+ const after=model.flatten(draft().root).length;
+ assert.equal(after,before+model.flatten(cpu).length);
+ assert.equal(model.parent(draft().root,cpu.id).children.length,originalSiblings+1);
+ const copiedGroup=model.parent(draft().root,cpu.id).children.find((n,i,children)=>children[i-1]?.id===cpu.id);
+ assert(copiedGroup&&copiedGroup.name==='CPU copy');
+ assert(render().find(n=>n.type==='preview').props.selected===copiedGroup.id,'copy becomes selected');
+ control('DialogButton','Undo').onClick();assert.equal(model.flatten(draft().root).length,before);
+ control('DialogButton','Redo').onClick();assert.equal(model.flatten(draft().root).length,after);
+ const copiedMetric=copiedGroup.children.find(n=>n.kind==='metric');
+ render().find(n=>n.type==='preview').props.onSelect(copiedMetric.id);
+ assert(control('DialogButton','Duplicate reading'),'selected reading also exposes duplication');
+ control('DialogButton','Duplicate reading').onClick();
+ assert.equal(model.flatten(draft().root).length,after+1);
+ assert.equal(render().find(n=>n.type==='preview').props.selected!==copiedMetric.id,true);
+ control('DialogButton','Apply layout').onClick();
+ assert.equal(model.flatten(applied.root).length,after+1,'Apply must save both copies');
+ console.log('PASS builder duplicate: group/metric one-click copies, auto-selection, undo/redo and Apply.');
+}
