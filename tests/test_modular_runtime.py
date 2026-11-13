@@ -131,7 +131,7 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
         # A game may be launched with Classic selected. Its experimental HUD
         # must already know where future modular documents are published.
         native=main.mango_config({'modular_enabled':False,'modular_layout':self.doc},native_spacing=True)
-        self.assertIn('claw_modular_file='+str(main.BASE/'modular.layout')+'\\n',native)
+        self.assertIn('claw_modular_file='+str(main.BASE/'modular.layout')+chr(10),native)
         self.assertNotIn('claw_modular_file=',main.mango_config({'modular_enabled':False,'modular_layout':self.doc}))
         with tempfile.TemporaryDirectory() as directory,patch.object(main,'BASE',Path(directory)):
             flag=Path(directory)/'modular.layout.enabled'
