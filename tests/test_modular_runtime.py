@@ -127,6 +127,48 @@ class ModularRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(plugin._current_settings['modular_layout'],self.doc)
             with self.assertRaises(ValueError):await plugin.import_modular_layout(directory)
 
+    def test_live_style_state_flag_tracks_apply_without_restarting_game(self):
+        # A game may be launched with Classic selected. Its experimental HUD
+        # must already know where future modular documents are published.
+        native=main.mango_config({'modular_enabled':False,'modular_layout':self.doc},native_spacing=True)
+        self.assertIn('claw_modular_file='+str(main.BASE/'modular.layout')+'\\n',native)
+        self.assertNotIn('claw_modular_file=',main.mango_config({'modular_enabled':False,'modular_layout':self.doc}))
+        with tempfile.TemporaryDirectory() as directory,patch.object(main,'BASE',Path(directory)):
+            flag=Path(directory)/'modular.layout.enabled'
+            doc=copy.deepcopy(self.doc)
+            main.publish_modular({'modular_layout':doc,'modular_enabled':False})
+            self.assertEqual(flag.read_text(),'0\\n')
+            self.assertTrue((Path(directory)/'modular.layout').is_file())
+            main.publish_modular({'modular_layout':doc,'modular_enabled':True})
+            self.assertEqual(flag.read_text(),'1\\n')
+            doc['root']['name']='Live after Apply'
+            main.publish_modular({'modular_layout':doc,'modular_enabled':True})
+            self.assertEqual(flag.read_text(),'1\\n')
+            self.assertEqual((Path(directory)/'modular-layout-backup.json').is_file(),True)
+            main.publish_modular({'modular_layout':doc,'modular_enabled':False})
+            self.assertEqual(flag.read_text(),'0\\n')
+
+    async def test_apply_activates_file_but_draft_style_does_not(self):
+        plugin=main.Plugin()
+        with tempfile.TemporaryDirectory() as directory,patch.object(main,'BASE',Path(directory)),patch.object(main,'CONFIG',Path(directory)/'settings.json'),patch.object(main,'HUD',Path(directory)/'MangoHud.conf'),patch.object(main,'native_renderer_available',return_value=False):
+            inactive=main.normalize({'modular_layout':self.doc,'modular_enabled':False})
+            plugin._current_settings=inactive
+            main.publish_modular(inactive)
+            flag=Path(directory)/'modular.layout.enabled'
+            self.assertEqual(flag.read_text(),'0\\n')
+            draft=copy.deepcopy(self.doc)
+            draft['root']['name']='Saved named style'
+            style={'version':3,'modular_enabled':True,'modular_layout':draft}
+            result=await plugin.save_style_settings({**inactive,'style_presets':{'2':style},'style_names':{'2':'Custom'}})
+            self.assertTrue(result['ok'])
+            self.assertEqual(flag.read_text(),'0\\n','Save style alone must not activate the running HUD')
+            activated=await plugin.save_settings({**inactive,'modular_enabled':True,'modular_layout':draft,'active_style':'2','style_presets':{'2':style},'style_names':{'2':'Custom'}})
+            self.assertTrue(activated['ok'])
+            self.assertEqual(flag.read_text(),'1\\n')
+            self.assertEqual(main.Plugin().get_installed_version is not None,True)
+            self.assertEqual((Path(directory)/'modular-layout-backup.json').is_file(),True)
+            self.assertEqual(main.normalize(json.loads((Path(directory)/'settings.json').read_text()))['modular_layout']['root']['name'],'Saved named style')
+
     def test_invalid_layout_is_rejected_before_settings_save(self):
         broken=copy.deepcopy(self.doc);broken['root']['children'][0]['id']=broken['root']['id']
         with self.assertRaises(ValueError):main.normalize({'modular_layout':broken,'modular_enabled':True})
