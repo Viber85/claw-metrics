@@ -1046,7 +1046,10 @@ def mango_config(settings, native_spacing=False):
             "claw_separator_length=" + str(d["separator_length"]),
             "claw_separator_rounding=" + str(d["separator_rounding"]),
             "claw_separator_opacity=" + str(d["separator_opacity"]),
-            "claw_modular_file=" + (str(BASE / "modular.layout") if d["modular_enabled"] else ""),
+            # Always register the layout source in the experimental renderer, even
+            # while Classic is selected. A companion status flag controls
+            # whether the native game reads/draws it, enabling live Apply.
+            "claw_modular_file=" + str(BASE / "modular.layout"),
             "claw_unit_superscript=" + str(int(d["unit_superscript"])),
             "claw_center_vertical=" + str(int(position.startswith("center-"))),
             "claw_group_gap_x=" + str(d["group_gap_x"]),
@@ -1145,6 +1148,13 @@ def publish_modular(settings):
         original = json.dumps(settings["modular_layout"], indent=2) + "\n"
         if not backup.is_file() or backup.read_text() != original:
             write_atomic(backup, original)
+    # Independent from saving named styles: this flag changes ONLY when the
+    # active layout is applied or the renderer mode is toggled. The native HUD
+    # worker monitors it without accessing disk on the frame/render thread.
+    state = BASE / "modular.layout.enabled"
+    value = "1\n" if settings.get("modular_enabled") and settings.get("modular_layout") else "0\n"
+    if not state.is_file() or state.read_text() != value:
+        write_atomic(state, value)
 
 
 class Plugin:
