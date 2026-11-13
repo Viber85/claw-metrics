@@ -24,7 +24,12 @@ export function ModularEditor({vm}:{vm:ClawController}){
     const current=vm.current.current;
     return {presets:current.style_presets,names:current.style_names};
    },
-   onApply:(value,appearance,slot)=>update({modular_layout:value,modular_enabled:true,...imported,...appearance,active_style:slot||null})});
+   onApply:async(value,appearance,slot)=>{
+    // The routed page has already unmounted at this point. Do not claim
+    // Apply succeeded until Decky confirms the new live settings were written.
+    const ok=await update({modular_layout:value,modular_enabled:true,...imported,...appearance,active_style:slot||null});
+    if(!ok)throw new Error('Apply layout could not be saved. The previous live overlay remains active.');
+   }});
  };
  const chooseTemplate=(id:'horizontal'|'vertical')=>{
   const label=id==='horizontal'?'Horizontal':'Vertical';
