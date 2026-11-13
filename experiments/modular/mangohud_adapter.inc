@@ -6,7 +6,10 @@ bool ClawTryModular() {
     static claw_modular::FileLoader loader(filename);
     static std::shared_ptr<const claw_modular::Document> active;
     if(auto next=loader.take())active=std::move(next);
-    if(!active)return false; // Until a valid import exists, keep the working HUD.
+    // The style/layout file may update while the game stays open. The separate
+    // enabled flag is also watched on a worker, so switching Classic -> Modular
+    // after launch does not get stuck with the old HUD until a game restart.
+    if(!active||!loader.enabled())return false; // Classic stays untouched while off.
     auto& p=*HUDElements.params;auto& data=*HUDElements.sw_stats;
     if(p.no_display||steam_focused)return true;
     using claw_modular::Text;
