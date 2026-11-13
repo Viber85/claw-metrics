@@ -70,7 +70,19 @@ int main(int argc,char**argv){
  {
   FileLoader loader(live);std::shared_ptr<const Document> loaded;
   for(int i=0;i<100&&!loaded;++i){std::this_thread::sleep_for(std::chrono::milliseconds(10));loaded=loader.take();}
-  assert(loaded);write("invalid");std::this_thread::sleep_for(std::chrono::milliseconds(300));assert(!loader.take());
+  assert(loaded);assert(loader.enabled()); // No companion flag: legacy opt-in still works.
+  const std::string state=live+".enabled";
+  auto write_state=[&](const char* flag){std::ofstream out(state);out<<flag<<"\\n";};
+  auto wait_enabled=[&](bool expected){
+   for(int i=0;i<100&&loader.enabled()!=expected;++i)std::this_thread::sleep_for(std::chrono::milliseconds(20));
+   assert(loader.enabled()==expected);
+  };
+  write_state("0");wait_enabled(false);
+  // The worker still watches layouts while Classic mode is selected.
+  write("invalid");std::this_thread::sleep_for(std::chrono::milliseconds(300));assert(!loader.take());
+  write_state("1");wait_enabled(true);
+  write_state("0");wait_enabled(false);
+  std::remove(state.c_str());
  }
  std::remove(live.c_str());
  ::mkfifo(live.c_str(),0600);
