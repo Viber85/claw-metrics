@@ -1,3 +1,7 @@
+## v0.2.4-test.117 — SteamOS safe-area fix for the editor
+
+In Game Mode, the SteamOS status bar can overlay the top of a routed Decky plugin page. The Builder now receives a **56 px top-only safe inset** from its SteamOS route. This inset is applied **inside the existing fixed-height page**, keeping Save style, Apply layout, and Cancel fixed at the previous bottom position and preventing top-preview clipping. The separate DevLab/browser Builder uses zero additional inset. No overlay anchor positions, zoom, per-element padding, styling, or stored layout coordinates are changed.
+
 ## v0.2.4-test.116 — Conditional preview scrolling and separate TDP controls
 
 Preview content now matches the actual scaled overlay bounds rather than always allocating the entire 1280×800 virtual screen. It uses a small 10 px UI-only gutter. Scrollbars appear only when required; left, center and right anchors are represented relative to visible preview edges.
