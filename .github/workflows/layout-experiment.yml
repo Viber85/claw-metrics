@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.2.4 test.120 ZIP
+name: Build Claw Metrics v0.2.4 test.121 ZIP
 on:
   push:
-    branches: [test/imported-tdp-layout-120]
+    branches: [test/metric-width-padding-121]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 # Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
 # Multiple rapid pushes must not race to overwrite the same test Release.
 concurrency:
-  group: claw-metrics-v0.2.4-test.120-imported-tdp
+  group: claw-metrics-v0.2.4-test.121-metric-width-padding
   cancel-in-progress: true
 
 jobs:
@@ -283,7 +283,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.120.zip')
+          archive=pathlib.Path('ClawMetrics-v0.2.4-test.121.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -299,18 +299,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.120', package['version']
+              assert package['version'] == '0.2.4-test.121', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.120
-          path: ClawMetrics-v0.2.4-test.120.zip
+          name: ClawMetrics-v0.2.4-test.121
+          path: ClawMetrics-v0.2.4-test.121.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.120 ClawMetrics-v0.2.4-test.120.zip \
+          gh release create v0.2.4-test.121 ClawMetrics-v0.2.4-test.121.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.120 – Apply imported layouts with separate TDP elements" \
-            --notes "Fixes imported and saved overlays that fall back to the previous or Classic HUD on Apply. The native renderer now accepts separate TDP label and reading elements, including layouts automatically migrated from a combined TDP element. Existing DevLab JSON files and saved styles can be reused. Restart any running game once after installing so it loads the updated MangoHud library."
+            --title "Claw Metrics v0.2.4-test.121 – Minimum reading width and four-sided padding" \
+            --notes "Set a minimum width on individual readings to stabilize the overlay as values change digit count. Adjust left, right, top and bottom padding independently on the overlay, groups and elements. Existing X/Y settings retain their appearance. Restart any running game after installing to load the updated MangoHud renderer."

@@ -101,8 +101,34 @@ int main(){
  auto narrow=fit;narrow[4].overlay_padding_x=160;
  auto narrow_result=layout(narrow,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
  assert(near(narrow_result.boxes[4].w,321)&&near(narrow_result.boxes[0].w,321));
- assert(near(narrow_result.boxes[4].w-2*inset_x(narrow[4]),1));
+ assert(near(narrow_result.boxes[4].w-horizontal_insets(narrow[4]),1));
  narrow[0].axis=Axis::Row;narrow_result=layout(narrow,0,{1920,1080},Anchor::TopLeft,20,30,10,measure);
  assert(near(narrow_result.boxes[0].w,narrow_result.boxes[1].w+narrow_result.boxes[4].w+narrow[0].gap));
+ auto manual=fit;
+ manual[0].padding_left=7;manual[0].padding_right=19;
+ manual[0].padding_top=3;manual[0].padding_bottom=11;
+ manual[1].padding_left=4;manual[1].padding_bottom=8;
+ manual[2].padding_left=2;manual[2].padding_right=5;manual[2].min_width=72;
+ manual[4].padding_left=11;manual[4].padding_right=7;
+ auto cpu_width=[&](float width,Anchor anchor){
+  return layout(manual,0,{1280,800},anchor,20,30,10,[&](const std::string& token,float){
+   return Size{token=="cpu.load"?width:50.f,10.f};
+  });
+ };
+ for(auto anchor:{Anchor::TopLeft,Anchor::TopCenter,Anchor::TopRight}){
+  const auto small=cpu_width(20,anchor);
+  const auto medium=cpu_width(40,anchor);
+  const auto large=cpu_width(60,anchor);
+  for(const auto* result:{&small,&medium,&large}){
+   const auto& boxes=result->boxes;
+   assert(near(boxes[0].x,small.boxes[0].x)&&near(boxes[3].x,small.boxes[3].x));
+   assert(near(boxes[0].w,169)&&near(boxes[0].h,60));
+   assert(near(boxes[1].x-boxes[0].x,7)&&near(boxes[1].y-boxes[0].y,3));
+   assert(near(boxes[2].x-boxes[1].x,4)&&near(boxes[2].w,79));
+   assert(near(boxes[4].w,boxes[1].w));
+  }
+  const auto overflow=cpu_width(90,anchor);
+  assert(near(overflow.boxes[2].w,97)&&near(overflow.boxes[0].w,187));
+ }
  std::cout<<"PASS: nested layout, inherited scale, auto graph width, all anchors, alignment, hidden children, overflow and invalid trees\n";
 }

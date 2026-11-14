@@ -65,6 +65,15 @@ def run(args):
                     for upper,lower in (('cpu','ram'),('gpu','vram')):assert abs(boxes[upper][2]-boxes[lower][2])<=1.001
                     cases.append(dict(layout=doc,size=size,units=units,weight=weight.lower(),boxes=boxes))
                     if size==18 and units and weight=='Regular':raster(target.with_suffix('.json'))
+                    doc=copy.deepcopy(doc)
+                    doc.update(paddingLeft=0,paddingRight=24,paddingTop=3,paddingBottom=12)
+                    cpu=doc['root']['children'][0]['children'][0]
+                    cpu.update(paddingLeft=2,paddingRight=19,paddingTop=14,paddingBottom=5)
+                    load=cpu['children'][1]['children'][0]
+                    load.update(minWidth=95,paddingLeft=7,paddingRight=2,paddingTop=3,paddingBottom=1)
+                    target=output/(name+'-independent-edges')
+                    cases.append(dict(layout=doc,size=size,units=units,weight=weight.lower(),boxes=native()))
+                    if size==18 and units and weight=='Regular':raster(target.with_suffix('.json'))
         manifest=output/'cases.json';manifest.write_text(json.dumps(cases))
         print(f'PASS real ImGui: {len(cases)} padded CPU/GPU/RAM/VRAM cases, matching card widths, nested scale, 4 font weights and both unit modes.',flush=True)
         if not args.native_only:

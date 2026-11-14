@@ -51,6 +51,15 @@ const hiddenTemp=module.exports.ReservedReading(tempReservation.props);
 assert.equal(hiddenTemp.props['aria-hidden'],'true');
 assert.equal(hiddenTemp.props.children[0].props.children.props.children[0].props.children,'88','temperature reservation keeps exactly two digits');
 assert.equal(temperature.props.style.paddingLeft,0,'reading has no implicit inset');
+const load=gpu.children.find(n=>n.token==='gpu.load');
+Object.assign(load,{minWidth:72,paddingX:6,paddingY:4,paddingLeft:0,paddingRight:9,paddingBottom:2});
+for(const gpu of [9,10,99,100]){
+ const output=walk(ModularHud({layout,settings,data:{gpu},selected:'none',onSelect:()=>{}}));
+ const metric=output.find(n=>n.props?.['data-node-id']===load.id);
+ const box=metric.props.style;
+ assert.deepEqual([box.minWidth,box.paddingLeft,box.paddingRight,box.paddingTop,box.paddingBottom],[81,0,9,4,2]);
+}
+for(const key of ['minWidth','paddingX','paddingY','paddingLeft','paddingRight','paddingBottom'])delete load[key];
 settings.unit_superscript=false;
 const separator=nodes.find(n=>n.props?.['data-node-id']==='test-line');
 const lineStyle=walk(separator).find(n=>n.type==='span').props.style;
@@ -203,7 +212,7 @@ delete styledCpu.fontWeight;styledNodes=styledPreview();assert.equal(byId(styled
 console.log('PASS preview radius and font inheritance: group/plugin precedence and independent duplicate readings.');
 
 let fontReadyResolve;fakeDocument.fonts.ready=new Promise(resolve=>{fontReadyResolve=resolve});
-const sibling={offsetWidth:160};const autoGraph={dataset:{nodeId:'font-graph',padding:'7'}};
+const sibling={offsetWidth:160};const autoGraph={dataset:{nodeId:'font-graph',padding:'14'}};
 autoGraph.parentElement={children:[sibling,autoGraph]};graphHost={querySelectorAll:()=>[autoGraph]};
 ModularHud({layout:styled,settings,data:module.exports.initialData,selected:'none',onSelect:()=>{}});
 const stopFontPass=capturedLayoutEffect();assert.equal(fitted['font-graph'],146);

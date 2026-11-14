@@ -1,3 +1,9 @@
+## v0.2.4-test.121 — Minimum reading width and four-sided padding
+
+In the Layout Builder, **Appearance** offers separate left, right, top and bottom padding for the overlay, groups and individual elements. Each side starts from the corresponding saved X or Y padding when opening older layouts. Text readings also have **Minimum width** in pixels. A value of zero uses automatic sizing. To keep nearby metrics stationary as CPU Load changes digit count, set a width that fits the largest reading with the current font and scale. The reading can expand if it needs more space. Padding is applied outside the minimum text width.
+
+These controls are shared by the plugin and DevLab. Restart any running game after installing to load the updated MangoHud renderer.
+
 ## v0.2.4-test.120 — Apply imported layouts with separate TDP elements
 
 The native MangoHud renderer now accepts separate TDP label and reading elements. Opening a DevLab layout with a combined TDP element can split it in the editor, so the updated reader accepts both layouts that have already been saved with split TDP and older JSON exports. Restart a running game once after installing to load the updated renderer.

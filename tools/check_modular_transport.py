@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory() as directory:
         source='graph-focus' if name.startswith('center-') else name
         doc=schema.load_layout((ROOT/f'experiments/modular/{source}.json').read_text())
         if name.startswith('center-'):doc.update(anchor=name,y=-22)
-        doc.update(paddingX=27,paddingY=13)
+        doc.update(paddingX=27,paddingY=13,paddingLeft=0,paddingBottom=21)
         doc['root'].update(id='čćž'*20,background='#112233',opacity=44,outline=True)
         last=doc['root']
         while last['children']:last=last['children'][-1]
@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as directory:
         # The native decoder must accept both or reject the entire edited HUD.
         for token in ('tdp.label', 'tdp.reading'):
             metric = deepcopy(last)
-            metric.update(id=token, token=token)
+            metric.update(id=token, token=token, minWidth=72, paddingLeft=6, paddingRight=3)
             doc['root']['children'].append(metric)
         separator=deepcopy(last)
         separator.update(id='separator-v6',token='separator',color='#ABCDEF',axis='column',

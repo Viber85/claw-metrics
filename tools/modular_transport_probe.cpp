@@ -27,19 +27,29 @@ int main(int argc,char**argv){
  }
  std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";
  std::string v2="CLAW_MODULAR_V2\n"+line+"\n";std::getline(old_input,line);
+ std::string v6="CLAW_MODULAR_V6\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  std::string v5="CLAW_MODULAR_V5\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  std::string v4="CLAW_MODULAR_V4\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  std::string v3="CLAW_MODULAR_V3\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
  while(std::getline(old_input,line)){
   if(line.empty())continue;
   std::istringstream record(line);std::vector<std::string> fields;std::string field;while(record>>field)fields.push_back(field);
-  assert(fields.size()>=25);
+  assert(fields.size()>=30);
   auto join=[](const std::vector<std::string>& values){std::string out;for(size_t j=0;j<values.size();++j){if(j)out+=' ';out+=values[j];}return out+"\n";};
+  fields.erase(fields.begin()+25,fields.begin()+30);v6+=join(fields);
   fields.erase(fields.begin()+24);v5+=join(fields);
   fields.erase(fields.begin()+22,fields.begin()+24);v4+=join(fields);
   fields.erase(fields.begin()+17,fields.begin()+22);
   v2+=join(fields);v3+=join(fields);fields.erase(fields.begin()+6);legacy+=join(fields);
  }
+ const auto v6_doc=decode(v6);
+ assert(inset_left(v6_doc.nodes[0])==27&&inset_bottom(v6_doc.nodes[0])==13);
+ assert(inset_left(doc.nodes[0])==0&&inset_right(doc.nodes[0])==27);
+ assert(inset_top(doc.nodes[0])==13&&inset_bottom(doc.nodes[0])==21);
+ const auto& reading=doc.nodes[doc.nodes.size()-2];
+ assert(reading.token=="tdp.reading"&&reading.min_width==72);
+ assert(inset_left(reading)==6&&inset_right(reading)==3);
+ assert(v6_doc.nodes[v6_doc.nodes.size()-2].min_width==0);
  auto v5_doc=decode(v5);
  assert(v5_doc.nodes.back().axis==Axis::Row&&v5_doc.appearance.back().separator_opacity==100);
  assert(doc.nodes.back().axis==Axis::Column&&doc.appearance.back().separator_opacity==37);

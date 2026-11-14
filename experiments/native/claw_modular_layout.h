@@ -24,6 +24,9 @@ struct Node {
     SelfAlign self_align=SelfAlign::Auto;
     float gap=8,padding=0,scale=1,width=180,height=44;
     float overlay_padding_x=0,overlay_padding_y=0; // Per-element X/Y insets; root values come from the transport header.
+    // Negative one inherits the corresponding legacy symmetric inset.
+    float padding_left=-1,padding_right=-1,padding_top=-1,padding_bottom=-1;
+    float min_width=0;
     std::vector<size_t> children;
 };
 struct Result { std::vector<Rect> boxes; bool outside=false; };
@@ -31,8 +34,12 @@ using Measure=std::function<Size(const std::string&,float)>;
 using NodeMeasure=std::function<Size(size_t,const std::string&,float)>;
 
 // Explicit per-axis padding defaults to zero for every element.
-inline float inset_x(const Node& node) { return node.overlay_padding_x; }
-inline float inset_y(const Node& node) { return node.overlay_padding_y; }
+inline float inset_left(const Node& node) { return node.padding_left>=0?node.padding_left:node.overlay_padding_x; }
+inline float inset_right(const Node& node) { return node.padding_right>=0?node.padding_right:node.overlay_padding_x; }
+inline float inset_top(const Node& node) { return node.padding_top>=0?node.padding_top:node.overlay_padding_y; }
+inline float inset_bottom(const Node& node) { return node.padding_bottom>=0?node.padding_bottom:node.overlay_padding_y; }
+inline float horizontal_insets(const Node& node) { return inset_left(node)+inset_right(node); }
+inline float vertical_insets(const Node& node) { return inset_top(node)+inset_bottom(node); }
 inline bool finite(float x) { return std::isfinite(x); }
 inline bool range(float x,float lo,float hi) { return finite(x)&&x>=lo&&x<=hi; }
 inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
@@ -53,6 +60,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.align!=Align::Start&&n.align!=Align::Center&&n.align!=Align::End)||
            (n.self_align!=SelfAlign::Auto&&n.self_align!=SelfAlign::Start&&n.self_align!=SelfAlign::Center&&n.self_align!=SelfAlign::End)||
            (n.font_weight<0||n.font_weight>4)||!range(n.overlay_padding_x,0,160)||!range(n.overlay_padding_y,0,160)||
+           !range(n.min_width,0,240)||
            !range(n.gap,0,n.group?240.f:80.f)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
            !range(n.width,!n.group&&(n.token=="graph"?0.f:n.token=="separator"?4.f:40.f),1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
@@ -75,6 +83,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             else
                 out=node_measure?node_measure(i,n.token,font*scale):measure(n.token,font*scale);
             if(!range(out.w,0,1000000)||!range(out.h,0,1000000))throw std::invalid_argument("Invalid metric measurement");
+            out.w=std::max(out.w,n.min_width);
         } else {
             size_t count=0;std::vector<size_t> children;float widest_non_auto_graph=0;
             for(auto child:n.children) {
@@ -89,7 +98,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             // A graph with width=0 follows the widest sibling in a vertical group.
             // This keeps it aligned with the readings row instead of overshooting it.
             for(auto child:children)if(!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0){
-                const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?std::max(widest_non_auto_graph,2*inset_x(nodes[child])+1.f):180.f+2*inset_x(nodes[child]);
+                const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?std::max(widest_non_auto_graph,horizontal_insets(nodes[child])+1.f):180.f+horizontal_insets(nodes[child]);
                 sizes[child].w=target;
             }
             if(n.axis==Axis::Column){
@@ -100,7 +109,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             const float gaps=count?float(count-1)*n.gap:0;
             if(n.axis==Axis::Row)out.w+=gaps;else out.h+=gaps;
         }
-        out.w+=2*inset_x(n);out.h+=2*inset_y(n);
+        out.w+=horizontal_insets(n);out.h+=vertical_insets(n);
         sizes[i]=out;return out;
     };
     const auto total=size(root,1);
@@ -113,12 +122,12 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
     std::function<void(size_t,float,float)> place=[&](size_t i,float px,float py) {
         const auto& n=nodes[i];if(!n.visible)return;
         const auto s=sizes[i];out.boxes[i]={px,py,s.w,s.h,true};
-        const float px_inset=inset_x(n);
-        const float py_inset=inset_y(n);float cursor=0;
+        const float px_inset=inset_left(n);
+        const float py_inset=inset_top(n);float cursor=0;
         for(auto child:n.children) {
             if(!nodes[child].visible)continue;
             const auto c=sizes[child];
-            float cross=n.axis==Axis::Row?s.h-2*py_inset-c.h:s.w-2*px_inset-c.w;
+            float cross=n.axis==Axis::Row?s.h-vertical_insets(n)-c.h:s.w-horizontal_insets(n)-c.w;
             const auto alignment=nodes[child].self_align==SelfAlign::Auto?n.align:
                 nodes[child].self_align==SelfAlign::Start?Align::Start:
                 nodes[child].self_align==SelfAlign::Center?Align::Center:Align::End;

@@ -193,8 +193,8 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const ImU32 rgb=style.text?style.text:frame.separator_color;
             const auto alpha=static_cast<ImU32>(std::round(style.separator_opacity*255.f/100.f));
             const float line_radius=std::min(style.rounding,std::min(n.width,n.height)*.5f);
-            draw->AddRectFilled(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),
-                ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),(rgb&0xffffff)|(alpha<<24),line_radius);
+            draw->AddRectFilled(ImVec2(lo.x+inset_left(n),lo.y+inset_top(n)),
+                ImVec2(hi.x-inset_right(n),hi.y-inset_bottom(n)),(rgb&0xffffff)|(alpha<<24),line_radius);
             return;
         }
         if(n.token=="graph"){
@@ -207,10 +207,10 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const size_t sample_count=std::min<size_t>(64,frame.graph.size());
             for(size_t k=0;k<sample_count;++k)samples.push_back(frame.graph[k*(frame.graph.size()-1)/(sample_count-1)]);
             float max_value=1;for(float value:samples)max_value=std::max(max_value,value);
-            const float width=box.w-2*inset_x(n),height=box.h-2*inset_y(n);
-            const float baseline=hi.y-inset_y(n);
+            const float width=box.w-horizontal_insets(n),height=box.h-vertical_insets(n);
+            const float baseline=hi.y-inset_bottom(n);
             std::vector<ImVec2> points;points.reserve(samples.size()*4);
-            auto point=[&](float index,float value){return ImVec2(lo.x+inset_x(n)+width*index/(samples.size()-1),baseline-height*std::max(0.f,std::min(max_value,value))/max_value);};
+            auto point=[&](float index,float value){return ImVec2(lo.x+inset_left(n)+width*index/(samples.size()-1),baseline-height*std::max(0.f,std::min(max_value,value))/max_value);};
             if(frame.graph_style>=4){
                 for(size_t k=0;k+1<samples.size();++k){
                     const float a=samples[k?k-1:k],b=samples[k],c=samples[k+1],d=samples[std::min(k+2,samples.size()-1)];
@@ -219,11 +219,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                 }
                 points.push_back(point(samples.size()-1,samples.back()));
             }else for(size_t k=0;k<samples.size();++k)points.push_back(point(k,samples[k]));
-            draw->PushClipRect(ImVec2(lo.x+inset_x(n),lo.y+inset_y(n)),ImVec2(hi.x-inset_x(n),hi.y-inset_y(n)),true);
+            draw->PushClipRect(ImVec2(lo.x+inset_left(n),lo.y+inset_top(n)),ImVec2(hi.x-inset_right(n),hi.y-inset_bottom(n)),true);
             auto alpha=[&](unsigned value){return (graph_color&~IM_COL32_A_MASK)|(ImU32(value*int((graph_color>>IM_COL32_A_SHIFT)&255)/255)<<IM_COL32_A_SHIFT);};
             if(frame.graph_style==2){
                 const float bar=std::max(1.f,width/samples.size()*.72f);
-                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-inset_x(n)),baseline),graph_color);
+                for(const auto& p:points)draw->AddRectFilled(ImVec2(p.x,p.y),ImVec2(std::min(p.x+bar,hi.x-inset_right(n)),baseline),graph_color);
             }else{
                 if(frame.graph_style==1||frame.graph_style==3||frame.graph_style==5){
                     const ImU32 fill=frame.graph_style==1?graph_color:alpha(frame.graph_style==3?56:36);
@@ -248,24 +248,24 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
             const float size=frame.font_size*scale;
             const auto parts=unit_parts(n.token,text.value);
             const float width=reading_size(text,n.token,size,frame.unit_superscript,text.value).w;
-            const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-2*inset_x(n)-width));
+            const float offset=text_offset(horizontal_alignment,std::max(0.f,box.w-horizontal_insets(n)-width));
             const auto color=style.text?style.text:text.color;
             if(n.token=="fps.value"&&fps_text(text.value)){
-                paint_fps(draw,text,size,ImVec2(lo.x+inset_x(n)+offset,lo.y+inset_y(n)),color);return;
+                paint_fps(draw,text,size,ImVec2(lo.x+inset_left(n)+offset,lo.y+inset_top(n)),color);return;
             }
             const float prefix=prefix_width(text,size);
-            const float baseline=lo.y+inset_y(n)+(frame.unit_superscript?size*.18f:0);
+            const float baseline=lo.y+inset_top(n)+(frame.unit_superscript?size*.18f:0);
             if(text.plugged){
-                paint_plug(draw,ImVec2(lo.x+inset_x(n)+offset,baseline),size,color);
+                paint_plug(draw,ImVec2(lo.x+inset_left(n)+offset,baseline),size,color);
                 return;
             }
             const int prefix_first=draw->VtxBuffer.Size;
-            if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+inset_x(n)+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
+            if(!text.prefix.empty())draw->AddText(text.prefix_font?text.prefix_font:text.font,size,ImVec2(lo.x+inset_left(n)+offset,baseline),style.text?style.text:text.prefix_color,text.prefix.c_str());
             const int number_first=draw->VtxBuffer.Size;
-            draw->AddText(text.font,size,ImVec2(lo.x+inset_x(n)+offset+prefix,baseline),color,parts.first.c_str());
+            draw->AddText(text.font,size,ImVec2(lo.x+inset_left(n)+offset+prefix,baseline),color,parts.first.c_str());
             if(!parts.second.empty()){
                 const float main_width=text.font->CalcTextSizeA(size,std::numeric_limits<float>::max(),0,parts.first.c_str()).x;
-                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+inset_x(n)+offset+prefix+main_width+unit_gap(size),lo.y+inset_y(n)),color,parts.second.c_str());
+                draw->AddText(text.font,size*(frame.unit_superscript?.7f:1.f),ImVec2(lo.x+inset_left(n)+offset+prefix+main_width+unit_gap(size),lo.y+inset_top(n)),color,parts.second.c_str());
             }
             if(!text.prefix.empty()&&std::getenv("CLAW_METRICS_VERIFY")&&ImGui::GetFrameCount()%60==0){
                 bool label_ok=true,value_ok=true;const auto label_color=style.text?style.text:text.prefix_color;

@@ -379,32 +379,34 @@ console.log('PASS graph editor: no ineffective scale slider; width/height retain
 
 state.length=0;section('Appearance');
 assert.equal(control('slider','Corner radius').max,1000);
-for(const label of ['Overlay horizontal padding (px)','Overlay vertical padding (px)']){
+for(const label of ['Left','Right','Top','Bottom'].map(side=>'Overlay '+side+' padding (px)')){
  const field=control('slider',label);assert.equal(field.min,0);assert.equal(field.max,160);assert.equal(field.step,1);
 }
-control('slider','Overlay horizontal padding (px)').onChange(27);
-control('slider','Overlay vertical padding (px)').onChange(13);
-assert.equal(draft().paddingX,27);assert.equal(draft().paddingY,13);
+control('slider','Overlay Left padding (px)').onChange(27);
+control('slider','Overlay Top padding (px)').onChange(13);
+assert.equal(draft().paddingLeft,27);assert.equal(draft().paddingTop,13);
+assert.equal(control('slider','Overlay Right padding (px)').value,0);
+assert.equal(control('slider','Overlay Bottom padding (px)').value,0);
 control('DialogButton','Pill shape').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,1000);
 control('DialogButton','Undo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,10);
 control('DialogButton','Redo').onClick();assert.equal(render().find(n=>n.type==='preview').props.settings.rounding,1000);
-control('DialogButton','Apply layout').onClick();assert.equal(applied.paddingX,27);assert.equal(applied.paddingY,13);assert.equal(appliedAppearance.rounding,1000);
+control('DialogButton','Apply layout').onClick();assert.equal(applied.paddingLeft,27);assert.equal(applied.paddingTop,13);assert.equal(appliedAppearance.rounding,1000);
 render().find(n=>n.type==='preview').props.onSelect(cpu.id);section('Appearance');
-assert(!render().some(n=>n.type==='slider'&&n.props.label.startsWith('Overlay horizontal padding')));
+assert(!render().some(n=>n.type==='slider'&&n.props.label.startsWith('Overlay Left padding')));
 assert(!render().some(n=>n.type==='DialogButton'&&text(n.props.children)==='Pill shape'));
 console.log('PASS Overlay insets: independent axes, root-only controls, Pill shape, undo/redo and Apply.');
 
 const currentCpu=model.find(draft().root,cpu.id);
-control('slider','Horizontal padding (px)').onChange(19);
-control('slider','Vertical padding (px)').onChange(7);
+control('slider','Left padding (px)').onChange(19);
+control('slider','Top padding (px)').onChange(7);
 control('ToggleField','Outline').onChange(true);
 control('slider','Outline thickness (px)').onChange(4);
 control('slider','Outline opacity (%)').onChange(35);
-assert.equal(model.find(draft().root,cpu.id).paddingX,19);assert.equal(model.find(draft().root,cpu.id).paddingY,7);
+assert.equal(model.find(draft().root,cpu.id).paddingLeft,19);assert.equal(model.find(draft().root,cpu.id).paddingTop,7);
 assert.equal(model.find(draft().root,cpu.id).outlineWidth,4);assert.equal(model.find(draft().root,cpu.id).outlineOpacity,35);
 control('DialogButton','Undo').onClick();assert.equal(model.find(draft().root,cpu.id).outlineOpacity,undefined);
 control('DialogButton','Redo').onClick();assert.equal(model.find(draft().root,cpu.id).outlineOpacity,35);
-control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,cpu.id).paddingX,19);assert.equal(model.find(applied.root,cpu.id).outlineWidth,4);
+control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,cpu.id).paddingLeft,19);assert.equal(model.find(applied.root,cpu.id).outlineWidth,4);
 assert.equal(model.parent(applied.root,cpu.id).gap,model.parent(draft().root,cpu.id).gap);
 console.log('PASS group insets/outline: independent axes, separate opacity/thickness, undo/redo, Apply and unchanged sibling gaps.');
 
@@ -413,14 +415,24 @@ assert.equal(model.find(draft().root,cpu.id).outlineColor,'#FFAACC');
 control('DialogButton','Default outline color').onClick();assert.equal(model.find(draft().root,cpu.id).outlineColor,'');
 const metricNode=model.flatten(draft().root).find(n=>n.kind==='metric'&&n.token==='cpu.load');
 render().find(n=>n.type==='preview').props.onSelect(metricNode.id);section('Appearance');
-assert.equal(control('slider','Horizontal padding (px)').value,0);assert.equal(control('slider','Vertical padding (px)').value,0);
-control('slider','Horizontal padding (px)').onChange(11);control('slider','Vertical padding (px)').onChange(5);
-assert.equal(model.find(draft().root,metricNode.id).paddingX,11);assert.equal(model.find(draft().root,metricNode.id).paddingY,5);
+assert.equal(control('slider','Left padding (px)').value,0);assert.equal(control('slider','Top padding (px)').value,0);
+control('slider','Left padding (px)').onChange(11);control('slider','Top padding (px)').onChange(5);
+control('slider','Right padding (px)').onChange(3);control('slider','Bottom padding (px)').onChange(2);
+const minimum='Minimum width (px, 0 = auto)';
+assert.equal(control('slider',minimum).value,0);
+control('slider',minimum).onChange(72);
+assert.equal(model.find(draft().root,metricNode.id).minWidth,72);
+control('slider',minimum).onChange(0);
+assert.equal(model.find(draft().root,metricNode.id).minWidth,undefined);
+control('DialogButton','Undo').onClick();
+assert.equal(model.find(draft().root,metricNode.id).minWidth,72);
+assert.equal(model.find(draft().root,metricNode.id).paddingLeft,11);assert.equal(model.find(draft().root,metricNode.id).paddingTop,5);
 assert(!render().some(n=>n.props?.className==='claw-builder-accordion-button'&&text(n.props.children).includes('Position on screen')));
 render().find(n=>n.type==='preview').props.onSelect(draft().root.id);
 assert(render().some(n=>n.props?.className==='claw-builder-accordion-button'&&text(n.props.children).includes('Position on screen')));
-control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,metricNode.id).paddingX,11);
-console.log('PASS all elements have zero-default X/Y padding; global Position appears only for Overlay.');
+control('DialogButton','Apply layout').onClick();assert.equal(model.find(applied.root,metricNode.id).paddingLeft,11);
+assert.deepEqual([model.find(applied.root,metricNode.id).paddingRight,model.find(applied.root,metricNode.id).paddingBottom,model.find(applied.root,metricNode.id).minWidth],[3,2,72]);
+console.log('PASS independent padding edges, optional minimum metric width, Undo and Apply.');
 
 state.length=0;closed=false;applied=undefined;styleSettings={sans:true};
 const fontCpu=model.flatten(initial.root).find(n=>n.kind==='group'&&n.name==='CPU');

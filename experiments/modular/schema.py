@@ -7,6 +7,7 @@ TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.loa
               'gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value '
               'vram.temp vram.clock battery.label battery.value battery.time battery.power '
               'time.value tdp.value tdp.label tdp.reading graph separator').split())
+PADDING_SIDES = ('paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom')
 ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center-left', 'center-right')
 
 
@@ -45,7 +46,9 @@ def validate_layout(value):
         # Legacy scalar padding remains readable; explicit X/Y padding defaults to zero.
         out['padding'] = 0
         if depth > 0:
-            out.update({key:number(v[key],0,160) for key in ('paddingX','paddingY') if key in v})
+            out.update({key:number(v[key],0,160) for key in ('paddingX', 'paddingY', *PADDING_SIDES) if key in v})
+        if v['kind'] == 'metric' and v['token'] not in ('graph', 'separator', 'tdp.value') and 'minWidth' in v:
+            out['minWidth'] = number(v['minWidth'], 0, 240)
         for key,limit in (('outlineWidth',12),('outlineOpacity',100)):
             if key in v:out[key]=number(v[key],0,limit)
         if 'outlineColor' in v:out['outlineColor']=color(v['outlineColor'])
@@ -64,7 +67,7 @@ def validate_layout(value):
     if root['kind'] != 'group':
         raise ValueError('Root must be a group')
     return {'schema': 'claw-modular-layout', 'version': 1, 'anchor': value['anchor'],
-            **{key:number(value[key],0,160) for key in ('paddingX','paddingY') if key in value},
+            **{key:number(value[key],0,160) for key in ('paddingX', 'paddingY', *PADDING_SIDES) if key in value},
             'x': number(value.get('x'), 0, 2000), 'y': number(value.get('y'), -2000 if value['anchor'].startswith('center-') else 0, 2000), 'root': root}
 
 
@@ -90,8 +93,10 @@ def encode_native(value):
     flatten(layout['root'])
     def numeric(value):
         return format(value, '.17g')
-    lines = ['CLAW_MODULAR_V6', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
-    for n, children in nodes:
+    extended = any(key in layout for key in PADDING_SIDES) or any(
+        any(key in node for key in (*PADDING_SIDES, 'minWidth')) for node, _ in nodes)
+    lines = ['CLAW_MODULAR_V7' if extended else 'CLAW_MODULAR_V6', ' '.join((str(ANCHORS.index(layout['anchor'])), numeric(layout['x']), numeric(layout['y']), str(len(nodes)))), ' '.join(numeric(layout.get(key,0)) for key in ('paddingX','paddingY'))]
+    for index, (n, children) in enumerate(nodes):
         fields = [n['id'].encode().hex() or '-', n['token'], str(int(n['kind'] == 'group')),
                   str(int(n['visible'])), str(int(n['axis'] == 'column')),
                   str(('start', 'center', 'end').index(n['align'])),
@@ -104,7 +109,12 @@ def encode_native(value):
         fields += [numeric(n.get('outlineWidth',1)), n.get('outlineColor','')[1:] or '8FB8D9', numeric(n.get('outlineOpacity',100))]
         fields += [numeric(n.get('cornerRadius',-1)), str(('', 'light', 'regular', 'semibold', 'bold').index(n.get('fontWeight','')))]
         fields += [numeric(n.get('separatorOpacity',100))]
-        fields += [str(index) for index in children]
+        if extended:
+            padding = layout if index == 0 else n
+            fields += [numeric(padding.get(key, padding.get('paddingX' if i < 2 else 'paddingY', 0)))
+                       for i, key in enumerate(PADDING_SIDES)]
+            fields.append(numeric(n.get('minWidth', 0)))
+        fields += [str(child) for child in children]
         lines.append(' '.join(fields))
     encoded = '\n'.join(lines) + '\n'
     if len(encoded.encode()) > 1024 * 1024:
