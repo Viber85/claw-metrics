@@ -413,7 +413,7 @@ def short_launch_option():
     return shlex.quote(str(short_launcher_path())) + ' %command%' if short_launcher_ready() else ''
 
 
-FRAMEGEN_APP_ID = "1903340"
+LEGACY_FRAMEGEN_APP_ID = "1903340"
 
 
 def framegen_flag():
@@ -430,7 +430,23 @@ def framegen_adapter():
     return pathlib.Path(__file__).resolve().parent / "framegen" / "amd_fidelityfx_framegeneration_dx12.dll"
 
 
-def framegen_command(action):
+def framegen_registry():
+    return BASE / "framegen-games"
+
+
+def read_framegen_registry():
+    try:
+        records = framegen_registry().read_text().splitlines()
+    except FileNotFoundError:
+        return {}
+    return {key: json.loads(value) for key, value in (record.split(":", 1) for record in records)}
+
+
+def write_framegen_registry(games):
+    write_atomic(framegen_registry(), "".join(f"{key}:{json.dumps(folder)}\n" for key, folder in games.items()))
+
+
+def framegen_command(action, appid=None, path=None):
     import pwd
     home = user_home()
     user_options = {}
@@ -440,8 +456,13 @@ def framegen_command(action):
             raise ValueError("Decky could not identify the Steam desktop user.")
         user_options = {"user": user.pw_uid, "group": user.pw_gid,
                         "extra_groups": os.getgrouplist(user.pw_name, user.pw_gid)}
+    command = ["/usr/bin/python3", "-I", str(framegen_helper()), action, str(home), str(framegen_adapter())]
+    if appid:
+        command.append("--appid=" + appid)
+    if path:
+        command.append("--path=" + path)
     result = subprocess.run(
-        ["/usr/bin/python3", "-I", str(framegen_helper()), action, str(home), str(framegen_adapter())],
+        command,
         cwd="/", env={"PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8"},
         capture_output=True, text=True, check=True, timeout=15, **user_options)
     return json.loads(result.stdout)
@@ -475,10 +496,14 @@ def short_launcher_script():
         + shlex.quote(str(opengl_shim())) + "; export LD_PRELOAD ;;\n"
         "    esac\n"
         "fi\n"
-        'case ":${SteamAppId-}:${STEAM_COMPAT_APP_ID-}:${SteamGameId-}:" in\n'
-        '  *:' + FRAMEGEN_APP_ID + ':*) [ ! -f ' + shlex.quote(str(framegen_flag()))
-        + ' ] || CLAW_FRAMEGEN=1 ;;\n'
-        'esac\n'
+        'for claw_appid in "${SteamAppId-}" "${STEAM_COMPAT_APP_ID-}" "${SteamGameId-}"; do\n'
+        '    case "$claw_appid" in ""|*[!0-9-]*) continue ;; esac\n'
+        '    if grep -q -- "^$claw_appid:" ' + shlex.quote(str(framegen_registry())) + ' 2>/dev/null; then\n'
+        '        CLAW_FRAMEGEN=1; break\n'
+        '    fi\n'
+        '    if [ "$claw_appid" = ' + LEGACY_FRAMEGEN_APP_ID + ' ] && [ -f '
+        + shlex.quote(str(framegen_flag())) + ' ]; then CLAW_FRAMEGEN=1; break; fi\n'
+        'done\n'
         'if [ "${CLAW_FRAMEGEN-}" = 1 ] && [ -z "${CLAW_FRAMEGEN_FILE-}" ]; then\n'
         '    original_umask=$(umask)\n'
         '    umask 077\n'
@@ -1217,30 +1242,61 @@ def publish_modular(settings):
 
 
 class Plugin:
-    async def get_framegen_status(self):
-        return await self._framegen_action("status")
+    async def list_framegen_games(self):
+        try:
+            result = await asyncio.to_thread(framegen_command, "list")
+            if "games" not in result:
+                return {**result, "games": [], "home": str(user_home())}
+            games = {game["appid"]: game for game in result["games"]}
+            for key, folder in read_framegen_registry().items():
+                if re.fullmatch(r"[1-9][0-9]{0,9}", key) and int(key) <= 0xffffffff and key not in games:
+                    games[key] = {"appid": key, "name": pathlib.Path(folder).name, "source": "Configured"}
+            result["games"] = list(games.values())
+            return result
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return {"games": [], "home": str(user_home()), "message": "Could not read Steam's game library."}
 
-    async def set_framegen_enabled(self, enabled):
+    async def get_framegen_status(self, appid, path=None):
+        return await self._framegen_action("status", appid, path)
+
+    async def set_framegen_enabled(self, enabled, appid, path=None):
         if type(enabled) is not bool:
             return {"state": "unavailable", "message": "Invalid Frame Gen action."}
-        return await self._framegen_action("enable" if enabled else "disable")
+        return await self._framegen_action("enable" if enabled else "disable", appid, path)
 
-    async def _framegen_action(self, action):
+    async def _framegen_action(self, action, appid, path):
+        if (not isinstance(appid, str) or not re.fullmatch(r"[1-9][0-9]{0,9}", appid)
+                or int(appid) > 0xffffffff or (path is not None and
+                    (not isinstance(path, str) or len(path) > 4096 or not path.startswith("/") or "\0" in path))):
+            return {"state": "unavailable", "message": "Invalid game selection."}
         if not hasattr(self, "_framegen_lock"):
             self._framegen_lock = asyncio.Lock()
         async with self._framegen_lock:
             try:
-                result = await asyncio.to_thread(framegen_command, action)
+                games = read_framegen_registry()
+                current_folder = games.get(appid)
+                result = await asyncio.to_thread(framegen_command, action, appid, current_folder or path)
                 if result["state"] == "unavailable":
+                    result["configured"] = bool(current_folder)
                     return result
+                folder = result.pop("folder")
+                legacy = appid == LEGACY_FRAMEGEN_APP_ID and framegen_flag().is_file()
                 if action == "enable":
-                    write_atomic(framegen_flag(), "1\n")
+                    number = int(appid)
+                    for key in (appid, str(number - 2**32), str((number << 32) | 0x02000000)) if number >= 2**31 else (appid,):
+                        games[key] = folder
+                    write_framegen_registry(games)
+                    if legacy:
+                        framegen_flag().unlink(missing_ok=True)
                 elif action == "disable":
-                    framegen_flag().unlink(missing_ok=True)
-                if result["state"] == "enabled" and not framegen_flag().is_file():
+                    write_framegen_registry({key: value for key, value in games.items() if value != folder})
+                    if legacy:
+                        framegen_flag().unlink(missing_ok=True)
+                elif result["state"] == "enabled" and not (current_folder or legacy):
                     result["state"] = "setup"
+                result["configured"] = action == "enable" or (action == "status" and bool(current_folder or legacy))
                 return result
-            except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
                 return {"state": "unavailable", "message": "Frame Gen setup failed. " + str(error)[:180]}
 
     async def _main(self):

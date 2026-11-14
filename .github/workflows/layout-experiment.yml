@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.3.0-rc.3 ZIP
+name: Build Claw Metrics v0.3.0-rc.4 ZIP
 on:
   push:
-    branches: [test/universal-updater-030-rc3]
+    branches: [test/per-game-framegen-030-rc4]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same release candidate.
 concurrency:
-  group: claw-metrics-v0.3.0-rc.3-frame-generation
+  group: claw-metrics-v0.3.0-rc.4-frame-generation
   cancel-in-progress: true
 
 jobs:
@@ -295,7 +295,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.3.zip')
+          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.4.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -311,28 +311,28 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.3.0-rc.3', package['version']
+              assert package['version'] == '0.3.0-rc.4', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.3.0-rc.3
-          path: ClawMetrics-v0.3.0-rc.3.zip
+          name: ClawMetrics-v0.3.0-rc.4
+          path: ClawMetrics-v0.3.0-rc.4.zip
       - name: Publish the prerelease and legacy updater entry
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > release-notes.txt <<'EOF'
-          Check for updates now finds the highest newer version across stable releases and prereleases such as test, beta and RC. It offers only verified Claw Metrics ZIPs published in this repository.
+          In Activation, choose a Steam or Non-Steam game and enable FSR metrics. The setup locates a compatible AMD DX12 Frame Gen DLL and backs it up automatically. If Steam launches a separate launcher, use the file picker to choose the game DLL once. Restore is available in the same menu. Launch with the usual Claw Metrics command.
 
-          Includes one-click Clair Obscur Frame Gen setup and restore, Game FPS, Generated FPS, Output FPS and both frametime lines. Clair Obscur telemetry still needs an on-device test.
+          Split Game FPS and Generated FPS require an active FidelityFX presentation callback. The Classic overlay and Layout Builder use the same readings. Automatic setup has been tested with synthetic Steam and Non-Steam libraries. Real game telemetry on SteamOS still needs on-device testing.
           EOF
-          gh release create v0.3.0-rc.3 ClawMetrics-v0.3.0-rc.3.zip \
+          gh release create v0.3.0-rc.4 ClawMetrics-v0.3.0-rc.4.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.3 – Release update discovery" \
+            --title "Claw Metrics v0.3.0-rc.4 – Frame Gen for Steam and Non-Steam games" \
             --notes-file release-notes.txt
-          cp ClawMetrics-v0.3.0-rc.3.zip ClawMetrics-v0.2.4-test.123.zip
-          gh release create v0.2.4-test.123 ClawMetrics-v0.2.4-test.123.zip \
+          cp ClawMetrics-v0.3.0-rc.4.zip ClawMetrics-v0.2.4-test.124.zip
+          gh release create v0.2.4-test.124 ClawMetrics-v0.2.4-test.124.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.3 – Update from older test builds" \
+            --title "Claw Metrics v0.3.0-rc.4 – Update from older test builds" \
             --notes-file release-notes.txt

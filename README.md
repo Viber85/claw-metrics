@@ -1,22 +1,19 @@
-## v0.3.0-rc.3 — Release update discovery
+## v0.3.0-rc.4 — Frame Gen for Steam and Non-Steam games
 
-**Check for updates** offers the highest newer published Claw Metrics version
-with a verified installable ZIP. Stable releases and prereleases use SemVer
-ordering. The October experimental `v0.3.0` build is retired. Older plugin
-versions may show `test.123` during the update and report `0.3.0-rc.3` afterward.
+Close the game and open **Claw Metrics → Activation** in Decky. Choose a Steam
+or Non-Steam game and select **Enable FSR metrics**. When a shortcut points to
+an external launcher and automatic lookup cannot locate the game DLL, select
+`amd_fidelityfx_framegeneration_dx12.dll` in the built-in file picker. Launch
+the game with the regular Claw Metrics launch option and enable FSR Frame
+Generation in the game.
 
-## v0.3.0-rc.2 — One-click Frame Gen setup
+Setup works with games that ship the supported AMD DX12 Frame Gen DLL.
+**Restore original AMD DLL** reverses the change. If a game update replaces
+the adapter, select **Enable FSR metrics** again.
 
-1. Close **Clair Obscur: Expedition 33**.
-2. In Decky, open **Claw Metrics → Activation → Enable FSR metrics**.
-3. Launch the game with your existing Better Overlay launch command and turn on
-   **FSR Frame Generation** in the game to test the split metrics.
-
-The plugin locates Clair Obscur in Steam's libraries, backs up its AMD DLL,
-installs the adapter and activates the telemetry relay at launch. In the same
-menu, **Restore original AMD DLL** reverses setup. If Steam replaces the adapter
-during a game update, use **Enable FSR metrics** to set it up again with the
-updated AMD DLL. This is the test setup for the Steam version of Clair Obscur.
+**Check for updates** offers the highest newer version with a verified ZIP.
+Older plugin versions may show `test.124` during the update and report
+`0.3.0-rc.4` after installation.
 
 ## v0.3.0-rc.1 — Frame Generation metrics
 
@@ -33,39 +30,10 @@ Game + FG readings may differ slightly from Output. The compositor can still
 drop submissions before display. When a game provides no classification, the
 HUD shows `--` for Game and FG and draws only the Output series.
 
-### Try internal FSR in Clair Obscur on Proton
-
-The optional adapter is a DX12 FidelityFX API proxy. It forwards to the original
-AMD DLL and observes an existing AMD presentation callback. It has to be
-installed explicitly for each game. Use it with an AMD DX12 FSR title that
-ships `amd_fidelityfx_framegeneration_dx12.dll` and registers that callback.
-The protocol and HUD have automated coverage. Clair Obscur on a physical Claw
-and MAKO frame classification are still unverified. MAKO-only launches provide
-an Output reading when the Better Overlay layer is below MAKO.
-
-1. In Steam Desktop Mode, open **Clair Obscur → Properties → Installed Files →
-   Browse**. Close the game and locate its `Sandfall/Binaries/Win64` folder.
-2. Run the following in Konsole, replacing the second path with the folder Steam
-   opened and adjusting the first if Decky uses a different plugin location.
-
-   ```sh
-   python3 ~/homebrew/plugins/ClawMetrics/framegen/manage_bridge.py install "/path/to/Expedition 33/Sandfall/Binaries/Win64"
-   ```
-
-3. Put `CLAW_FRAMEGEN=1` before Better Overlay's usual short launch command.
-
-   ```sh
-   CLAW_FRAMEGEN=1 ~/claw-metrics %command%
-   ```
-
-4. Start the game with MAKO and OptiScaler disabled and compare the same scene
-   with the game's **FSR Frame Generation** off and on. The first readings
-   need a short warm-up. When the game's callback is dormant, Game and FG
-   can show `--`.
-
-To restore the original AMD DLL, close the game, run the same command with
-`remove` in place of `install`, and remove `CLAW_FRAMEGEN=1` from the launch
-options. The helper preserves the backup if Steam has replaced the DLL.
+The DX12 FidelityFX adapter forwards calls to the original AMD DLL and
+observes its presentation callback. Automatic setup and restore have automated
+coverage. Actual SteamOS game telemetry still needs on-device testing. XeSS
+and DLSS require their own telemetry sources.
 
 ## v0.2.4-test.121 — Minimum reading width and four-sided padding
 
