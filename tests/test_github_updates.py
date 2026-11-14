@@ -56,10 +56,33 @@ class UpdateChecks(unittest.TestCase):
                     asyncio.run(plugin.get_installed_version())
 
     def test_versions_compare_numerically_not_lexically(self):
-        self.assertEqual(updates.version_number("v0.2.4-test.100"),(0,100))
-        self.assertEqual(updates.version_number("0.2.4-test.9"),(0,9))
-        self.assertIsNone(updates.version_number("v0.2.4-test.99-evil"))
-        self.assertIsNone(updates.version_number("0.2.5-test.3"))
+        ordered = [
+            "0.2.4-test.9", "v0.2.4-test.100", "0.2.5-test.3",
+            "v0.3.0-alpha", "v0.3.0-beta.2", "v0.3.0-beta.11",
+            "v0.3.0-rc.1", "v0.3.0", "v0.3.1-preview.build.7", "v1.0.0",
+        ]
+        keys = [updates.version_number(tag) for tag in ordered]
+        self.assertEqual(keys, sorted(set(keys)))
+        self.assertEqual(updates.version_number("1.0.0+build.5"), keys[-1])
+        for tag in ("test", "v1.01.0", "v1.0.0-rc.01", "v1.0.0/escape", "v1.0.0-rc..1"):
+            self.assertIsNone(updates.version_number(tag), tag)
+
+    def test_selects_stable_or_arbitrary_prerelease_with_exact_asset(self):
+        releases = [release("v0.3.1"), release("0.4.0-new-channel.2"),
+                    release("v0.4.0-new-channel.10", digest=""), release("v0.4.0", draft=True)]
+        latest = updates.latest_compatible_release(releases)
+        self.assertEqual(latest["version"], "0.4.0-new-channel.2")
+        self.assertEqual(latest["tag"], "0.4.0-new-channel.2")
+        self.assertIn("/0.4.0-new-channel.2/ClawMetrics-0.4.0-new-channel.2.zip", latest["asset_url"])
+        releases.append(release("v0.4.0"))
+        self.assertEqual(updates.latest_compatible_release(releases)["version"], "0.4.0")
+
+    def test_old_updater_bridge_cannot_become_a_downgrade(self):
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory) / "package.json"
+            package.write_text('{"version":"0.3.0-rc.3"}')
+            feed = json.dumps([release(123), release("v0.3.0"), release("v0.3.0-rc.3")])
+            self.assertFalse(updates.validate_github_feed(package, feed)["available"])
 
     def test_release_candidate_beats_test_build_and_ignores_historical_030(self):
         releases = [release(121), release('v0.3.0-rc.1'), release('v0.3.0'), release('v0.3.0-rc.2')]
@@ -99,6 +122,7 @@ class UpdateChecks(unittest.TestCase):
             release(60,url="https://github.com/other/thing/releases/download/t/xx.zip"),
             release(60,digest=""),
             release(60,draft=True),
+            {**release(60),"assets":None},
             {**release(60),"tag_name":"v0.2.4-test.60-rc"},
         ]:
             self.assertIsNone(updates.latest_compatible_release([candidate]))

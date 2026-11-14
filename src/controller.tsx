@@ -504,7 +504,7 @@ export function useClawController() {
       }
       if (!result.available || !result.latest) {
         setUpdateStatus("Installed version "+(result.current||"unknown")+
-          " is up to date. No newer test release.");
+          " is up to date. No newer release.");
       } else {
         setUpdateStatus("New version available: "+result.latest.tag+
           " (installed: "+result.current+").");

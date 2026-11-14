@@ -685,7 +685,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('const fallback=await withTimeout(checkUpdates());', SOURCE)
         self.assertIn('if (!fallback.ok)', SOURCE)
         self.assertIn('Python HTTPS:', SOURCE)
-        self.assertIn('No newer test release.', SOURCE)
+        self.assertIn('No newer release.', SOURCE)
         self.assertIn('GitHub API: HTTP ', SOURCE)
         # No unverified GitHub data is forwarded to the Decky installer.
         self.assertNotIn('JSON.parse(http.body)', SOURCE)

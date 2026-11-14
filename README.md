@@ -1,3 +1,10 @@
+## v0.3.0-rc.3 — Release update discovery
+
+**Check for updates** offers the highest newer published Claw Metrics version
+with a verified installable ZIP. Stable releases and prereleases use SemVer
+ordering. The October experimental `v0.3.0` build is retired. Older plugin
+versions may show `test.123` during the update and report `0.3.0-rc.3` afterward.
+
 ## v0.3.0-rc.2 — One-click Frame Gen setup
 
 1. Close **Clair Obscur: Expedition 33**.

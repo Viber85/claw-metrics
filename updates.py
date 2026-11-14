@@ -2,8 +2,8 @@
 
 The privileged plugin backend only reads release metadata. It never extracts or
 installs ZIPs: installation is delegated to Decky Loader's own confirmation
-and SHA-256-verifying installer. The updater accepts numbered test releases
-and Frame Gen release candidates with exact official GitHub asset URLs.
+and SHA-256-verifying installer. Releases use SemVer precedence and exact
+official GitHub asset URLs.
 """
 import json
 import pathlib
@@ -12,22 +12,36 @@ import urllib.error
 import urllib.request
 
 REPOSITORY = "Viber85/claw-metrics"
-RC_PATTERN = re.compile(r"^v?0\.3\.0-rc\.([1-9][0-9]{0,5})$")
 RELEASES_API = "https://api.github.com/repos/" + REPOSITORY + "/releases?per_page=30"
-VERSION_PATTERN = re.compile(r"^v?0\.2\.4-test\.(\d+)$")
+VERSION_PATTERN = re.compile(
+    r"v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+    r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+# This tag predates the current test line and already denotes an obsolete build.
+HISTORICAL_TAG = "0.3.0"
 SHA256_PATTERN = re.compile(r"^sha256:([a-fA-F0-9]{64})$")
 MAX_RESPONSE = 2 * 1024 * 1024
 MAX_ASSET_BYTES = 30 * 1024 * 1024
 
 
 def version_number(value):
-    if not isinstance(value, str):
+    """Return a comparable SemVer key, ignoring build metadata."""
+    if not isinstance(value, str) or len(value) > 64:
         return None
     match = VERSION_PATTERN.fullmatch(value)
-    if match:
-        return (0, int(match.group(1)))
-    match = RC_PATTERN.fullmatch(value)
-    return (1, int(match.group(1))) if match else None
+    if match is None:
+        return None
+    major, minor, patch, prerelease = match.groups()
+    identifiers = []
+    for part in prerelease.split(".") if prerelease else ():
+        if part.isdigit():
+            if len(part) > 1 and part.startswith("0"):
+                return None
+            identifiers.append((0, int(part)))
+        else:
+            identifiers.append((1, part))
+    return (int(major), int(minor), int(patch), prerelease is None, tuple(identifiers))
 
 
 def installed_version(package_file):
@@ -43,7 +57,7 @@ def installed_version(package_file):
 
 def latest_compatible_release(releases):
     best = None
-    best_number = (-1, 0)
+    best_number = None
     if not isinstance(releases, list):
         raise RuntimeError("GitHub did not return a list of releases.")
     for release in releases:
@@ -51,15 +65,20 @@ def latest_compatible_release(releases):
             continue
         tag = release.get("tag_name")
         number = version_number(tag)
-        if number is None or number <= best_number:
+        if number is None or (best_number is not None and number <= best_number):
             continue
         version = tag.removeprefix("v")
-        file_name = f"ClawMetrics-v{version}.zip"
+        if version == HISTORICAL_TAG:
+            continue
+        file_name = f"ClawMetrics-{tag}.zip"
         expected_url = (
             f"https://github.com/{REPOSITORY}/releases/download/"
-            f"v{version}/{file_name}"
+            f"{tag}/{file_name}"
         )
-        for asset in release.get("assets", []):
+        assets = release.get("assets")
+        if not isinstance(assets, list):
+            continue
+        for asset in assets:
             if not isinstance(asset, dict):
                 continue
             match = SHA256_PATTERN.fullmatch(str(asset.get("digest", "")))
@@ -71,11 +90,11 @@ def latest_compatible_release(releases):
                 notes = body.strip()[:5000] if isinstance(body, str) else ""
                 best = {
                     "version": version,
-                    "tag": f"v{version}",
+                    "tag": tag,
                     "notes": notes or "Novo izdanje Claw Metricsa.",
                     "asset_url": expected_url,
                     "sha256": match.group(1).lower(),
-                    "release_url": f"https://github.com/{REPOSITORY}/releases/tag/v{version}",
+                    "release_url": f"https://github.com/{REPOSITORY}/releases/tag/{tag}",
                 }
                 best_number = number
                 break
