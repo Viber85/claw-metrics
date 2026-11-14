@@ -7,10 +7,12 @@ export type Layout=Padding & {schema:'claw-modular-layout';version:1;anchor:stri
 export const anchors=['top-left','top-center','top-right','bottom-left','bottom-center','bottom-right','center-left','center-right'];
 export const catalog:Record<string,string>={
  'fps.label':'FPS label','fps.value':'FPS value','fps.ms':'Frametime','fps.average':'Average FPS','fps.low1':'1% low',
+ 'fps.game':'Game FPS','fps.generated':'Generated FPS','fps.output':'Output FPS','graph.framegen':'Frame Gen graph',
  'cpu.label':'CPU label','cpu.load':'CPU load','cpu.temp':'CPU temperature','cpu.clock':'CPU clock','cpu.power':'CPU power',
  'gpu.label':'GPU label','gpu.load':'GPU load','gpu.temp':'GPU temperature','gpu.clock':'GPU clock','gpu.power':'GPU power','gpu.junction':'GPU junction','gpu.fan':'GPU fan','gpu.voltage':'GPU voltage',
  'ram.label':'RAM label','ram.value':'RAM usage','ram.game':'Game RAM','ram.swap':'SWAP','vram.label':'VRAM label','vram.value':'VRAM usage','vram.temp':'VRAM temperature','vram.clock':'VRAM clock',
  'battery.label':'Battery label','battery.value':'Battery charge','battery.time':'Battery time','battery.power':'Power draw','time.value':'Clock','tdp.label':'TDP label','tdp.reading':'TDP reading','tdp.value':'TDP (legacy combined)','graph':'Frametime graph','separator':'Separator line'};
+export const isGraph=(token:string)=>token==='graph'||token==='graph.framegen';
 let serial=0;
 export const uid=()=>`n-${Date.now().toString(36)}-${++serial}`;
 export function node(kind:Node['kind'],name:string,extra:Partial<Node>={}):Node{return {id:uid(),kind,name,visible:true,axis:'row',gap:8,padding:0,align:'center',selfAlign:'auto',scale:100,color:'',background:'',opacity:85,outline:false,children:[],token:'fps.value',width:180,height:44,...extra}}
@@ -59,7 +61,7 @@ export function move(layout:Layout,id:string,targetId:string,index?:number):Layo
 // Keep the readings in their existing row while giving the graph its own row.
 export function placeGraphBelow(layout:Layout,id:string):Layout{
  const out=structuredClone(layout),graphNode=find(out.root,id);
- if(graphNode?.kind!=='metric'||graphNode.token!=='graph')throw new Error('Select a frametime graph.');
+ if(graphNode?.kind!=='metric'||!isGraph(graphNode.token))throw new Error('Select a frametime graph.');
  // The footer should finish at the edge of the readings row, regardless of
  // how many CPU/GPU fields the user has enabled.
  graphNode.width=0;
@@ -85,7 +87,7 @@ export function placeGraphBelow(layout:Layout,id:string):Layout{
 }
 export function isHorizontalLayout(layout:Layout):boolean{
  const {root}=layout;
- return root.axis==='row'||(root.axis==='column'&&root.children.length===2&&root.children[0].kind==='group'&&root.children[0].axis==='row'&&root.children[1].kind==='metric'&&root.children[1].token==='graph');
+ return root.axis==='row'||(root.axis==='column'&&root.children.length===2&&root.children[0].kind==='group'&&root.children[0].axis==='row'&&root.children[1].kind==='metric'&&isGraph(root.children[1].token));
 }
 // Legacy layouts still render unchanged. When opened for editing, convert the
 // combined TDP reading to independent label and value elements.
@@ -115,7 +117,7 @@ export function preset(kind:string,s:any):Layout{
  let children:Node[],axis:Axis='row';
  if(kind==='two-rows')children=[fps,group('System & graphics',[group('System row',[cpu(),tdp(),metric('battery.power')],{gap:20}),group('Graphics row',[gpu(),group('RAM',tokens('ram.label','ram.value')),group('VRAM',tokens('vram.label','vram.value')),metric('graph',{width:110,height:28})],{gap:20})],{axis:'column',align:'start',gap:8})];
  else if(kind==='graph-focus'){axis='column';children=[group('Performance',[group('Frame rate',[fps,metric('fps.ms')],{axis:'column',align:'start'}),metric('graph',{width:520,height:70})],{gap:24}),group('Readings',[cpu(),gpu(),tdp(),metric('battery.power')],{gap:20})]}
- else {axis=kind==='vertical'?'column':'row';const map:Record<string,()=>Node>={fps:()=>group('FPS',tokens('fps.label','fps.value',...(s.metrics?.fps_ms?['fps.ms']:[]),...(s.metrics?.fps_average?['fps.average']:[]),...(s.metrics?.fps_low1?['fps.low1']:[]))),cpu:()=>cpu(s),gpu:()=>gpu(s),ram:()=>group('RAM',tokens('ram.label','ram.value',...(s.metrics?.ram_game?['ram.game']:[]),...(s.metrics?.ram_swap?['ram.swap']:[]))),vram:()=>group('VRAM',tokens('vram.label','vram.value')),battery:()=>group('Battery',tokens('battery.label','battery.value',...(s.metrics?.battery_time?['battery.time']:[]))),tdp:()=>tdp(),draw:()=>metric('battery.power'),time:()=>metric('time.value'),frametime:()=>metric('graph',{width:s.graph_width||150,height:44})};children=(s.order||Object.keys(map)).filter((k:string)=>s[k]&&map[k]&&(k!=='frametime'||s.metrics?.graph)).map((k:string)=>map[k]());}
+ else {axis=kind==='vertical'?'column':'row';const map:Record<string,()=>Node>={fps:()=>group('FPS',tokens('fps.label','fps.value',...(s.metrics?.fps_ms?['fps.ms']:[]),...(s.metrics?.fps_average?['fps.average']:[]),...(s.metrics?.fps_low1?['fps.low1']:[]),...(s.metrics?.fps_game?['fps.game']:[]),...(s.metrics?.fps_generated?['fps.generated']:[]),...(s.metrics?.fps_output?['fps.output']:[]))),cpu:()=>cpu(s),gpu:()=>gpu(s),ram:()=>group('RAM',tokens('ram.label','ram.value',...(s.metrics?.ram_game?['ram.game']:[]),...(s.metrics?.ram_swap?['ram.swap']:[]))),vram:()=>group('VRAM',tokens('vram.label','vram.value')),battery:()=>group('Battery',tokens('battery.label','battery.value',...(s.metrics?.battery_time?['battery.time']:[]))),tdp:()=>tdp(),draw:()=>metric('battery.power'),time:()=>metric('time.value'),frametime:()=>metric(s.metrics?.framegen_graph?'graph.framegen':'graph',{width:s.graph_width||150,height:44})};children=(s.order||Object.keys(map)).filter((k:string)=>s[k]&&map[k]&&(k!=='frametime'||s.metrics?.graph||s.metrics?.framegen_graph)).map((k:string)=>map[k]());}
  return {schema:'claw-modular-layout',version:1,anchor:'top-center',x:16,y:20,root:group('Overlay',children,{axis,gap:16,padding:0})};
 }
 export function validate(input:any):Layout{
@@ -130,13 +132,13 @@ export function validate(input:any):Layout{
   number(v.padding===undefined&&v.kind==='group'?0:v.padding,0,80); // Validate legacy scalar; new X/Y defaults are zero.
   const extras:Partial<Node>={};
   if(depth>0)for(const key of ['paddingX','paddingY',...paddingSides] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,160);
-  if(v.kind==='metric'&&!['graph','separator','tdp.value'].includes(v.token)&&v.minWidth!==undefined)extras.minWidth=number(v.minWidth,0,240);
+  if(v.kind==='metric'&&!isGraph(v.token)&&!['separator','tdp.value'].includes(v.token)&&v.minWidth!==undefined)extras.minWidth=number(v.minWidth,0,240);
   for(const key of ['outlineWidth','outlineOpacity'] as const)if(v[key]!==undefined)extras[key]=number(v[key],0,key==='outlineWidth'?12:100);
   if(v.outlineColor!==undefined)extras.outlineColor=color(v.outlineColor);
   if(depth>0&&(v.kind==='group'||v.token==='separator')&&v.cornerRadius!==undefined)extras.cornerRadius=number(v.cornerRadius,0,1000);
   if(v.kind==='metric'&&v.token==='separator'&&v.separatorOpacity!==undefined)extras.separatorOpacity=number(v.separatorOpacity,0,100);
   if(v.fontWeight!==undefined){if(!['light','regular','semibold','bold'].includes(v.fontWeight))throw new Error('Invalid font weight.');extras.fontWeight=v.fontWeight;}
-  const widthMin=v.kind==='metric'?(v.token==='graph'?0:v.token==='separator'?4:40):40;
+  const widthMin=v.kind==='metric'?(isGraph(v.token)?0:v.token==='separator'?4:40):40;
   return {...extras,id:v.id,kind:v.kind,name:v.name,visible:v.visible,axis:v.axis,align:v.align,selfAlign:v.selfAlign??'auto',outline:v.outline,token:v.kind==='metric'?v.token:'fps.value',gap:number(v.gap,0,v.kind==='group'?240:80),padding:0,scale:number(v.scale,50,250),color:color(v.color),background:color(v.background),opacity:number(v.opacity,0,100),width:number(v.width,widthMin,1000),height:number(v.height,v.token==='separator'?1:16,240),children:v.children.map((c:any)=>visit(c,depth+1))};
  };
  const root=visit(input.root,0);if(root.kind!=='group')throw new Error('Root must be a group.');

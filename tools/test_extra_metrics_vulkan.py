@@ -14,7 +14,7 @@ import threading
 root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root))
 import main
-icds=sorted(Path('/usr/share/vulkan/icd.d').glob('lvp_icd*.json'))
+icds=sorted(Path(os.environ.get('CLAW_TEST_ICD_DIR', '/usr/share/vulkan/icd.d')).glob('lvp_icd*.json'))
 assert icds,'Lavapipe test driver missing'
 with tempfile.TemporaryDirectory() as directory:
     tmp=Path(directory)

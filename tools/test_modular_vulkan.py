@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT))
 import main
 spec=importlib.util.spec_from_file_location('schema',ROOT/'experiments/modular/schema.py')
 schema=importlib.util.module_from_spec(spec);spec.loader.exec_module(schema)
-icds=sorted(Path('/usr/share/vulkan/icd.d').glob('lvp_icd*.json'));assert icds
+icds=sorted(Path(os.environ.get('CLAW_TEST_ICD_DIR', '/usr/share/vulkan/icd.d')).glob('lvp_icd*.json'));assert icds
 with tempfile.TemporaryDirectory() as directory:
     tmp=Path(directory);main.BASE=tmp/'profile';main.install_font();main.install_condensed_fonts()
     main.tdp_path().write_text('Power Limit 20W\n')

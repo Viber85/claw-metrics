@@ -1,6 +1,7 @@
 #pragma once
 #include "claw_modular_layout.h"
 #include "claw_battery_time.h"
+#include "claw_framegen_graph.h"
 #include "imgui.h"
 #include <limits>
 #include <array>
@@ -33,6 +34,7 @@ struct Frame {
     std::map<std::string,Text> readings;
     std::vector<Text> node_readings;
     std::vector<float> graph;
+    claw_framegen::Snapshot framegen;
     Result geometry;
     Size screen;
     size_t root=0;
@@ -197,7 +199,11 @@ inline void paint(const Frame& frame,ImDrawList* draw) {
                 ImVec2(hi.x-inset_right(n),hi.y-inset_bottom(n)),(rgb&0xffffff)|(alpha<<24),line_radius);
             return;
         }
-        if(n.token=="graph"){
+        if(n.token=="graph.framegen"){
+            claw_framegen::paint_graph(draw, ImVec2(lo.x+inset_left(n),lo.y+inset_top(n)),
+                ImVec2(box.w-horizontal_insets(n),box.h-vertical_insets(n)),frame.framegen,
+                style.text?style.text:frame.graph_color,IM_COL32(112,177,255,255));
+        }else if(n.token=="graph"){
             if(frame.graph.size()<2)return;
             const auto graph_color=style.text?style.text:frame.graph_color;
             const int graph_first=draw->VtxBuffer.Size;

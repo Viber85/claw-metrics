@@ -29,6 +29,7 @@ struct Node {
     float min_width=0;
     std::vector<size_t> children;
 };
+inline bool is_graph(const std::string& token) { return token=="graph" || token=="graph.framegen"; }
 struct Result { std::vector<Rect> boxes; bool outside=false; };
 using Measure=std::function<Size(const std::string&,float)>;
 using NodeMeasure=std::function<Size(size_t,const std::string&,float)>;
@@ -62,7 +63,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
            (n.font_weight<0||n.font_weight>4)||!range(n.overlay_padding_x,0,160)||!range(n.overlay_padding_y,0,160)||
            !range(n.min_width,0,240)||
            !range(n.gap,0,n.group?240.f:80.f)||!range(n.padding,0,80)||!range(n.scale,.5,2.5)||
-           !range(n.width,!n.group&&(n.token=="graph"?0.f:n.token=="separator"?4.f:40.f),1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
+           !range(n.width,!n.group&&(is_graph(n.token)?0.f:n.token=="separator"?4.f:40.f),1000)||!range(n.height,n.token=="separator"?1.f:16.f,240)||(!n.group&&!n.children.empty())||
            (!n.group&&n.token.empty()))throw std::invalid_argument("Invalid node");
         ids.push_back(n.id);
         for(auto child:n.children)validate(child,depth+1);
@@ -78,7 +79,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             // Graph dimensions are CSS/device pixels, like DevLab's SVG attributes.
             if(n.token=="separator")
                 out=n.axis==Axis::Column?Size{n.height,n.width}:Size{n.width,n.height};
-            else if(n.token=="graph")
+            else if(is_graph(n.token))
                 out={n.width,n.height};
             else
                 out=node_measure?node_measure(i,n.token,font*scale):measure(n.token,font*scale);
@@ -89,7 +90,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             for(auto child:n.children) {
                 if(!nodes[child].visible)continue;
                 auto c=size(child,scale);children.push_back(child);
-                const bool auto_graph=!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0;
+                const bool auto_graph=!nodes[child].group&&is_graph(nodes[child].token)&&nodes[child].width==0;
                 if(!auto_graph)widest_non_auto_graph=std::max(widest_non_auto_graph,c.w);
                 if(n.axis==Axis::Row){out.w+=c.w;out.h=std::max(out.h,c.h);}
                 else {out.h+=c.h;out.w=std::max(out.w,c.w);}
@@ -97,7 +98,7 @@ inline Result layout(const std::vector<Node>& nodes, size_t root, Size screen,
             }
             // A graph with width=0 follows the widest sibling in a vertical group.
             // This keeps it aligned with the readings row instead of overshooting it.
-            for(auto child:children)if(!nodes[child].group&&nodes[child].token=="graph"&&nodes[child].width==0){
+            for(auto child:children)if(!nodes[child].group&&is_graph(nodes[child].token)&&nodes[child].width==0){
                 const float target=n.axis==Axis::Column&&widest_non_auto_graph>0?std::max(widest_non_auto_graph,horizontal_insets(nodes[child])+1.f):180.f+horizontal_insets(nodes[child]);
                 sizes[child].w=target;
             }

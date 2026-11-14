@@ -82,7 +82,7 @@ export function MetricsCard({vm}:{vm:Core.ClawController}) {
               <span style={{fontSize:11,color:"#4acbff"}}>Always on</span>
             </Field>}
             {group.metrics.map(([id,label])=><ToggleField key={id} label={related(label)}
-              checked={settings.metrics[id]} disabled={!ready || (["fps_average","fps_low1","ram_game","ram_swap"].includes(id) && !info?.layout_spacing_supported)}
+              checked={settings.metrics[id]} disabled={!ready || (["fps_average","fps_low1","fps_game","fps_generated","fps_output","framegen_graph","ram_game","ram_swap"].includes(id) && !info?.layout_spacing_supported)}
               onChange={(checked:boolean)=>metric(id,checked)}/>)}
             {group.note && <div style={{fontSize:11,lineHeight:1.4,color:"#a6b6c6",marginTop:8}}>
               {related(group.note)}

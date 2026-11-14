@@ -256,8 +256,8 @@ export type Settings = Record<Group, boolean> & {
 };
 export const order: Group[] = ["fps", "frametime", "cpu", "gpu", "ram", "vram", "battery", "tdp", "draw", "time"];
 export const groups: Record<Group, {label: string; color: string; metrics: [string, string][]; always?: string; note?: string}> = {
-  fps: {label: "FPS", color: "#30e5a0", metrics: [["fps_average","Average FPS"],["fps_low1","1% low FPS"]], always: "FPS", note: "Average and 1% low use the last 60 seconds (up to 30,000 frames). 1% low is based on the mean frametime of the slowest 1%; needs 100 samples. Native Claw renderer required."},
-  frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"]], note: "The ms value follows the FPS block. Enable FPS to display milliseconds."},
+  fps: {label: "FPS", color: "#30e5a0", metrics: [["fps_average","Average FPS"],["fps_low1","1% low FPS"],["fps_game","Game FPS"],["fps_generated","Generated FPS"],["fps_output","Output FPS"]], always: "FPS", note: "Average and 1% low use the last 60 seconds (up to 30,000 frames). 1% low is based on the mean frametime of the slowest 1%; needs 100 samples. Native Claw renderer required."},
+  frametime: {label: "Frametime", color: "#30e5a0", metrics: [["fps_ms", "Frametime (ms)"], ["graph", "Frametime graph"], ["framegen_graph","Frame Gen graph"]], note: "The ms value follows the FPS block. Enable FPS to display milliseconds. Frame Gen graph shows Game and Output with FSR telemetry."},
   gpu: {label: "GPU", color: "#8bda62", always: "GPU load", metrics: [["gpu_temp", "GPU temp"], ["gpu_junction_temp", "GPU junction temp"], ["gpu_core_clock", "GPU clock"], ["gpu_mem_clock", "VRAM clock"], ["gpu_mem_temp", "VRAM temp"], ["gpu_power", "GPU watts"], ["gpu_fan", "GPU fan"], ["gpu_voltage", "GPU voltage"]], note: "VRAM clock and temperature appear in the VRAM block. Other sensors depend on Z2 Extreme hardware support."},
   cpu: {label: "CPU", color: "#37c9ef", always: "CPU load", metrics: [["cpu_temp", "CPU temp"], ["cpu_mhz", "CPU clock"], ["cpu_power", "CPU watts"]]},
   ram: {label: "RAM", color: "#b077df", always: "RAM usage", metrics: [["ram_game","Game RAM"],["ram_swap","SWAP"]], note: "Game RAM is the resident memory of the game process, not all Proton processes. SWAP is system-wide. Native Claw renderer required."},
@@ -294,7 +294,7 @@ export const defaults: Settings = {
   power: true, time: true, tdp: false, sans: true, rounding: 10, offset_x: 8, offset_y: 0, padding_y: 0,
   padding_x: 5, element_gap: 8, table_gap: 4, graph_width: 150, separator_height:100, separator_thickness:2, separator_orientation:"auto", separator_length:0, separator_rounding:0, separator_opacity:100, graph_style: "line",
   group_gap_x: 0, inner_gap: 4, inline_metrics: true, unit_superscript:false, fps_bold: true, font_weight: "regular", order,
-  metrics: {fps_average:false, fps_low1:false, ram_game:false, ram_swap:false, fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
+  metrics: {fps_average:false, fps_low1:false, fps_game:false, fps_generated:false, fps_output:false, framegen_graph:false, ram_game:false, ram_swap:false, fps_ms: true, graph: true, cpu_temp: true, cpu_mhz: true, cpu_power: true,
     gpu_temp: true, gpu_junction_temp: false, gpu_core_clock: true, gpu_mem_clock: false,
     gpu_mem_temp: false, gpu_power: true, gpu_fan: false, gpu_voltage: false,
     battery_icon: false, battery_time: true},
@@ -826,7 +826,12 @@ export function useClawController() {
     [next[a], next[b]] = [next[b], next[a]];
     update({order: next});
   };
-  const metric = (key: string, value: boolean) => update({metrics: {...current.current.metrics, [key]: value}});
+  const metric = (key: string, value: boolean) => {
+    const metrics = {...current.current.metrics, [key]: value};
+    if (value && key === "graph") metrics.framegen_graph = false;
+    if (value && key === "framegen_graph") metrics.graph = false;
+    return update({metrics});
+  };
   const visible = settings.order.filter(key => settings[key]);
   const hidden = settings.order.filter(key => !settings[key]);
   const smallButton = {minWidth: 40, width: 40, minHeight:40, padding: "7px 0", margin: 0, fontSize: 17, borderRadius: 6};

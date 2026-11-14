@@ -12,7 +12,7 @@ import updates
 
 
 def release(n, *, digest=None, draft=False, url=None):
-    tag=f"v0.2.4-test.{n}"
+    tag=f"v0.2.4-test.{n}" if isinstance(n, int) else n
     filename=f"ClawMetrics-{tag}.zip"
     asset=f"https://github.com/Viber85/claw-metrics/releases/download/{tag}/{filename}"
     return {
@@ -56,10 +56,16 @@ class UpdateChecks(unittest.TestCase):
                     asyncio.run(plugin.get_installed_version())
 
     def test_versions_compare_numerically_not_lexically(self):
-        self.assertEqual(updates.version_number("v0.2.4-test.100"),100)
-        self.assertEqual(updates.version_number("0.2.4-test.9"),9)
+        self.assertEqual(updates.version_number("v0.2.4-test.100"),(0,100))
+        self.assertEqual(updates.version_number("0.2.4-test.9"),(0,9))
         self.assertIsNone(updates.version_number("v0.2.4-test.99-evil"))
         self.assertIsNone(updates.version_number("0.2.5-test.3"))
+
+    def test_release_candidate_beats_test_build_and_ignores_historical_030(self):
+        releases = [release(121), release('v0.3.0-rc.1'), release('v0.3.0'), release('v0.3.0-rc.2')]
+        latest = updates.latest_compatible_release(releases)
+        self.assertEqual(latest["version"], "0.3.0-rc.2")
+        self.assertEqual(updates.latest_compatible_release(releases[:3])["version"], "0.3.0-rc.1")
 
     def test_latest_release_from_prerelease_list_is_safe_and_sorted(self):
         source=[release(39),release(41),release(42,draft=True),

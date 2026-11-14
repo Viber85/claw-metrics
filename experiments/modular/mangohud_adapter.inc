@@ -40,6 +40,16 @@ bool ClawTryModular() {
     set("fps.ms",fmt("%.1f ms",data.fps>0?1000.0/data.fps:0,data.fps>0));
     set("fps.average",std::string("AVG ")+fmt("%.1f",data.claw_frames.average,data.claw_frames.count()>0));
     set("fps.low1",std::string("1% LOW ")+fmt("%.1f",data.claw_frames.low1,data.claw_frames.low1_ready));
+    const auto& meter=data.claw_framegen;
+    const auto framegen=meter.snapshot(claw_framegen::now(),p.claw_framegen_graph);
+    auto frame_reading=[&](const char* key,const char* label,int token,double fps){
+        auto* font=ClawFontForToken(token);
+        readings[key]={std::string(label)+" "+fmt("%.0f",fps,fps>=0),font?font:ImGui::GetFont(),
+            ImGui::ColorConvertFloat4ToU32(ClawColorForToken(token,HUDElements.colors.text))};
+    };
+    frame_reading("fps.game","GAME",33,framegen.game_fps);
+    frame_reading("fps.generated","FG",34,framegen.generated_fps);
+    frame_reading("fps.output","OUT",35,framegen.output_fps);
     set("cpu.label",p.cpu_text.empty()?"CPU":p.cpu_text);
     const auto cpu=cpuStats.GetCPUDataTotal();
     set("cpu.load",fmt("%.0f%%",int(cpu.percent),p.enabled[OVERLAY_PARAM_ENABLED_cpu_stats]));
@@ -134,6 +144,7 @@ bool ClawTryModular() {
         const ImU32 root_fill=styles[0].fill;styles[0].fill=0;
         auto frame=claw_modular::prepare(active->nodes,styles,readings,graph,0,{size.x,size.y},active->anchor,active->x,active->y,p.font_size*p.font_scale,p.claw_unit_superscript,{nullptr,claw_metric_light,claw_metric_regular,claw_metric_semibold,claw_bold_fps_font});
         frame.graph_style=int(p.claw_graph_style);
+        frame.framegen=framegen;
         const auto& box=frame.geometry.boxes[0];
         if(!box.visible||box.w<=0||box.h<=0)return true;
         ClawModularBackground(ImVec4(box.x,box.y,box.w,box.h),p,!active->appearance[0].background.empty(),root_fill,active->appearance[0].outline);

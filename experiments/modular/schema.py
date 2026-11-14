@@ -2,11 +2,11 @@
 import json
 import math
 
-TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp '
+TOKENS = set(('fps.label fps.value fps.ms fps.average fps.low1 fps.game fps.generated fps.output cpu.label cpu.load cpu.temp '
               'cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction '
               'gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value '
               'vram.temp vram.clock battery.label battery.value battery.time battery.power '
-              'time.value tdp.value tdp.label tdp.reading graph separator').split())
+              'time.value tdp.value tdp.label tdp.reading graph graph.framegen separator').split())
 PADDING_SIDES = ('paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom')
 ANCHORS = ('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center-left', 'center-right')
 
@@ -41,13 +41,13 @@ def validate_layout(value):
         out = {k: v[k] for k in ('id', 'kind', 'name', 'visible', 'axis', 'align', 'outline')}
         out['selfAlign'] = v.get('selfAlign', 'auto')
         out['token'] = v['token'] if v['kind'] == 'metric' else 'fps.value'
-        for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', ({'graph': 0, 'separator': 4}.get(v['token'], 40) if v['kind'] == 'metric' else 40), 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
+        for key, low, high in (('gap', 0, 240 if v['kind'] == 'group' else 80), ('padding', 0, 80), ('scale', 50, 250), ('opacity', 0, 100), ('width', ({'graph': 0, 'graph.framegen': 0, 'separator': 4}.get(v['token'], 40) if v['kind'] == 'metric' else 40), 1000), ('height', 1 if v['token'] == 'separator' else 16, 240)):
             out[key] = number(v.get(key, 0) if key == 'padding' and v['kind'] == 'group' else v.get(key), low, high)
         # Legacy scalar padding remains readable; explicit X/Y padding defaults to zero.
         out['padding'] = 0
         if depth > 0:
             out.update({key:number(v[key],0,160) for key in ('paddingX', 'paddingY', *PADDING_SIDES) if key in v})
-        if v['kind'] == 'metric' and v['token'] not in ('graph', 'separator', 'tdp.value') and 'minWidth' in v:
+        if v['kind'] == 'metric' and v['token'] not in ('graph', 'graph.framegen', 'separator', 'tdp.value') and 'minWidth' in v:
             out['minWidth'] = number(v['minWidth'], 0, 240)
         for key,limit in (('outlineWidth',12),('outlineOpacity',100)):
             if key in v:out[key]=number(v[key],0,limit)

@@ -4,10 +4,11 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 const jsx=(type,props)=>({type,props:props||{}});
 const metrics={exports:{}};runInNewContext(ts.transpileModule(readFileSync('src/modular/fps-font-metrics.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:metrics,exports:metrics.exports});
+const model={exports:{}};runInNewContext(ts.transpileModule(readFileSync('src/modular/model.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{module:model,exports:model.exports});
 let graphHost=null,capturedLayoutEffect,fitted={};
 const fakeDocument={fonts:{ready:Promise.resolve()}};
 const module={exports:{}};
-runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='./fps-font-metrics'?metrics.exports:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:effect=>{capturedLayoutEffect=effect},useRef:()=>({current:graphHost}),useState:initial=>[typeof initial==='function'?initial():initial,next=>{fitted=typeof next==='function'?next(fitted):next}]}:{},console,document:fakeDocument});
+runInNewContext(ts.transpileModule(readFileSync('src/modular/Hud.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require:name=>name==='./model'?model.exports:name==='./fps-font-metrics'?metrics.exports:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='react'?{useLayoutEffect:effect=>{capturedLayoutEffect=effect},useRef:()=>({current:graphHost}),useState:initial=>[typeof initial==='function'?initial():initial,next=>{fitted=typeof next==='function'?next(fitted):next}]}:{},console,document:fakeDocument});
 const {ModularHud,unitParts,readingText}=module.exports;
 assert.equal(unitParts('cpu.temp','54°C').join('|'),'54|°C');
 assert.equal(unitParts('gpu.clock','1750 MHz').join('|'),'1750|MHz');
@@ -223,3 +224,12 @@ ModularHud({layout:styled,settings,data:module.exports.initialData,selected:'non
 const stopUnmounted=capturedLayoutEffect();stopUnmounted();sibling.offsetWidth=300;fontReadyResolve();await new Promise(setImmediate);
 assert.equal(fitted['font-graph'],206,'font completion after unmount cannot update the preview');graphHost=null;
 console.log('PASS font loading: guarded auto-graph width refresh and no update after unmount.');
+
+const sample = module.exports.initialData;
+const fgLayout = model.exports.preset('horizontal',{fps:true,frametime:true,metrics:{fps_game:true,fps_generated:true,fps_output:true,framegen_graph:true}});
+const fgNodes = walk(ModularHud({layout:fgLayout,settings,data:sample,selected:'none',onSelect:()=>{}}));
+assert(fgNodes.some(n=>n.type===module.exports.Graph&&n.props.kind==='framegen'));
+const fgGraph = walk(module.exports.Graph({width:180,height:44,color:'#30E5A0',kind:'framegen'}));
+assert.equal(fgGraph.filter(n=>n.type==='polyline').length,2);
+assert(fgGraph.some(n=>n.type==='text'&&n.props.children==='Game'));
+assert(fgGraph.some(n=>n.type==='text'&&n.props.children==='Output'));

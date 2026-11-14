@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 root=Path(sys.argv[1] if len(sys.argv)>1 else 'src')
 assets=Path(__file__).resolve().parent
-for name in ('claw_modular_layout.h','claw_modular_transport.h','claw_modular_loader.h','claw_modular_imgui.h','claw_modular_power.h','claw_battery_time.h'):
+for name in ('claw_modular_layout.h','claw_modular_transport.h','claw_modular_loader.h','claw_modular_imgui.h','claw_modular_power.h','claw_battery_time.h','claw_framegen.h','claw_framegen_protocol.h','claw_framegen_graph.h'):
     (root/name).write_bytes((assets/'native'/name).read_bytes())
 path=root/'overlay_params.h';text=path.read_text()
 anchor='   OVERLAY_PARAM_CUSTOM(claw_fps_scale)               \\'

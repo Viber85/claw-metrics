@@ -37,14 +37,15 @@ COLORS = {
 
 METRICS = {
     "fps_ms": True, "graph": True,
-    "fps_average": False, "fps_low1": False, "ram_game": False, "ram_swap": False,
+    "fps_average": False, "fps_low1": False,
+    "fps_game": False, "fps_generated": False, "fps_output": False, "framegen_graph": False, "ram_game": False, "ram_swap": False,
     "cpu_temp": True, "cpu_mhz": True, "cpu_power": True,
     "gpu_temp": True, "gpu_junction_temp": False, "gpu_core_clock": True,
     "gpu_mem_clock": False, "gpu_mem_temp": False, "gpu_power": True,
     "gpu_fan": False, "gpu_voltage": False,
     "battery_icon": False, "battery_time": True,
 }
-TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value","fps.average","fps.low1","ram.game","ram.swap","tdp.label"]
+TOKEN_SLOTS = ["fps.label","fps.value","fps.ms","cpu.label","cpu.load","cpu.temp","cpu.clock","cpu.power","gpu.label","gpu.load","gpu.temp","gpu.clock","gpu.power","gpu.junction","gpu.fan","gpu.voltage","ram.label","ram.value","vram.label","vram.value","vram.temp","vram.clock","battery.label","battery.value","battery.time","battery.power","time.value","tdp.value","fps.average","fps.low1","ram.game","ram.swap","tdp.label","fps.game","fps.generated","fps.output"]
 FONT_WEIGHTS = ("inherit", "light", "regular", "semibold", "bold")
 FONT_DIGITS = {name: str(index) for index, name in enumerate(FONT_WEIGHTS)}
 
@@ -440,6 +441,19 @@ def short_launcher_script():
         + shlex.quote(str(opengl_shim())) + "; export LD_PRELOAD ;;\n"
         "    esac\n"
         "fi\n"
+        'if [ "${CLAW_FRAMEGEN-}" = 1 ] && [ -z "${CLAW_FRAMEGEN_FILE-}" ]; then\n'
+        '    original_umask=$(umask)\n'
+        '    umask 077\n'
+        '    cache=${XDG_CACHE_HOME:-"$HOME/.cache"}/claw-framegen\n'
+        '    if mkdir -p "$cache"; then relay=$(mktemp "$cache/frames.XXXXXXXX"); fi\n'
+        '    umask "$original_umask"\n'
+        '    [ -n "${relay-}" ] || exec "$@"\n'
+        "    trap 'rm -f \"$relay\"' EXIT\n"
+        '    truncate -s 6160 "$relay" || { rm -f "$relay"; exec "$@"; }\n'
+        '    export CLAW_FRAMEGEN_FILE="$relay"\n'
+        '    "$@"\n'
+        '    exit $?\n'
+        'fi\n'
         'exec "$@"\n'
     )
 
@@ -930,6 +944,8 @@ def mango_config(settings, native_spacing=False):
             for child in node["children"]: scan(child)
         scan(d["modular_layout"]["root"])
         metric_flags = {"fps.ms":"fps_ms", "fps.average":"fps_average", "fps.low1":"fps_low1",
+                        "fps.game":"fps_game", "fps.generated":"fps_generated", "fps.output":"fps_output",
+                        "graph.framegen":"framegen_graph",
                         "cpu.temp":"cpu_temp", "cpu.clock":"cpu_mhz", "cpu.power":"cpu_power",
                         "gpu.temp":"gpu_temp", "gpu.clock":"gpu_core_clock", "gpu.power":"gpu_power",
                         "gpu.junction":"gpu_junction_temp", "gpu.fan":"gpu_fan", "gpu.voltage":"gpu_voltage",
@@ -938,7 +954,7 @@ def mango_config(settings, native_spacing=False):
         for token in required:
             if token == "separator":
                 continue  # Decorative element has no sensor source.
-            group = {"graph":"frametime", "battery.power":"draw", "time.value":"time", "tdp.value":"tdp"}.get(token, token.split('.')[0])
+            group = {"graph":"frametime", "graph.framegen":"frametime", "battery.power":"draw", "time.value":"time", "tdp.value":"tdp"}.get(token, token.split('.')[0])
             d[group] = True
             if token in metric_flags: d["metrics"][metric_flags[token]] = True
             if token.startswith('vram.'): d['gpu'] = True
@@ -1062,6 +1078,10 @@ def mango_config(settings, native_spacing=False):
             "claw_inline_metrics=" + str(int(d["inline_metrics"] if is_horizontal else True)),
             flag("claw_fps_average", active("fps") and m["fps_average"]),
             flag("claw_fps_low1", active("fps") and m["fps_low1"]),
+            flag("claw_fps_game", active("fps") and m["fps_game"]),
+            flag("claw_fps_generated", active("fps") and m["fps_generated"]),
+            flag("claw_fps_output", active("fps") and m["fps_output"]),
+            flag("claw_framegen_graph", active("frametime") and m["framegen_graph"]),
             flag("claw_ram_game", active("ram") and m["ram_game"]),
             flag("swap", active("ram") and m["ram_swap"]),
             "claw_vertical_stack=" + str(int(not is_horizontal)),
@@ -1104,7 +1124,7 @@ def mango_config(settings, native_spacing=False):
         else:
             on = active(group)
             if group == "frametime":
-                on = on and m["graph"]
+                on = on and (m["graph"] or (native_spacing and m["framegen_graph"]))
             # Disabled options are still explicit so MangoHud defaults cannot leak in.
             lines.append(flag(display[group], on))
     return "\n".join(lines) + "\n"

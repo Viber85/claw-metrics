@@ -53,7 +53,7 @@ inline Document decode(const std::string& bytes){
     doc.anchor=static_cast<Anchor>(anchor);doc.nodes.resize(count);doc.appearance.resize(count);
     if(version>=3&&!(input>>doc.nodes[0].overlay_padding_x>>doc.nodes[0].overlay_padding_y))
         throw std::invalid_argument("Invalid overlay padding");
-    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value tdp.label tdp.reading graph separator ";
+    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 fps.game fps.generated fps.output cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value tdp.label tdp.reading graph graph.framegen separator ";
     for(int i=0;i<count;++i){
         auto& n=doc.nodes[i];auto& style=doc.appearance[i];std::string id;int group,visible,axis,align,self_align=0,outline,children;
         if(!(input>>id>>n.token>>group>>visible>>axis>>align)||
@@ -82,7 +82,7 @@ inline Document decode(const std::string& bytes){
             if(!(input>>n.padding_left>>n.padding_right>>n.padding_top>>n.padding_bottom>>n.min_width)||
                !range(n.padding_left,0,160)||!range(n.padding_right,0,160)||
                !range(n.padding_top,0,160)||!range(n.padding_bottom,0,160)||!range(n.min_width,0,240)||
-               (n.min_width>0&&(n.group||n.token=="graph"||n.token=="separator"||n.token=="tdp.value")))
+               (n.min_width>0&&(n.group||is_graph(n.token)||n.token=="separator"||n.token=="tdp.value")))
                 throw std::invalid_argument("Invalid metric width or edge padding");
         }
         if(version<6&&n.token=="separator")n.axis=Axis::Row;

@@ -11,9 +11,11 @@ function load(file,require=()=>{}){
  runInNewContext(ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,require});return module.exports;
 }
 const metrics=load('src/modular/fps-font-metrics.ts');
+const model=load('src/modular/model.ts');
 const {previewFontCSS}=load('src/modular/preview-fonts.ts');
 const {ModularHud,initialData}=load('src/modular/Hud.tsx',name=>{
  if(name==='./fps-font-metrics')return metrics;
+ if(name==='./model')return model;
  if(name==='react/jsx-runtime')return {jsx,jsxs:jsx};
  if(name==='react')return {useLayoutEffect:()=>{},useRef:()=>({current:null}),useState:init=>[typeof init==='function'?init():init,()=>{}]};
  throw Error(name);

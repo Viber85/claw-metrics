@@ -2,8 +2,8 @@
 
 The privileged plugin backend only reads release metadata. It never extracts or
 installs ZIPs: installation is delegated to Decky Loader's own confirmation
-and SHA-256-verifying installer. Only this repository's numbered test releases
-and exact official GitHub asset URLs are accepted.
+and SHA-256-verifying installer. The updater accepts numbered test releases
+and Frame Gen release candidates with exact official GitHub asset URLs.
 """
 import json
 import pathlib
@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 
 REPOSITORY = "Viber85/claw-metrics"
+RC_PATTERN = re.compile(r"^v?0\.3\.0-rc\.([1-9][0-9]{0,5})$")
 RELEASES_API = "https://api.github.com/repos/" + REPOSITORY + "/releases?per_page=30"
 VERSION_PATTERN = re.compile(r"^v?0\.2\.4-test\.(\d+)$")
 SHA256_PATTERN = re.compile(r"^sha256:([a-fA-F0-9]{64})$")
@@ -23,7 +24,10 @@ def version_number(value):
     if not isinstance(value, str):
         return None
     match = VERSION_PATTERN.fullmatch(value)
-    return int(match.group(1)) if match else None
+    if match:
+        return (0, int(match.group(1)))
+    match = RC_PATTERN.fullmatch(value)
+    return (1, int(match.group(1))) if match else None
 
 
 def installed_version(package_file):
@@ -39,7 +43,7 @@ def installed_version(package_file):
 
 def latest_compatible_release(releases):
     best = None
-    best_number = -1
+    best_number = (-1, 0)
     if not isinstance(releases, list):
         raise RuntimeError("GitHub did not return a list of releases.")
     for release in releases:
@@ -49,10 +53,11 @@ def latest_compatible_release(releases):
         number = version_number(tag)
         if number is None or number <= best_number:
             continue
-        file_name = f"ClawMetrics-v0.2.4-test.{number}.zip"
+        version = tag.removeprefix("v")
+        file_name = f"ClawMetrics-v{version}.zip"
         expected_url = (
             f"https://github.com/{REPOSITORY}/releases/download/"
-            f"v0.2.4-test.{number}/{file_name}"
+            f"v{version}/{file_name}"
         )
         for asset in release.get("assets", []):
             if not isinstance(asset, dict):
@@ -65,12 +70,12 @@ def latest_compatible_release(releases):
                 body = release.get("body")
                 notes = body.strip()[:5000] if isinstance(body, str) else ""
                 best = {
-                    "version": f"0.2.4-test.{number}",
-                    "tag": f"v0.2.4-test.{number}",
+                    "version": version,
+                    "tag": f"v{version}",
                     "notes": notes or "Novo izdanje Claw Metricsa.",
                     "asset_url": expected_url,
                     "sha256": match.group(1).lower(),
-                    "release_url": f"https://github.com/{REPOSITORY}/releases/tag/v0.2.4-test.{number}",
+                    "release_url": f"https://github.com/{REPOSITORY}/releases/tag/v{version}",
                 }
                 best_number = number
                 break

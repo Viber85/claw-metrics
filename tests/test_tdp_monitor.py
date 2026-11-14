@@ -194,7 +194,7 @@ class TdpReadOnlyTests(unittest.TestCase):
                 self.assertEqual(main.tdp_text(d, 25), "LIMIT 25W")
                 self.assertEqual(main.tdp_text(d, None), "LIMIT --")
                 options = dict(x.split("=", 1) for x in cfg.splitlines() if "=" in x)
-                self.assertEqual(len(options["claw_weight_map"]), 33)
+                self.assertEqual(len(options["claw_weight_map"]), 36)
                 self.assertEqual(options["claw_weight_map"][main.TOKEN_SLOTS.index("tdp.value")], "3")
                 self.assertEqual(options["claw_color_map"].split(":")[main.TOKEN_SLOTS.index("tdp.label")], "ABCD12")
                 self.assertEqual(options["claw_color_map"].split(":")[25], "112233")

@@ -216,7 +216,7 @@ class Settings(unittest.TestCase):
                 # No file requires network access during startup.
 
     def test_per_metric_colors_weights_persist_and_are_bounded(self):
-        self.assertEqual(len(main.TOKEN_SLOTS), 33)
+        self.assertEqual(len(main.TOKEN_SLOTS), 36)
         config = {
             "token_weights": {
                 "cpu.label": "semibold", "cpu.load": "bold",
@@ -236,8 +236,8 @@ class Settings(unittest.TestCase):
         options = dict(line.split("=", 1) for line in native.splitlines() if "=" in line)
         weights = options["claw_weight_map"]
         colors = options["claw_color_map"].split(":")
-        self.assertEqual(len(weights), 33)
-        self.assertEqual(len(colors), 33)
+        self.assertEqual(len(weights), 36)
+        self.assertEqual(len(colors), 36)
         for slot, weight in d["token_weights"].items():
             self.assertEqual(weights[main.TOKEN_SLOTS.index(slot)], main.FONT_DIGITS[weight])
         self.assertEqual(colors[main.TOKEN_SLOTS.index("cpu.temp")], "FFAC12")

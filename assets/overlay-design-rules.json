@@ -111,7 +111,10 @@
     "fps.low1",
     "ram.game",
     "ram.swap",
-    "tdp.label"
+    "tdp.label",
+    "fps.game",
+    "fps.generated",
+    "fps.output"
   ],
   "labels": [
     "fps",

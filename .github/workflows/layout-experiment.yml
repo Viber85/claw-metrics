@@ -1,16 +1,15 @@
-name: Build Claw Metrics v0.2.4 test.121 ZIP
+name: Build Claw Metrics v0.3.0-rc.1 ZIP
 on:
   push:
-    branches: [test/metric-width-padding-121]
+    branches: [test/frame-generation-030-rc1]
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# Recovery run after Nov 11 GitHub Actions outage; use a new queue group to avoid stale queued runs.
-# Multiple rapid pushes must not race to overwrite the same test Release.
+# Multiple rapid pushes must not race to overwrite the same release candidate.
 concurrency:
-  group: claw-metrics-v0.2.4-test.121-metric-width-padding
+  group: claw-metrics-v0.3.0-rc.1-frame-generation
   cancel-in-progress: true
 
 jobs:
@@ -117,7 +116,7 @@ jobs:
             libvulkan-dev glslang-tools libgl-dev libegl-dev \
             libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
             libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
-            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth gdb
+            libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth gdb g++-mingw-w64-x86-64-posix
       - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
@@ -169,6 +168,7 @@ jobs:
           python3 ../experiments/split_tdp_styles.py src
           python3 ../experiments/fix_battery_time.py src
           python3 ../experiments/guard_glx_swap_interval.py src
+          python3 ../experiments/enable_framegen_metrics.py src
           grep -q 'ClawText(3' src/hud_elements.cpp
           grep -q 'claw_metric_semibold' src/font.cpp
           grep -q 'claw_weight_map' src/overlay_params.cpp
@@ -253,10 +253,20 @@ jobs:
           file ../native64/libMangoHud.so
           readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
           test -s ../native64/libMangoHud.so
+      - name: Build and verify DX12 frame telemetry bridge
+        run: |
+          mkdir -p framegen
+          x86_64-w64-mingw32-g++-posix -std=c++17 -O2 -Wall -shared -static-libgcc -static-libstdc++ \
+            -o framegen/amd_fidelityfx_framegeneration_dx12.dll experiments/framegen/fsr_proxy.cpp
+          x86_64-w64-mingw32-objdump -p framegen/amd_fidelityfx_framegeneration_dx12.dll | grep -q ffxConfigure
+          g++ -std=c++17 -I . -Wall -Wextra -pedantic tests/native_framegen.cpp -o framegen-test
+          ./framegen-test
       - name: Exercise OpenGL shim and modified renderer through GLX
         run: xvfb-run -a python3 tools/test_opengl_injection.py
       - name: Exercise new metrics and live style changes through Vulkan
         run: python3 tools/test_extra_metrics_vulkan.py
+      - name: Draw classified Frame Gen telemetry through Vulkan
+        run: python3 tools/test_framegen_vulkan.py
       - name: Check modular geometry and document transport
         run: |
           python3 tools/check_modular_layout.py
@@ -279,18 +289,19 @@ jobs:
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp claw_modular.py artifact/ClawMetrics/py_modules/claw_modular.py
           cp claw_design.py artifact/ClawMetrics/py_modules/claw_design.py
-          cp -r dist assets native64 artifact/ClawMetrics/
+          cp -r dist assets native64 framegen artifact/ClawMetrics/
+          cp experiments/framegen/manage_bridge.py artifact/ClawMetrics/framegen/
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.2.4-test.121.zip')
+          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.1.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so',
+              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so','framegen/amd_fidelityfx_framegeneration_dx12.dll','framegen/manage_bridge.py',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -299,18 +310,18 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.2.4-test.121', package['version']
+              assert package['version'] == '0.3.0-rc.1', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.2.4-test.121
-          path: ClawMetrics-v0.2.4-test.121.zip
+          name: ClawMetrics-v0.3.0-rc.1
+          path: ClawMetrics-v0.3.0-rc.1.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.4-test.121 ClawMetrics-v0.2.4-test.121.zip \
+          gh release create v0.3.0-rc.1 ClawMetrics-v0.3.0-rc.1.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.2.4-test.121 – Minimum reading width and four-sided padding" \
-            --notes "Set a minimum width on individual readings to stabilize the overlay as values change digit count. Adjust left, right, top and bottom padding independently on the overlay, groups and elements. Existing X/Y settings retain their appearance. Restart any running game after installing to load the updated MangoHud renderer."
+            --title "Claw Metrics v0.3.0-rc.1 – Frame Generation metrics" \
+            --notes "Adds Game, Generated and Output FPS and a dual frametime graph to Layout Builder and Classic. The opt-in DX12 FidelityFX adapter requires validation in Clair Obscur on SteamOS. See the packaged README for setup and rollback."

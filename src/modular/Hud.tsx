@@ -1,5 +1,5 @@
 import React,{useLayoutEffect,useRef,useState} from 'react';
-import type {Layout,Node} from './model';
+import {isGraph,type Layout,type Node} from './model';
 import {fpsFontMetrics} from './fps-font-metrics';
 const weights:any={light:300,regular:400,semibold:600,bold:700};
 // Match the native renderer's reserved reading widths so alignment and spacing
@@ -58,6 +58,15 @@ export function backgroundStyle(s:any):React.CSSProperties{
 }
 export function Graph({width,height,color,kind}:{width:number;height:number;color:string;kind:string}){
  const pts=Array.from({length:61},(_,i)=>[i*5,49+Math.sin(i*.71)*5+Math.cos(i*.23)*10+(i===31?-15:0)]);
+ if(kind==='framegen'){
+  const output=pts.map(([x,y])=>`${x},${y+12}`).join(' ');
+  const game=pts.filter((_,i)=>i%2===0).map(([x,y])=>`${x},${y-15}`).join(' ');
+  return <svg width={width} height={height} viewBox="0 0 300 80" preserveAspectRatio="none" aria-label="Simulated Game and Output frametimes">
+   <text x="4" y="14" fill={color} fontSize="14">Output</text><text x="65" y="14" fill="#70B1FF" fontSize="14">Game</text>
+   <polyline points={game} fill="none" stroke="#70B1FF" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+   <polyline points={output} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+  </svg>;
+ }
  const smooth=kind==='smooth'||kind==='dual_layer';
  const points=smooth?pts.flatMap((p,i)=>i===pts.length-1?[p]:Array.from({length:4},(_,j)=>{
   const a=pts[Math.max(0,i-1)][1],b=p[1],c=pts[i+1][1],d=pts[Math.min(pts.length-1,i+2)][1],t=j/4;
@@ -94,7 +103,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   return()=>{alive=false};
  },[layout,s.fontsize,s.sans,s.font_weight,s.token_weights,s.unit_superscript]);
  const remaining=batteryTime(d.batteryCount??1,d.batteryStatus??'Discharging',d.batteryHours??2.25,d.batteryPlugged??false);
- const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'tdp.reading':`${d.tdp} W`,'time.value':'22:15'};
+ const values:any={'fps.value':d.fps,'fps.ms':`${d.ms} ms`,'fps.average':`AVG ${d.average}`,'fps.low1':`1% LOW ${d.low1}`,'fps.game':`GAME ${Math.round(d.fps/2)}`,'fps.generated':`FG ${d.fps-Math.round(d.fps/2)}`,'fps.output':`OUT ${d.fps}`,'cpu.load':`${d.cpu}%`,'cpu.temp':`${d.cpuTemp}°C`,'cpu.clock':`${d.cpuClock} MHz`,'cpu.power':`${d.cpuPower} W`,'gpu.load':`${d.gpu}%`,'gpu.temp':`${d.gpuTemp}°C`,'gpu.clock':`${d.gpuClock} MHz`,'gpu.power':`${d.gpuPower} W`,'gpu.junction':'68°C','gpu.fan':'2800 RPM','gpu.voltage':'850 mV','ram.value':`${d.ram} GiB`,'ram.game':`GAME ${d.gameRam} GiB`,'ram.swap':`SWAP ${d.swap} GiB`,'vram.value':`${d.vram} GiB`,'vram.temp':'58°C','vram.clock':'900 MHz','battery.value':`${d.battery}%`,'battery.time':remaining.text,'battery.power':`${s.custom_labels?.draw||'DRAW'} ${d.draw} W`,'tdp.value':`${s.custom_labels?.tdp||'TDP'} ${d.tdp} W`,'tdp.reading':`${d.tdp} W`,'time.value':'22:15'};
  const labels:any={fps:'FPS',cpu:'CPU',gpu:'GPU',ram:'RAM',vram:'VRAM',battery:'BATT',tdp:'TDP'};
  function render(n:Node,root=false,parentAlignment:'start'|'center'|'end'='start',parentAxis:'row'|'column'='row',inheritedWeight?:string):React.ReactNode{
   if(!n.visible)return null;
@@ -103,14 +112,14 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   const inheritedToken=n.token==='tdp.reading'?'tdp.value':n.token;
   const weight=override||s.token_weights?.[n.token]||s.token_weights?.[inheritedToken]||s.font_weight||'regular';
   const fontWeight=s.sans?(weights[weight]||400):400;
-  const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='time.value'?'time':n.token==='graph'?'graph':n.token==='separator'?'separator':part==='label'?category:'text';
+  const palette=n.token==='fps.label'?'fps_label':n.token==='fps.value'?'fps_value':n.token==='battery.power'?'draw':n.token==='time.value'?'time':isGraph(n.token)?'graph':n.token==='separator'?'separator':part==='label'?category:'text';
   const color=n.color||'#'+(s.token_colors?.[n.token]||s.token_colors?.[inheritedToken]||s.colors[palette]||s.colors.text);
   const padding=root?layout:n;
   const left=padding.paddingLeft??padding.paddingX??0,right=padding.paddingRight??padding.paddingX??0;
   const top=padding.paddingTop??padding.paddingY??0,bottom=padding.paddingBottom??padding.paddingY??0;
   const base:React.CSSProperties={position:'relative',flexShrink:0,display:'flex',alignSelf:n.selfAlign==='start'?'flex-start':n.selfAlign==='end'?'flex-end':n.selfAlign==='center'?'center':undefined,alignItems:n.align==='start'?'flex-start':n.align==='end'?'flex-end':'center',gap:n.gap,padding:0,paddingLeft:left,paddingRight:right,paddingTop:top,paddingBottom:bottom,fontSize:`${n.scale/100}em`,borderRadius:root?s.rounding:n.kind==='group'?(n.cornerRadius??(n.outline?6:0)):6,fontWeight:n.kind==='metric'?fontWeight:undefined,...(root?backgroundStyle(s):{}),...(n.background?{background:rgba(n.background,n.opacity)}:{}),...(n.outline?{boxShadow:`inset 0 0 0 ${n.outlineWidth??1}px ${rgba(n.outlineColor||'#8fb8d9',n.outlineOpacity??100)}`} :{}),outline:editing&&selected===n.id?'1px dashed #78b5ff':undefined,outlineOffset:0};
   const graphWidth=n.width===0?(fitWidths[n.id]??180):n.width;
-  const props:any={'data-node-id':n.id,...(n.token==='graph'&&n.width===0?{'data-auto-width':'true','data-padding':left+right}:{}),onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
+  const props:any={'data-node-id':n.id,...(isGraph(n.token)&&n.width===0?{'data-auto-width':'true','data-padding':left+right}:{}),onClick:(e:React.MouseEvent)=>{if(editing){e.stopPropagation();onSelect(n.id)}},style:base};
   if(n.kind==='group')return <div key={n.id} {...props} className="hud-node hud-group-node" style={{...base,flexDirection:n.axis}}>{n.children.map(c=>render(c,false,n.axis==='column'?n.align:'start',n.axis,override))}{editing&&!n.children.length&&<span className="empty-group">{n.name} · empty</span>}</div>;
   const value=part==='label'?(s.custom_labels?.[category]||labels[category]):values[n.token]??'--';
   const alignment=parentAxis==='column'&&n.selfAlign!=='auto'?n.selfAlign:parentAlignment;
@@ -121,7 +130,7 @@ export function ModularHud({layout,settings:s,data:d,selected,onSelect,editing=t
   if(n.token==='fps.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,...minimumWidth,color,fontWeight}}><FpsValue value={String(value)} weight={weight} sans={Boolean(s.sans)}/></div>;
   if(n.token==='tdp.value')return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,color,fontWeight,flexDirection:'row',gap:'.25em',alignItems:'flex-start'}}><span data-tdp-part="label" style={{color:n.color||'#'+(s.token_colors?.['tdp.label']||s.colors.tdp||s.colors.text),fontWeight:s.sans?(weights[override||s.token_weights?.['tdp.label']||s.font_weight]||400):400,lineHeight:'1em',paddingTop:s.unit_superscript?'.18em':0}}>{s.custom_labels?.tdp||'TDP'}</span><span data-tdp-part="value">{readingText('tdp.value',`${d.tdp} W`,s.unit_superscript)}</span></div>;
   if(n.token==='battery.time'&&remaining.plugged)return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,...minimumWidth,color}}><ReservedReading token={n.token} value={String(value)} reference={readingReference(String(value),slots[n.token])} superscript={s.unit_superscript}/><span style={{position:'absolute',left,right,top,display:'flex',justifyContent,paddingTop:s.unit_superscript?'.18em':0}}><Plug/></span></div>;
-  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,...minimumWidth,color,fontWeight,fontSize:`${n.scale/100}em`,...(n.token==='graph'?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{n.token==='graph'?<Graph width={graphWidth} height={n.height} color={color} kind={s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.axis==='column'?n.height:n.width,height:n.axis==='column'?n.width:n.height,background:rgba(color,n.separatorOpacity??100),borderRadius:n.cornerRadius??0}}/>:slots[n.token]?<><ReservedReading token={n.token} value={String(value)} reference={readingReference(String(value),slots[n.token])} superscript={s.unit_superscript}/><span style={{position:'absolute',left,right,top,textAlign:alignment}}>{readingText(n.token,String(value),s.unit_superscript)}</span></>:readingText(n.token,String(value),s.unit_superscript)}</div>
+  return <div key={n.id} {...props} className="hud-node hud-metric" style={{...base,...minimumWidth,color,fontWeight,fontSize:`${n.scale/100}em`,...(isGraph(n.token)?{width:graphWidth,boxSizing:'content-box' as const}:{})}}>{isGraph(n.token)?<Graph width={graphWidth} height={n.height} color={color} kind={n.token==='graph.framegen'?'framegen':s.graph_style}/>:n.token==='separator'?<span style={{display:'block',width:n.axis==='column'?n.height:n.width,height:n.axis==='column'?n.width:n.height,background:rgba(color,n.separatorOpacity??100),borderRadius:n.cornerRadius??0}}/>:slots[n.token]?<><ReservedReading token={n.token} value={String(value)} reference={readingReference(String(value),slots[n.token])} superscript={s.unit_superscript}/><span style={{position:'absolute',left,right,top,textAlign:alignment}}>{readingText(n.token,String(value),s.unit_superscript)}</span></>:readingText(n.token,String(value),s.unit_superscript)}</div>
  }
  const bottom=layout.anchor.startsWith('bottom'),right=layout.anchor.endsWith('right'),center=layout.anchor.endsWith('center'),middle=layout.anchor.startsWith('center-');
  return s.enabled?<div ref={host} className="modular-hud" style={{position:'absolute',top:middle?`calc(50% + ${layout.y}px)`:bottom?undefined:layout.y,bottom:bottom?layout.y:undefined,left:center?'50%':right?undefined:layout.x,right:right?layout.x:undefined,transform:center?`translateX(calc(-50% + ${layout.x}px))`:middle?'translateY(-50%)':undefined,fontSize:s.fontsize,fontFamily:s.sans?'ClawPreviewBarlow':'ClawPreviewSans',fontWeight:s.sans?(weights[s.font_weight]||400):400,fontKerning:'none',fontVariantNumeric:'normal',fontVariantLigatures:'none',letterSpacing:0,lineHeight:1.2}}>{render(layout.root,true)}</div>:null;

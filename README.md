@@ -1,3 +1,52 @@
+## v0.3.0-rc.1 — Frame Generation metrics
+
+Use **Metrics → FPS** to enable **Game FPS**, **Generated FPS**, and **Output FPS**
+in Classic, and **Metrics → Frametime → Frame Gen graph** for the two-line graph.
+In **Layout Builder**, add any of the four readings as independent elements.
+Existing FPS and frametime readings are still available.
+
+**Output** measures successful Vulkan present submissions. **Game** and **FG**
+measure the rendered and interpolated frames identified by the FidelityFX UI
+composition callback. The two frametime series share a two-second time axis.
+They are measured at their respective software boundaries, so short-window
+Game + FG readings may differ slightly from Output. The compositor can still
+drop submissions before display. When a game provides no classification, the
+HUD shows `--` for Game and FG and draws only the Output series.
+
+### Try internal FSR in Clair Obscur on Proton
+
+The optional adapter is a DX12 FidelityFX API proxy. It forwards to the original
+AMD DLL and observes an existing AMD presentation callback. It has to be
+installed explicitly for each game. Use it with an AMD DX12 FSR title that
+ships `amd_fidelityfx_framegeneration_dx12.dll` and registers that callback.
+The protocol and HUD have automated coverage. Clair Obscur on a physical Claw
+and MAKO frame classification are still unverified. MAKO-only launches provide
+an Output reading when the Better Overlay layer is below MAKO.
+
+1. In Steam Desktop Mode, open **Clair Obscur → Properties → Installed Files →
+   Browse**. Close the game and locate its `Sandfall/Binaries/Win64` folder.
+2. Run the following in Konsole, replacing the second path with the folder Steam
+   opened and adjusting the first if Decky uses a different plugin location.
+
+   ```sh
+   python3 ~/homebrew/plugins/ClawMetrics/framegen/manage_bridge.py install "/path/to/Expedition 33/Sandfall/Binaries/Win64"
+   ```
+
+3. Put `CLAW_FRAMEGEN=1` before Better Overlay's usual short launch command.
+
+   ```sh
+   CLAW_FRAMEGEN=1 ~/claw-metrics %command%
+   ```
+
+4. Start the game with MAKO and OptiScaler disabled and compare the same scene
+   with the game's **FSR Frame Generation** off and on. The first readings
+   need a short warm-up. When the game's callback is dormant, Game and FG
+   can show `--`.
+
+To restore the original AMD DLL, close the game, run the same command with
+`remove` in place of `install`, and remove `CLAW_FRAMEGEN=1` from the launch
+options. The helper preserves the backup if Steam has replaced the DLL.
+
 ## v0.2.4-test.121 — Minimum reading width and four-sided padding
 
 In the Layout Builder, **Appearance** offers separate left, right, top and bottom padding for the overlay, groups and individual elements. Each side starts from the corresponding saved X or Y padding when opening older layouts. Text readings also have **Minimum width** in pixels. A value of zero uses automatic sizing. To keep nearby metrics stationary as CPU Load changes digit count, set a width that fits the largest reading with the current font and scale. The reading can expand if it needs more space. Padding is applied outside the minimum text width.

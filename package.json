@@ -1,6 +1,6 @@
 {
   "name": "claw-metrics",
-  "version": "0.2.4-test.121",
+  "version": "0.3.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {
