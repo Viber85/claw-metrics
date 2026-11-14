@@ -48,7 +48,7 @@ inline Document decode(const std::string& bytes){
         throw std::invalid_argument("Invalid transport header");
     doc.anchor=static_cast<Anchor>(anchor);doc.nodes.resize(count);doc.appearance.resize(count);
     if((magic=="CLAW_MODULAR_V3"||magic=="CLAW_MODULAR_V4"||magic=="CLAW_MODULAR_V5"||magic=="CLAW_MODULAR_V6")&&!(input>>doc.nodes[0].overlay_padding_x>>doc.nodes[0].overlay_padding_y))throw std::invalid_argument("Invalid overlay padding");
-    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value graph separator ";
+    const std::string tokens=" fps.label fps.value fps.ms fps.average fps.low1 cpu.label cpu.load cpu.temp cpu.clock cpu.power gpu.label gpu.load gpu.temp gpu.clock gpu.power gpu.junction gpu.fan gpu.voltage ram.label ram.value ram.game ram.swap vram.label vram.value vram.temp vram.clock battery.label battery.value battery.time battery.power time.value tdp.value tdp.label tdp.reading graph separator ";
     for(int i=0;i<count;++i){
         auto& n=doc.nodes[i];auto& style=doc.appearance[i];std::string id;int group,visible,axis,align,self_align=0,outline,children;
         if(!(input>>id>>n.token>>group>>visible>>axis>>align)||

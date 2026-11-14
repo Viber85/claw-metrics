@@ -22,6 +22,12 @@ with tempfile.TemporaryDirectory() as directory:
         last=doc['root']
         while last['children']:last=last['children'][-1]
         from copy import deepcopy
+        # The editor can split a legacy TDP metric into these two tokens.
+        # The native decoder must accept both or reject the entire edited HUD.
+        for token in ('tdp.label', 'tdp.reading'):
+            metric = deepcopy(last)
+            metric.update(id=token, token=token)
+            doc['root']['children'].append(metric)
         separator=deepcopy(last)
         separator.update(id='separator-v6',token='separator',color='#ABCDEF',axis='column',
                          width=38,height=4,cornerRadius=2,separatorOpacity=37)

@@ -1,3 +1,7 @@
+## v0.2.4-test.120 — Apply imported layouts with separate TDP elements
+
+The native MangoHud renderer now accepts separate TDP label and reading elements. Opening a DevLab layout with a combined TDP element can split it in the editor, so the updated reader accepts both layouts that have already been saved with split TDP and older JSON exports. Restart a running game once after installing to load the updated renderer.
+
 ## v0.2.4-test.119 — Fix saved editor styles not appearing in running games
 
 When a game started with Classic active, the native MangoHud layer did not register the modular layout file. Later saving an editor style and choosing **Apply layout** updated Decky configuration and the saved design, but the already-running game still used its old classic overlay. This looked like Apply had loaded an unrelated style.

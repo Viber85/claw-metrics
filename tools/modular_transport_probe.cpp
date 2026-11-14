@@ -22,6 +22,9 @@ int main(int argc,char**argv){
  std::ifstream file(argv[1]);std::string bytes((std::istreambuf_iterator<char>(file)),{});
  auto doc=decode(bytes);assert(doc.nodes.size()>1);
  assert(doc.nodes[1].self_align==SelfAlign::End);
+ for(const char* token:{"tdp.value","tdp.label","tdp.reading"}){
+  assert(std::any_of(doc.nodes.begin(),doc.nodes.end(),[&](const Node& node){return !node.group&&node.token==token;}));
+ }
  std::istringstream old_input(bytes);std::string line,legacy="CLAW_MODULAR_V1\n";std::getline(old_input,line);std::getline(old_input,line);legacy+=line+"\n";
  std::string v2="CLAW_MODULAR_V2\n"+line+"\n";std::getline(old_input,line);
  std::string v5="CLAW_MODULAR_V5\n"+legacy.substr(legacy.find('\n')+1)+line+"\n";
