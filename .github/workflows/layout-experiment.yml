@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.3.0-rc.1 ZIP
+name: Build Claw Metrics v0.3.0-rc.2 ZIP
 on:
   push:
-    branches: [test/frame-generation-030-rc1]
+    branches: [test/frame-generation-030-rc2]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same release candidate.
 concurrency:
-  group: claw-metrics-v0.3.0-rc.1-frame-generation
+  group: claw-metrics-v0.3.0-rc.2-frame-generation
   cancel-in-progress: true
 
 jobs:
@@ -286,6 +286,7 @@ jobs:
           cp plugin.json package.json main.py sensors.py diagnostics.py claw_modular.py claw_design.py README.md artifact/ClawMetrics/
           mkdir -p artifact/ClawMetrics/py_modules
           cp updates.py artifact/ClawMetrics/py_modules/updates.py
+          cp framegen_setup.py artifact/ClawMetrics/py_modules/framegen_setup.py
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp claw_modular.py artifact/ClawMetrics/py_modules/claw_modular.py
           cp claw_design.py artifact/ClawMetrics/py_modules/claw_design.py
@@ -294,14 +295,14 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.1.zip')
+          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.2.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so','framegen/amd_fidelityfx_framegeneration_dx12.dll','framegen/manage_bridge.py',
+              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','py_modules/framegen_setup.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so','framegen/amd_fidelityfx_framegeneration_dx12.dll','framegen/manage_bridge.py',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -310,18 +311,23 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.3.0-rc.1', package['version']
+              assert package['version'] == '0.3.0-rc.2', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.3.0-rc.1
-          path: ClawMetrics-v0.3.0-rc.1.zip
+          name: ClawMetrics-v0.3.0-rc.2
+          path: ClawMetrics-v0.3.0-rc.2.zip
       - name: Publish isolated prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.3.0-rc.1 ClawMetrics-v0.3.0-rc.1.zip \
+          cat > README.md.tmp <<'EOF'
+          Close Clair Obscur. Open Decky → Claw Metrics → Activation → Enable FSR metrics. The plugin locates the Steam installation, installs the adapter, and backs up the original AMD DLL. Keep the usual Better Overlay launch command. Use Restore original AMD DLL to undo setup.
+
+          The Game FPS, Generated FPS, Output FPS and dual frametime graph are available in Classic and Layout Builder. Real Clair Obscur telemetry on SteamOS still needs an on-device test.
+          EOF
+          gh release create v0.3.0-rc.2 ClawMetrics-v0.3.0-rc.2.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.1 – Frame Generation metrics" \
-            --notes "Adds Game, Generated and Output FPS and a dual frametime graph to Layout Builder and Classic. The opt-in DX12 FidelityFX adapter requires validation in Clair Obscur on SteamOS. See the packaged README for setup and rollback."
+            --title "Claw Metrics v0.3.0-rc.2 – One-click Frame Gen setup" \
+            --notes-file README.md.tmp

@@ -413,6 +413,40 @@ def short_launch_option():
     return shlex.quote(str(short_launcher_path())) + ' %command%' if short_launcher_ready() else ''
 
 
+FRAMEGEN_APP_ID = "1903340"
+
+
+def framegen_flag():
+    return BASE / "framegen-clair-obscur.enabled"
+
+
+def framegen_helper():
+    root = pathlib.Path(__file__).resolve().parent
+    packaged = root / "py_modules" / "framegen_setup.py"
+    return packaged if packaged.is_file() else root / "framegen_setup.py"
+
+
+def framegen_adapter():
+    return pathlib.Path(__file__).resolve().parent / "framegen" / "amd_fidelityfx_framegeneration_dx12.dll"
+
+
+def framegen_command(action):
+    import pwd
+    home = user_home()
+    user_options = {}
+    if os.geteuid() == 0:
+        user = pwd.getpwuid(home.stat().st_uid)
+        if user.pw_uid == 0:
+            raise ValueError("Decky could not identify the Steam desktop user.")
+        user_options = {"user": user.pw_uid, "group": user.pw_gid,
+                        "extra_groups": os.getgrouplist(user.pw_name, user.pw_gid)}
+    result = subprocess.run(
+        ["/usr/bin/python3", "-I", str(framegen_helper()), action, str(home), str(framegen_adapter())],
+        cwd="/", env={"PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8"},
+        capture_output=True, text=True, check=True, timeout=15, **user_options)
+    return json.loads(result.stdout)
+
+
 def short_launcher_script():
     """One launch command for Vulkan and optional 64-bit OpenGL injection."""
     return (
@@ -441,10 +475,15 @@ def short_launcher_script():
         + shlex.quote(str(opengl_shim())) + "; export LD_PRELOAD ;;\n"
         "    esac\n"
         "fi\n"
+        'case ":${SteamAppId-}:${STEAM_COMPAT_APP_ID-}:${SteamGameId-}:" in\n'
+        '  *:' + FRAMEGEN_APP_ID + ':*) [ ! -f ' + shlex.quote(str(framegen_flag()))
+        + ' ] || CLAW_FRAMEGEN=1 ;;\n'
+        'esac\n'
         'if [ "${CLAW_FRAMEGEN-}" = 1 ] && [ -z "${CLAW_FRAMEGEN_FILE-}" ]; then\n'
         '    original_umask=$(umask)\n'
         '    umask 077\n'
         '    cache=${XDG_CACHE_HOME:-"$HOME/.cache"}/claw-framegen\n'
+        '    relay=\n'
         '    if mkdir -p "$cache"; then relay=$(mktemp "$cache/frames.XXXXXXXX"); fi\n'
         '    umask "$original_umask"\n'
         '    [ -n "${relay-}" ] || exec "$@"\n'
@@ -1178,6 +1217,32 @@ def publish_modular(settings):
 
 
 class Plugin:
+    async def get_framegen_status(self):
+        return await self._framegen_action("status")
+
+    async def set_framegen_enabled(self, enabled):
+        if type(enabled) is not bool:
+            return {"state": "unavailable", "message": "Invalid Frame Gen action."}
+        return await self._framegen_action("enable" if enabled else "disable")
+
+    async def _framegen_action(self, action):
+        if not hasattr(self, "_framegen_lock"):
+            self._framegen_lock = asyncio.Lock()
+        async with self._framegen_lock:
+            try:
+                result = await asyncio.to_thread(framegen_command, action)
+                if result["state"] == "unavailable":
+                    return result
+                if action == "enable":
+                    write_atomic(framegen_flag(), "1\n")
+                elif action == "disable":
+                    framegen_flag().unlink(missing_ok=True)
+                if result["state"] == "enabled" and not framegen_flag().is_file():
+                    result["state"] = "setup"
+                return result
+            except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+                return {"state": "unavailable", "message": "Frame Gen setup failed. " + str(error)[:180]}
+
     async def _main(self):
         install_font()
         install_condensed_fonts()

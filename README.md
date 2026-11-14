@@ -1,3 +1,16 @@
+## v0.3.0-rc.2 — One-click Frame Gen setup
+
+1. Close **Clair Obscur: Expedition 33**.
+2. In Decky, open **Claw Metrics → Activation → Enable FSR metrics**.
+3. Launch the game with your existing Better Overlay launch command and turn on
+   **FSR Frame Generation** in the game to test the split metrics.
+
+The plugin locates Clair Obscur in Steam's libraries, backs up its AMD DLL,
+installs the adapter and activates the telemetry relay at launch. In the same
+menu, **Restore original AMD DLL** reverses setup. If Steam replaces the adapter
+during a game update, use **Enable FSR metrics** to set it up again with the
+updated AMD DLL. This is the test setup for the Steam version of Clair Obscur.
+
 ## v0.3.0-rc.1 — Frame Generation metrics
 
 Use **Metrics → FPS** to enable **Game FPS**, **Generated FPS**, and **Output FPS**
