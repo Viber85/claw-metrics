@@ -1,19 +1,22 @@
-## v0.3.0-rc.4 — Frame Gen for Steam and Non-Steam games
+## v0.3.0-rc.5 — Check Frame Generation for the current game
 
-Close the game and open **Claw Metrics → Activation** in Decky. Choose a Steam
-or Non-Steam game and select **Enable FSR metrics**. When a shortcut points to
-an external launcher and automatic lookup cannot locate the game DLL, select
-`amd_fidelityfx_framegeneration_dx12.dll` in the built-in file picker. Launch
-the game with the regular Claw Metrics launch option and enable FSR Frame
-Generation in the game.
+1. Start a Steam or Non-Steam game. In Decky, open **Claw Metrics → Advanced →
+   Generated Frames** and select **Check current game compatibility**.
+2. If compatible FSR DX12 files are found, select **Enable generated frame
+   metrics** and exit the game. Claw Metrics installs the adapter after exit.
+3. Launch the game again with FSR Frame Generation enabled. Classic shows
+   **Game FPS** and **Generated FPS** for the configured game. In Layout Builder
+   add those metrics where you want them.
 
-Setup works with games that ship the supported AMD DX12 Frame Gen DLL.
-**Restore original AMD DLL** reverses the change. If a game update replaces
-the adapter, select **Enable FSR metrics** again.
+The check looks for the actual FSR module loaded by the game, with a fallback
+to the Steam game files. If a launcher-based shortcut cannot be identified,
+enable FSR Frame Generation inside the game and check again. Claw Metrics adds
+its overlay command where Steam Launch Options can be updated safely.
+If Steam does not accept the update, Activation shows the overlay command.
 
-**Check for updates** offers the highest newer version with a verified ZIP.
-Older plugin versions may show `test.124` during the update and report
-`0.3.0-rc.4` after installation.
+Use **Restore original AMD DLL** on the same card to reverse setup. The game
+must be closed before its DLL can be changed. Older updater versions may show
+`test.125` during the update and report `0.3.0-rc.5` after installation.
 
 ## v0.3.0-rc.1 — Frame Generation metrics
 

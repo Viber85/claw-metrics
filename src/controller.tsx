@@ -369,7 +369,7 @@ export {AccordionCard} from "./components/AccordionCard";
 export type {SectionKey,AccordionCardProps} from "./components/AccordionCard";
 
 export type LayoutPanel = "position" | "size" | "spacing" | "frametime" | "separators";
-export type AdvancedPanel = "updates" | "diagnostics" | "backup";
+export type AdvancedPanel = "updates" | "framegen" | "diagnostics" | "backup";
 export {ControlGroup} from "./components/ControlGroup";
 
 // Decky can remount Content after backend saves. Keep navigation state

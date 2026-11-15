@@ -1,4 +1,5 @@
 import asyncio
+import json
 from pathlib import Path
 import struct
 import subprocess
@@ -137,7 +138,48 @@ class FrameGenSetupTests(unittest.TestCase):
         setup.game_bridge(self.folder, self.adapter, 'disable', STEAM_ID)
         self.assertEqual(self.original.read_bytes(), self.original_dll)
 
-    def test_decky_activation_and_original_launcher_are_per_game(self):
+    def test_active_shortcut_uses_loaded_dll_and_schedules_the_change(self):
+        plugin = main.Plugin()
+        dll = self.shortcut_folder / setup.DLL
+        probe = ("import mmap,sys,time; f=open(sys.argv[1], 'rb'); "
+                 "m=mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ); "
+                 "print('mapped', flush=True); time.sleep(20)")
+        process = subprocess.Popen([sys.executable, '-c', probe, str(dll)],
+                                   env={'SteamGameId': setup.launch_ids(WRAPPER_ID)[2]},
+                                   stdout=subprocess.PIPE, text=True)
+        self.addCleanup(process.stdout.close)
+        self.addCleanup(process.wait)
+        self.addCleanup(process.terminate)
+        self.assertEqual(process.stdout.readline().strip(), 'mapped')
+        with patch.object(main, 'BASE', self.home / 'config'), \
+             patch.object(main, 'user_home', return_value=self.home), \
+             patch.object(main, 'framegen_adapter', return_value=self.adapter), \
+             patch.object(main, 'FRAMEGEN_EXIT_POLL_SECONDS', 0.02):
+            async def exercise():
+                result = await plugin.check_current_framegen(WRAPPER_ID, 'External Game')
+                self.assertEqual((result['state'], result['provider'], result['name']), ('ready', 'FSR', 'External Game'))
+                self.assertNotIn('folder', result)
+                self.assertEqual((await plugin.change_current_framegen(True, STEAM_ID))['state'], 'unavailable')
+                result = await plugin.change_current_framegen(True, WRAPPER_ID)
+                self.assertEqual((result['state'], result['pending']), ('waiting', 'enable'))
+                self.assertEqual((await plugin.check_current_framegen(STEAM_ID))['appid'], WRAPPER_ID)
+                self.assertEqual(dll.read_bytes(), self.original_dll)
+                self.assertEqual(await plugin.get_current_framegen_result(), result)
+                self.assertEqual((await plugin.cancel_current_framegen())['state'], 'unavailable')
+                self.assertEqual((await plugin.check_current_framegen(WRAPPER_ID))['state'], 'ready')
+                self.assertEqual((await plugin.change_current_framegen(True, WRAPPER_ID))['state'], 'waiting')
+
+                process.terminate()
+                process.wait(timeout=4)
+                await asyncio.wait_for(plugin._framegen_waiting, 4)
+                self.assertEqual((await plugin.get_current_framegen_result())['state'], 'enabled')
+                self.assertEqual(dll.read_bytes(), self.adapter.read_bytes())
+                self.assertEqual(main.read_framegen_registry()[WRAPPER_ID], str(self.shortcut_folder))
+                self.assertEqual((await plugin.change_current_framegen(False, WRAPPER_ID))['state'], 'ready')
+                self.assertEqual(dll.read_bytes(), self.original_dll)
+            asyncio.run(exercise())
+
+    def test_decky_activation_and_automatic_classic_readings_are_per_game(self):
         plugin = main.Plugin()
         with patch.object(main, 'BASE', self.home / 'config'), \
              patch.object(main, 'user_home', return_value=self.home), \
@@ -146,42 +188,45 @@ class FrameGenSetupTests(unittest.TestCase):
              patch.object(main, 'opengl_library', return_value=self.home / 'missing'):
             main.experimental_manifest().parent.mkdir(parents=True)
             main.experimental_manifest().touch()
-            main.native_hud_path().touch()
+            settings = {**main.DEFAULTS, 'fps': False}
+            ordinary = main.mango_config(settings, native_spacing=True)
+            split = main.mango_config(settings, native_spacing=True, show_framegen=True)
+            for flag in ('claw_fps_game', 'claw_fps_generated'):
+                self.assertIn(flag + '=0', ordinary)
+                self.assertIn(flag + '=1', split)
+            off = main.mango_config({**settings, 'enabled': False}, native_spacing=True, show_framegen=True)
+            self.assertIn('claw_fps_generated=0', off)
+            main.native_hud_path().write_text(ordinary)
+            main.native_framegen_hud_path().write_text(split)
             launcher = main.short_launcher_path()
             launcher.write_text(main.short_launcher_script())
             launcher.chmod(0o755)
-            listed = asyncio.run(plugin.list_framegen_games())['games']
-            self.assertEqual({game['appid'] for game in listed}, {STEAM_ID, SHORTCUT_ID, WRAPPER_ID})
-            self.assertEqual(asyncio.run(plugin.get_framegen_status(STEAM_ID))['state'], 'ready')
-            self.assertEqual(asyncio.run(plugin.get_framegen_status(SHORTCUT_ID))['state'], 'ready')
-            self.assertEqual(asyncio.run(plugin.get_framegen_status(WRAPPER_ID))['state'], 'unavailable')
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(True, STEAM_ID))['state'], 'enabled')
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(True, SHORTCUT_ID))['state'], 'enabled')
-            self.assertEqual(asyncio.run(plugin.get_framegen_status(WRAPPER_ID, str(self.shortcut_folder / setup.DLL)))
-                             ['state'], 'setup')
+            self.assertEqual(asyncio.run(plugin.check_current_framegen())['state'], 'unavailable')
+            self.assertEqual(asyncio.run(plugin.check_current_framegen(STEAM_ID))['state'], 'ready')
+            self.assertEqual(asyncio.run(plugin.change_current_framegen(True, STEAM_ID))['state'], 'enabled')
+            self.assertEqual(asyncio.run(plugin.check_current_framegen(SHORTCUT_ID))['state'], 'ready')
+            self.assertEqual(asyncio.run(plugin.change_current_framegen(True, SHORTCUT_ID))['state'], 'enabled')
+            self.assertEqual(asyncio.run(plugin.check_current_framegen(WRAPPER_ID))['state'], 'unavailable')
 
-            probe = ("import os,pathlib; relay=os.getenv('CLAW_FRAMEGEN_FILE'); "
-                     "print(relay or 'off'); assert not relay or pathlib.Path(relay).stat().st_size==6160")
+            probe = ("import json,os,pathlib; relay=os.getenv('CLAW_FRAMEGEN_FILE'); "
+                     "print(json.dumps([relay,os.getenv('MANGOHUD_CONFIGFILE')])); "
+                     "assert not relay or pathlib.Path(relay).stat().st_size==6160")
             env = {'PATH': '/usr/bin:/bin', 'HOME': str(self.home)}
             cmd = [str(launcher), sys.executable, '-c', probe]
 
-            def run(k, appid):
-                return subprocess.check_output(cmd, env={**env, k: appid}, text=True).strip()
+            def run(key, appid, nested=False):
+                command = [str(launcher), *cmd] if nested else cmd
+                return json.loads(subprocess.check_output(command, env={**env, key: appid}, text=True))
 
-            steam_launch = Path(run('SteamAppId', STEAM_ID))
-            self.assertEqual(steam_launch.parent, self.home / '.cache/claw-framegen')
-            self.assertFalse(steam_launch.exists())
+            relay, config = run('SteamAppId', STEAM_ID)
+            self.assertEqual(Path(relay).parent, self.home / '.cache/claw-framegen')
+            self.assertFalse(Path(relay).exists())
+            self.assertEqual(config, str(main.native_framegen_hud_path()))
+            self.assertEqual(run('SteamAppId', STEAM_ID, nested=True)[1], config)
             for key, appid in zip(('SteamAppId', 'STEAM_COMPAT_APP_ID', 'SteamGameId'), setup.launch_ids(SHORTCUT_ID)):
-                self.assertEqual(Path(run(key, appid)).parent, steam_launch.parent)
-            self.assertEqual(run('SteamAppId', '999'), 'off')
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(False, STEAM_ID))['state'], 'ready')
-            self.assertEqual(run('SteamAppId', STEAM_ID), 'off')
-            self.assertNotEqual(run('SteamAppId', SHORTCUT_ID), 'off')
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(False, SHORTCUT_ID))['state'], 'ready')
-            self.assertEqual(run('SteamAppId', SHORTCUT_ID), 'off')
-
-            dll = str(self.shortcut_folder / setup.DLL)
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(True, WRAPPER_ID, dll))['state'], 'enabled')
-            self.assertNotEqual(run('SteamAppId', WRAPPER_ID), 'off')
-            self.assertEqual(asyncio.run(plugin.set_framegen_enabled(False, WRAPPER_ID))['state'], 'ready')
-            self.assertEqual(run('SteamAppId', WRAPPER_ID), 'off')
+                self.assertEqual(run(key, appid)[1], str(main.native_framegen_hud_path()))
+            self.assertEqual(run('SteamAppId', '999'), [None, str(main.native_hud_path())])
+            self.assertEqual(asyncio.run(plugin.check_current_framegen(STEAM_ID))['state'], 'enabled')
+            self.assertEqual(asyncio.run(plugin.change_current_framegen(False, STEAM_ID))['state'], 'ready')
+            self.assertIsNone(run('SteamAppId', STEAM_ID)[0])
+            self.assertIsNotNone(run('SteamAppId', SHORTCUT_ID)[0])

@@ -332,6 +332,10 @@ def native_hud_path():
     return BASE / "MangoHud-experimental.conf"
 
 
+def native_framegen_hud_path():
+    return BASE / "MangoHud-framegen.conf"
+
+
 def native_renderer_available():
     binary = experimental_library()
     # Only expose the native option when the installer actually contains
@@ -414,6 +418,7 @@ def short_launch_option():
 
 
 LEGACY_FRAMEGEN_APP_ID = "1903340"
+FRAMEGEN_EXIT_POLL_SECONDS = 2
 
 
 def framegen_flag():
@@ -483,7 +488,9 @@ def short_launcher_script():
         "export VK_ADD_LAYER_PATH=" + shlex.quote(str(experimental_manifest().parent)) + "\n"
         "export VK_INSTANCE_LAYERS=" + shlex.quote(EXPERIMENTAL_LAYER_NAME) + "\n"
         "export DISABLE_MANGOHUD=1\n"
-        "export MANGOHUD_CONFIGFILE=" + shlex.quote(str(native_hud_path())) + "\n"
+        'if [ -z "${CLAW_FRAMEGEN_FILE-}" ] || [ -z "${MANGOHUD_CONFIGFILE-}" ]; then\n'
+        '    export MANGOHUD_CONFIGFILE=' + shlex.quote(str(native_hud_path())) + '\n'
+        'fi\n'
         # Keep the existing Vulkan path intact if an older ZIP lacks OpenGL.
         # The upstream shim loads its adjacent OpenGL library only when an
         # OpenGL entry point is used. Keep the stock implicit Vulkan layer off.
@@ -515,6 +522,9 @@ def short_launcher_script():
         "    trap 'rm -f \"$relay\"' EXIT\n"
         '    truncate -s 6160 "$relay" || { rm -f "$relay"; exec "$@"; }\n'
         '    export CLAW_FRAMEGEN_FILE="$relay"\n'
+        '    if [ -r ' + shlex.quote(str(native_framegen_hud_path())) + ' ]; then\n'
+        '        export MANGOHUD_CONFIGFILE=' + shlex.quote(str(native_framegen_hud_path())) + '\n'
+        '    fi\n'
         '    "$@"\n'
         '    exit $?\n'
         'fi\n'
@@ -997,7 +1007,7 @@ def write_atomic(path, content, mode=0o644):
         if os.path.exists(temporary):
             os.unlink(temporary)
 
-def mango_config(settings, native_spacing=False):
+def mango_config(settings, native_spacing=False, show_framegen=False):
     d = normalize(settings)
     if native_spacing and d["modular_enabled"]:
         # The modular tree owns visibility; ensure every visible reading has its source.
@@ -1023,6 +1033,8 @@ def mango_config(settings, native_spacing=False):
             if token in metric_flags: d["metrics"][metric_flags[token]] = True
             if token.startswith('vram.'): d['gpu'] = True
             if token == 'fps.ms': d['frametime'] = True
+    if native_spacing and show_framegen:
+        d["fps"] = d["metrics"]["fps_game"] = d["metrics"]["fps_generated"] = True
     m = d["metrics"]
     c = d["colors"]
     active = lambda key: d["enabled"] and d[key]
@@ -1193,6 +1205,13 @@ def mango_config(settings, native_spacing=False):
             lines.append(flag(display[group], on))
     return "\n".join(lines) + "\n"
 
+
+def publish_native_hud(settings):
+    install_native_manifest()
+    write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
+    write_atomic(native_framegen_hud_path(), mango_config(settings, native_spacing=True, show_framegen=True))
+    install_short_launcher()
+
 def update_error_message(error):
     """Keep a broken optional updater from taking down the entire plugin."""
     try:
@@ -1242,62 +1261,89 @@ def publish_modular(settings):
 
 
 class Plugin:
-    async def list_framegen_games(self):
-        try:
-            result = await asyncio.to_thread(framegen_command, "list")
-            if "games" not in result:
-                return {**result, "games": [], "home": str(user_home())}
-            games = {game["appid"]: game for game in result["games"]}
-            for key, folder in read_framegen_registry().items():
-                if re.fullmatch(r"[1-9][0-9]{0,9}", key) and int(key) <= 0xffffffff and key not in games:
-                    games[key] = {"appid": key, "name": pathlib.Path(folder).name, "source": "Configured"}
-            result["games"] = list(games.values())
-            return result
-        except (OSError, ValueError, subprocess.SubprocessError):
-            return {"games": [], "home": str(user_home()), "message": "Could not read Steam's game library."}
-
-    async def get_framegen_status(self, appid, path=None):
-        return await self._framegen_action("status", appid, path)
-
-    async def set_framegen_enabled(self, enabled, appid, path=None):
-        if type(enabled) is not bool:
-            return {"state": "unavailable", "message": "Invalid Frame Gen action."}
-        return await self._framegen_action("enable" if enabled else "disable", appid, path)
-
-    async def _framegen_action(self, action, appid, path):
-        if (not isinstance(appid, str) or not re.fullmatch(r"[1-9][0-9]{0,9}", appid)
-                or int(appid) > 0xffffffff or (path is not None and
-                    (not isinstance(path, str) or len(path) > 4096 or not path.startswith("/") or "\0" in path))):
-            return {"state": "unavailable", "message": "Invalid game selection."}
+    def _framegen_action_lock(self):
         if not hasattr(self, "_framegen_lock"):
             self._framegen_lock = asyncio.Lock()
-        async with self._framegen_lock:
-            try:
-                games = read_framegen_registry()
-                current_folder = games.get(appid)
-                result = await asyncio.to_thread(framegen_command, action, appid, current_folder or path)
-                if result["state"] == "unavailable":
-                    result["configured"] = bool(current_folder)
-                    return result
-                folder = result.pop("folder")
-                legacy = appid == LEGACY_FRAMEGEN_APP_ID and framegen_flag().is_file()
-                if action == "enable":
-                    number = int(appid)
-                    for key in (appid, str(number - 2**32), str((number << 32) | 0x02000000)) if number >= 2**31 else (appid,):
-                        games[key] = folder
-                    write_framegen_registry(games)
-                    if legacy:
-                        framegen_flag().unlink(missing_ok=True)
-                elif action == "disable":
-                    write_framegen_registry({key: value for key, value in games.items() if value != folder})
-                    if legacy:
-                        framegen_flag().unlink(missing_ok=True)
-                elif result["state"] == "enabled" and not (current_folder or legacy):
-                    result["state"] = "setup"
-                result["configured"] = action == "enable" or (action == "status" and bool(current_folder or legacy))
+        return self._framegen_lock
+
+    async def get_current_framegen_result(self):
+        return {key: value for key, value in getattr(self, "_framegen_result", {}).items()
+                if key != "folder"}
+
+    async def check_current_framegen(self, appid=None, name=""):
+        async with self._framegen_action_lock():
+            if getattr(self, "_framegen_result", {}).get("state") == "waiting":
+                return await self.get_current_framegen_result()
+            if (not isinstance(appid, str) or not re.fullmatch(r"[1-9][0-9]{0,9}", appid)
+                    or int(appid) > 0xffffffff):
+                self._framegen_result = {"state": "unavailable", "message": "Start a game in Steam and try again."}
+                return await self.get_current_framegen_result()
+            label = " ".join(name.split())[:120] if isinstance(name, str) else ""
+            self._framegen_result = {
+                **await self._framegen_action("check", appid),
+                "appid": appid, "name": label or appid,
+            }
+            return await self.get_current_framegen_result()
+
+    async def change_current_framegen(self, enabled, appid):
+        async with self._framegen_action_lock():
+            status = getattr(self, "_framegen_result", {})
+            allowed = ("ready", "setup", "update") if enabled is True else ("enabled", "setup", "update")
+            if (type(enabled) is not bool or appid != status.get("appid") or not status.get("folder")
+                    or status.get("state") not in allowed):
+                return {"state": "unavailable", "message": "Check the current game's compatibility first."}
+            action = "enable" if enabled else "disable"
+            self._framegen_result = await self._finish_framegen_change(status, action)
+            if self._framegen_result["state"] == "waiting":
+                self._framegen_waiting = asyncio.create_task(self._wait_for_framegen_change(action))
+            return await self.get_current_framegen_result()
+
+    async def cancel_current_framegen(self):
+        async with self._framegen_action_lock():
+            if getattr(self, "_framegen_result", {}).get("state") == "waiting":
+                self._framegen_waiting.cancel()
+                self._framegen_result = {"state": "unavailable", "message": "Setup canceled. Check the game again to continue."}
+            return await self.get_current_framegen_result()
+
+    async def _finish_framegen_change(self, status, action):
+        result = await self._framegen_action(action, status["appid"], status["folder"])
+        return {**status, **result, "pending": action if result["state"] == "waiting" else None}
+
+    async def _wait_for_framegen_change(self, action):
+        while True:
+            await asyncio.sleep(FRAMEGEN_EXIT_POLL_SECONDS)
+            async with self._framegen_action_lock():
+                status = self._framegen_result
+                if status["state"] != "waiting":
+                    return
+                self._framegen_result = await self._finish_framegen_change(status, action)
+                if self._framegen_result["state"] != "waiting":
+                    return
+
+    async def _framegen_action(self, action, appid, folder=None):
+        try:
+            games = read_framegen_registry()
+            current_folder = games.get(appid)
+            result = await asyncio.to_thread(framegen_command, action, appid, folder or current_folder)
+            if result["state"] in ("unavailable", "waiting"):
                 return result
-            except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
-                return {"state": "unavailable", "message": "Frame Gen setup failed. " + str(error)[:180]}
+            legacy = appid == LEGACY_FRAMEGEN_APP_ID and framegen_flag().is_file()
+            folder = result["folder"]
+            if action == "enable":
+                number = int(appid)
+                aliases = (appid, str(number - 2**32), str((number << 32) | 0x02000000)) if number >= 2**31 else (appid,)
+                for key in aliases:
+                    games[key] = folder
+                write_framegen_registry(games)
+            elif action == "disable":
+                write_framegen_registry({key: value for key, value in games.items() if value != folder})
+            elif result["state"] == "enabled" and not (current_folder == folder or legacy):
+                result["state"] = "setup"
+            if action != "check" and legacy:
+                framegen_flag().unlink(missing_ok=True)
+            return {**result, "provider": "FSR", "message": ""}
+        except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+            return {"state": "unavailable", "message": "Frame Gen setup failed. " + str(error)[:180]}
 
     async def _main(self):
         install_font()
@@ -1312,9 +1358,7 @@ class Plugin:
         publish_modular(settings)
         write_atomic(HUD, mango_config(settings))
         if native_renderer_available():
-            install_native_manifest()
-            write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
-            install_short_launcher()
+            publish_native_hud(settings)
         self._current_settings = settings
         self._tdp_last_value = None
         self._tdp_last_source = "Not checked"
@@ -1391,6 +1435,10 @@ class Plugin:
             await asyncio.sleep(5)
 
     async def _unload(self):
+        async with self._framegen_action_lock():
+            waiting = getattr(self, "_framegen_waiting", None)
+            if waiting:
+                waiting.cancel()
         self._diagnostics_stopping = True
         monitor = getattr(self, "_diagnostics_task", None)
         if monitor:
@@ -1398,7 +1446,7 @@ class Plugin:
         recorder = getattr(self, "_recorder", None)
         if recorder:
             await recorder.stop("plugin_unloaded")
-        for key in ("_draw_task", "_tdp_task"):
+        for key in ("_draw_task", "_tdp_task", "_framegen_waiting"):
             task = getattr(self, key, None)
             if task is not None:
                 task.cancel()
@@ -1506,9 +1554,7 @@ class Plugin:
         write_atomic(tdp_path(), tdp_text(data, getattr(self, "_tdp_last_value", None)) + "\n")
         write_atomic(HUD, mango_config(data))
         if native_renderer_available():
-            install_native_manifest()
-            write_atomic(native_hud_path(), mango_config(data, native_spacing=True))
-            install_short_launcher()
+            publish_native_hud(data)
         return {"ok": True, "settings": data, "config_path": str(HUD)}
 
     async def save_style_settings(self, settings: dict):
@@ -1623,6 +1669,8 @@ class Plugin:
         """
         expected = str(experimental_library().resolve())
         expected_gl = str(opengl_library().resolve())
+        config_env = {b"MANGOHUD_CONFIGFILE=" + os.fsencode(path)
+                      for path in (native_hud_path(), native_framegen_hud_path())}
         found_native = 0
         found_opengl = 0
         found_other_hud = 0
@@ -1657,8 +1705,7 @@ class Plugin:
                 if any(x.startswith(b"VK_INSTANCE_LAYERS=") and
                        EXPERIMENTAL_LAYER_NAME.encode() in x for x in envs):
                     layer_request += 1
-                if any(x.startswith(b"MANGOHUD_CONFIGFILE=") and
-                       b"MangoHud-experimental.conf" in x for x in envs):
+                if config_env.intersection(envs):
                     config_request += 1
                 if any(x.startswith(b"VK_ADD_LAYER_PATH=") and
                        b"ClawMetrics" in x for x in envs):

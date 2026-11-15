@@ -20,6 +20,7 @@ PREVIOUS_PROXIES = {
     'b1d6ec2615f336c6074beb4ef71afa5f2c43c1d735eb0b9d02793ec9bf7f0570',
     '53484b853f60d95fa13655759e16427625cfbbc26ffb1a49ad3395647442f49d',
     '89b16b63a934f657fbd8dc8470331a6bd745a1e5f7cfad7d63edc591a948b1f5',
+    '0c172ac89404495b3e79459fe217d1ab645cb1e9233323de5141f033705dad53',
 }
 REQUIRED_EXPORTS = {b'ffxCreateContext', b'ffxDestroyContext', b'ffxConfigure', b'ffxQuery', b'ffxDispatch'}
 KV_TOKEN = re.compile(r'//[^\r\n]*|"(?:\\.|[^"\\])*"|[{}]|[^\s{}"]+')
@@ -197,12 +198,12 @@ def find_dll_folder(path, automatic, home):
         path = path.parent
     # Never search an entire home directory or mount from a wrapper shortcut.
     if not path.is_dir() or (automatic and (path == path.parent or home.is_relative_to(path))):
-        raise ValueError('Choose the game folder or its AMD Frame Gen DLL.')
+        raise ValueError('The game folder could not be identified.')
     found = set()
     for index, (directory, subdirs, files) in enumerate(os.walk(path)):
         folder = Path(directory)
         if index >= 512:
-            raise ValueError('Choose the AMD Frame Gen DLL directly.')
+            raise ValueError('Turn on FSR Frame Generation in the game and check again to identify the loaded DLL.')
         if len(folder.relative_to(path).parts) >= 5:
             subdirs.clear()
         else:
@@ -212,8 +213,8 @@ def find_dll_folder(path, automatic, home):
     if len(found) == 1:
         return found.pop()
     if found:
-        raise ValueError('Multiple AMD Frame Gen DLLs found. Choose the one used by the game.')
-    raise ValueError('Compatible AMD DX12 Frame Gen DLL not found. Choose the DLL directly.')
+        raise ValueError('Multiple AMD Frame Gen DLLs found. Turn on FSR Frame Generation in the game and check again.')
+    raise ValueError('No compatible AMD DX12 Frame Gen DLL found.')
 
 
 def launch_ids(appid):
@@ -223,22 +224,66 @@ def launch_ids(appid):
     return (appid, str(number - 2**32), str((number << 32) | 0x02000000))
 
 
-def game_running(folder, appid, proc=Path('/proc')):
-    names = {item.name.lower().encode() for item in folder.iterdir() if item.suffix.lower() == '.exe'}
-    ids = {key.encode() for key in launch_ids(appid)}
+def steam_processes(proc=Path('/proc')):
     for process in proc.iterdir():
         try:
-            if not process.name.isdecimal() or process.stat().st_uid != os.geteuid():
-                continue
+            if process.name.isdecimal() and process.stat().st_uid == os.geteuid():
+                yield process
+        except OSError:
+            continue
+
+
+def process_matches(process, ids):
+    try:
+        with (process / 'environ').open('rb') as file:
+            for entry in file.read(131072).split(b'\0'):
+                key, _, value = entry.partition(b'=')
+                if key in (b'SteamAppId', b'SteamGameId', b'STEAM_COMPAT_APP_ID') and value in ids:
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def running_fsr_folder(appid, proc=Path('/proc')):
+    """Find the live module for the Steam app, including launcher shortcuts."""
+    ids = {key.encode() for key in launch_ids(appid)}
+    folders = set()
+    for process in steam_processes(proc):
+        if not process_matches(process, ids):
+            continue
+        try:
+            with (process / 'maps').open(encoding='utf-8', errors='surrogateescape') as file:
+                mappings = file.read(4 * 1024 * 1024).splitlines()
+            for line in mappings:
+                fields = line.split(maxsplit=5)
+                if len(fields) != 6 or not fields[5].endswith('/' + DLL):
+                    continue
+                path = Path(fields[5])
+                if path.is_absolute() and path.is_file() and not path.is_symlink():
+                    folders.add(path.parent.resolve(strict=True))
+        except (OSError, RuntimeError):
+            continue
+    if len(folders) > 1:
+        raise ValueError('Multiple FSR Frame Gen DLLs are loaded. Close other instances and check again.')
+    return next(iter(folders), None)
+
+
+class GameRunning(ValueError):
+    pass
+
+
+def game_running(folder, appid, proc=Path('/proc')):
+    names = {os.fsencode(item.name.lower()) for item in folder.iterdir() if item.suffix.lower() == '.exe'}
+    ids = {key.encode() for key in launch_ids(appid)}
+    for process in steam_processes(proc):
+        if process_matches(process, ids):
+            return True
+        try:
             with (process / 'comm').open('rb') as file:
                 name = file.read(32).strip().lower()
             if any(name == filename[:15] for filename in names):
                 return True
-            with (process / 'environ').open('rb') as file:
-                for entry in file.read(131072).split(b'\0'):
-                    key, _, value = entry.partition(b'=')
-                    if key in (b'SteamAppId', b'SteamGameId', b'STEAM_COMPAT_APP_ID') and value in ids:
-                        return True
         except OSError:
             continue
     return False
@@ -321,7 +366,7 @@ def game_bridge(folder, adapter, action, appid):
     target, backup = folder / DLL, folder / BACKUP
     with directory_lock(folder):
         if action != 'status' and game_running(folder, appid):
-            raise ValueError('Close the game before changing its Frame Gen adapter.')
+            raise GameRunning('Close the game to finish Frame Gen setup.')
         adapter_hash = dll_digest(adapter)
         if adapter_hash is None:
             raise ValueError('The Frame Gen adapter is missing from this installation.')
@@ -374,34 +419,34 @@ def directory_lock(folder):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=('list', 'status', 'enable', 'disable'))
+    parser.add_argument('action', choices=('check', 'enable', 'disable'))
     parser.add_argument('home', type=Path)
     parser.add_argument('adapter', type=Path)
     parser.add_argument('--appid')
     parser.add_argument('--path', type=Path)
     args = parser.parse_args()
     try:
-        games = discover_games(args.home) if args.action == 'list' or args.path is None else []
-        if args.action == 'list':
-            result = {'games': [
-                {'appid': game.appid, 'name': game.name, 'source': game.source}
-                for game in games
-            ], 'home': str(args.home)}
-        else:
-            if not game_id(args.appid):
-                raise ValueError('Choose a Steam or Non-Steam game.')
-            if args.path is None:
-                locations = {game.path for game in games if game.appid == args.appid}
+        if not game_id(args.appid):
+            raise ValueError('Launch a game from Steam or a Non-Steam shortcut first.')
+        folder = None
+        if args.action == 'check':
+            folder = running_fsr_folder(args.appid)
+            if folder is None and args.path is None:
+                locations = {game.path for game in discover_games(args.home) if game.appid == args.appid}
                 if len(locations) != 1 or None in locations:
-                    raise ValueError('Select the actual AMD Frame Gen DLL for this game.')
-                path = locations.pop()
-            else:
-                path = args.path
-            if not path.is_absolute():
-                raise ValueError('Select the game folder or its AMD Frame Gen DLL.')
-            folder = find_dll_folder(path, args.path is None, args.home)
-            state = game_bridge(folder, args.adapter, args.action, args.appid)
-            result = {'state': state, 'folder': str(folder), 'message': ''}
+                    raise ValueError('No FSR DX12 Frame Gen DLL found. Turn on FSR Frame Generation in the game and check again.')
+                folder = find_dll_folder(locations.pop(), True, args.home)
+        if folder is None:
+            if args.path is None or not args.path.is_absolute():
+                raise ValueError('Check the current game first.')
+            folder = args.path.resolve(strict=True)
+            if folder != args.path:
+                raise ValueError('The game folder changed. Check the current game again.')
+        action = 'status' if args.action == 'check' else args.action
+        state = game_bridge(folder, args.adapter, action, args.appid)
+        result = {'state': state, 'folder': str(folder)}
+    except GameRunning as error:
+        result = {'state': 'waiting', 'message': str(error)}
     except (OSError, ValueError, RuntimeError) as error:
         result = {'state': 'unavailable', 'message': str(error)[:240]}
     print(json.dumps(result))

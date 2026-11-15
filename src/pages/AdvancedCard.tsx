@@ -1,4 +1,5 @@
 import {SessionDiagnostics} from "./SessionDiagnostics";
+import {GeneratedFrames} from "./GeneratedFrames";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { callable, definePlugin } from "@decky/api";
 import {
@@ -47,6 +48,10 @@ export function AdvancedCard({vm}:{vm:Core.ClawController}) {
         {updateFallback && <PanelSectionRow><Field label="Manual install via Decky Settings → Developer"
           description={updateFallback} /></PanelSectionRow>}
 
+          </ControlGroup>
+          <ControlGroup title="Generated Frames" summary="Check FSR Frame Generation in the current game"
+            open={advancedPanel==="framegen"} onToggle={()=>toggleAdvancedPanel("framegen")}>
+            <GeneratedFrames ready={ready} launchOption={info?.short_launch_option}/>
           </ControlGroup>
           <ControlGroup title="Diagnostics" summary="Session recorder · TDP · renderer"
             open={advancedPanel==="diagnostics"} onToggle={()=>toggleAdvancedPanel("diagnostics")}>
