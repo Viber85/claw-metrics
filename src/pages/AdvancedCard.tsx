@@ -1,33 +1,19 @@
 import {SessionDiagnostics} from "./SessionDiagnostics";
 import {GeneratedFrames} from "./GeneratedFrames";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
-  ConfirmModal,
-  showModal,
-  DialogButton,
-  Focusable,
   Field,
-  PanelSection,
   PanelSectionRow,
-  SliderField,
-  TextField,
-  Router,
-  ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaSlidersH, FaDownload, FaCopy } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
-import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
 
-type Settings = Core.Settings;
 const { AccordionCard, ControlGroup } = Core;
 
 /** Standalone advanced presentation; all mutable state is owned by the Decky controller. */
 export function AdvancedCard({vm}:{vm:Core.ClawController}) {
-  const { info, status, installedVersion, installedVersionError, advancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
+  const { info, installedVersion, installedVersionError, advancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, tdpStatus, rendererBusy, updateBusy, updateStatus, updateFallback, checkGithubRelease, verifyTdp, verifyRenderer, openSection, toggleSection, ready, refresh, copyLaunchCommand } = vm;
   return (
 <AccordionCard id="advanced" title="Advanced" subtitle="Updates and troubleshooting"
           icon={<FaSlidersH />} open={openSection === "advanced"} onToggle={() => toggleSection("advanced")}>

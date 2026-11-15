@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.3.0-rc.5 ZIP
+name: Build Claw Metrics v0.3.0-rc.6 ZIP
 on:
   push:
-    branches: [test/current-game-framegen-030-rc5]
+    branches: [test/settings-save-030-rc6]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same release candidate.
 concurrency:
-  group: claw-metrics-v0.3.0-rc.5-frame-generation
+  group: claw-metrics-v0.3.0-rc.6-settings-save
   cancel-in-progress: true
 
 jobs:
@@ -61,6 +61,7 @@ jobs:
         run: |
           node tests/style_presets.test.mjs
           node tests/slider_field.test.mjs
+          node tests/settings_save.test.mjs
           node tests/session_reports.test.mjs
           node tests/editor_page.test.mjs
           node tests/generated_frames.test.mjs
@@ -296,7 +297,7 @@ jobs:
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.5.zip')
+          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.6.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
@@ -312,28 +313,28 @@ jobs:
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.3.0-rc.5', package['version']
+              assert package['version'] == '0.3.0-rc.6', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.3.0-rc.5
-          path: ClawMetrics-v0.3.0-rc.5.zip
+          name: ClawMetrics-v0.3.0-rc.6
+          path: ClawMetrics-v0.3.0-rc.6.zip
       - name: Publish the prerelease and legacy updater entry
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > release-notes.txt <<'EOF'
-          With the game running, open Advanced → Generated Frames and choose Check current game compatibility. If the game provides a supported FSR DX12 module, choose Enable generated frame metrics. The change applies when you exit the game. Launch the game again with FSR Frame Generation enabled.
+          Rapid Layout and Background slider changes update the displayed value immediately and save the latest value in short batches. Reopening the menu waits for pending settings. The backend skips identical config files and repairs missing or unreadable files.
 
-          The Classic overlay displays Game FPS and Generated FPS automatically for the configured game. In Layout Builder, both metrics are available as layout elements. Restore the original game DLL from the same card. Real game telemetry on SteamOS still needs on-device testing.
+          Removed unused frontend declarations. Automated tests verify slider batching, save ordering, final values and the existing Classic, Layout Builder and FSR renderer paths.
           EOF
-          gh release create v0.3.0-rc.5 ClawMetrics-v0.3.0-rc.5.zip \
+          gh release create v0.3.0-rc.6 ClawMetrics-v0.3.0-rc.6.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.5 – Check Frame Generation for the current game" \
+            --title "Claw Metrics v0.3.0-rc.6 – More efficient settings saves" \
             --notes-file release-notes.txt
-          cp ClawMetrics-v0.3.0-rc.5.zip ClawMetrics-v0.2.4-test.125.zip
-          gh release create v0.2.4-test.125 ClawMetrics-v0.2.4-test.125.zip \
+          cp ClawMetrics-v0.3.0-rc.6.zip ClawMetrics-v0.2.4-test.126.zip
+          gh release create v0.2.4-test.126 ClawMetrics-v0.2.4-test.126.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.5 – Update from older test builds" \
+            --title "Claw Metrics v0.3.0-rc.6 – Update from older test builds" \
             --notes-file release-notes.txt

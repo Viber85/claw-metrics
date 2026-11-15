@@ -6,7 +6,10 @@ import {LayoutSliderField} from "../components/LayoutSliderField";
 export function BackgroundEditor({vm}:{vm:ClawController}) {
  const [open,setOpen]=useState(false);
  const b=vm.settings.background;
- const patch=(value:Partial<OverlayBackground>)=>vm.update({background:{...vm.current.current.background,...value}});
+ const patch=(value:Partial<OverlayBackground>, slider=false)=>{
+  const change={background:{...vm.current.current.background,...value}};
+  return slider ? vm.updateSlider(change) : vm.update(change);
+ };
  const color=(index?:number|"outline")=>{
   const hex=index==="outline"?b.outline_color:index===undefined?b.color:b.stops[index].color;
   const dialog=showModal(<OpaqueColorPicker title={index==="outline"?"Outline color":index===undefined?"Background color":"Gradient stop color"} hex={hex}
@@ -32,16 +35,16 @@ export function BackgroundEditor({vm}:{vm:ClawController}) {
    </ButtonItem>
   </PanelSectionRow>)}
   {b.mode==="solid"?<PanelSectionRow><ButtonItem layout="below" disabled={!vm.ready} onClick={()=>color()}>Color · #{b.color}</ButtonItem></PanelSectionRow>:<>
-   {b.mode==="linear"?slider("Direction (°)",b.angle,0,360,v=>patch({angle:v})): <>
-    {slider("Center X (%)",b.center_x,0,100,v=>patch({center_x:v}))}
-    {slider("Center Y (%)",b.center_y,0,100,v=>patch({center_y:v}))}
-    {slider("Spread (%)",b.radius,1,200,v=>patch({radius:v}))}
+   {b.mode==="linear"?slider("Direction (°)",b.angle,0,360,v=>patch({angle:v},true)): <>
+    {slider("Center X (%)",b.center_x,0,100,v=>patch({center_x:v},true))}
+    {slider("Center Y (%)",b.center_y,0,100,v=>patch({center_y:v},true))}
+    {slider("Spread (%)",b.radius,1,200,v=>patch({radius:v},true))}
    </>}
    <Field label="Gradient stops" description="Add up to 8 colors. Stop positions control the transitions."/>
    {b.stops.map((stop,index)=><div key={index} style={{width:"100%",maxWidth:"100%",minWidth:0,boxSizing:"border-box",padding:8,marginBottom:8,borderRadius:8,border:"1px solid #303b48",background:"#111820"}}>
     <ButtonItem layout="below" disabled={!vm.ready} onClick={()=>color(index)}>Stop {index+1} · #{stop.color}</ButtonItem>
     {slider("Position (%)",stop.position,b.stops[index-1]?.position??0,b.stops[index+1]?.position??100,
-     value=>patch({stops:vm.current.current.background.stops.map((s,i)=>i===index?{...s,position:value}:s)}))}
+     value=>patch({stops:vm.current.current.background.stops.map((s,i)=>i===index?{...s,position:value}:s)},true))}
     <ButtonItem layout="below" disabled={!vm.ready||b.stops.length<=2} onClick={()=>patch({stops:b.stops.filter((_,i)=>i!==index)})}>Remove stop</ButtonItem>
    </div>)}
    <PanelSectionRow><ButtonItem layout="below" disabled={!vm.ready||b.stops.length>=8} onClick={()=>{
@@ -50,7 +53,7 @@ export function BackgroundEditor({vm}:{vm:ClawController}) {
     const stops=[...b.stops];stops.splice(insert,0,{position:Math.round((stops[insert-1].position+stops[insert].position)/2),color:stops[insert-1].color});patch({stops});
    }}>Add color stop</ButtonItem></PanelSectionRow>
   </>}
-  {slider("Background opacity (%)",vm.settings.opacity,0,100,value=>vm.update({opacity:value}))}
+  {slider("Background opacity (%)",vm.settings.opacity,0,100,value=>vm.updateSlider({opacity:value}))}
   <PanelSectionRow><ToggleField label="Outline" description="Rounded border with independent color and opacity."
    checked={b.outline_enabled} disabled={!vm.ready||!vm.info?.layout_spacing_supported} onChange={enabled=>patch({outline_enabled:enabled})}/></PanelSectionRow>
   {b.outline_enabled&&<>

@@ -7,6 +7,41 @@ import main
 
 
 class EditorStyleSave(unittest.IsolatedAsyncioTestCase):
+    async def test_live_save_skips_identical_files_and_repairs_unreadable_config(self):
+        plugin = main.Plugin()
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            base = home / '.config/ClawMetrics'
+            config = base / 'settings.json'
+            hud = base / 'MangoHud.conf'
+            settings = main.normalize({'offset_x': 20})
+            with patch.object(main, 'BASE', base), patch.object(main, 'CONFIG', config), \
+                 patch.object(main, 'HUD', hud), patch.object(main, 'user_home', return_value=home), \
+                 patch.object(main, 'native_renderer_available', return_value=True), \
+                 patch.object(main, 'draw_text', return_value='DRAW --'), \
+                 patch.object(main, 'write_atomic', wraps=main.write_atomic) as write:
+                await plugin.save_settings(settings)
+                write.reset_mock()
+                await plugin.save_settings(settings)
+                write.assert_not_called()
+
+                framegen_config = main.native_framegen_hud_path()
+                framegen_config.chmod(0o600)
+                await plugin.save_settings(settings)
+                self.assertEqual([call.args[0] for call in write.call_args_list], [framegen_config])
+                self.assertEqual(framegen_config.stat().st_mode & 0o777, 0o644)
+
+                write.reset_mock()
+                changed = await plugin.save_settings({**settings, 'offset_x': 21, 'opacity': 70})
+                self.assertTrue(changed['ok'])
+                previous = base / 'overlay-design-previous.json'
+                self.assertCountEqual([call.args[0] for call in write.call_args_list], [
+                    previous, config, hud, main.native_hud_path(), framegen_config,
+                ])
+                self.assertEqual(json.loads(previous.read_text())['offset_x'], 20)
+                self.assertEqual(json.loads(config.read_text())['offset_x'], 21)
+                self.assertIn('offset_x=21\n', framegen_config.read_text())
+
     async def test_draft_style_persists_without_touching_live_renderer(self):
         plugin=main.Plugin()
         layout=json.loads((Path(main.__file__).parent/'assets/modular/horizontal.json').read_text())

@@ -1,27 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
 import {
   ButtonItem,
-  ConfirmModal,
-  showModal,
-  DialogButton,
-  Focusable,
   Field,
-  PanelSection,
   PanelSectionRow,
-  SliderField,
-  TextField,
-  Router,
-  ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaDesktop } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
-import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
 
 
-const { save, AccordionCard } = Core;
+const { AccordionCard } = Core;
 
 /** Standalone overlay presentation; all mutable state is owned by the Decky controller. */
 export function OverlayCard({vm}:{vm:Core.ClawController}) {

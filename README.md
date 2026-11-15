@@ -1,3 +1,13 @@
+## v0.3.0-rc.6 — More efficient settings saves
+
+Rapid Layout and Background slider changes update the displayed value immediately
+and save the latest value in short batches. The backend skips identical settings,
+renderer configs and manifests. It still recreates missing files. The existing
+Layout Builder Apply and Save Style actions keep their save order.
+
+Older updater versions may show `test.126` during the update and report
+`0.3.0-rc.6` after installation.
+
 ## v0.3.0-rc.5 — Check Frame Generation for the current game
 
 1. Start a Steam or Non-Steam game. In Decky, open **Claw Metrics → Advanced →

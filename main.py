@@ -13,6 +13,7 @@ import gzip
 import hashlib
 import re
 import shutil
+import stat
 import subprocess
 import time
 # The optional GitHub updater is loaded only when requested. A missing updater
@@ -359,7 +360,8 @@ def install_native_manifest():
     }}
     private_manifest = experimental_manifest()
     private_manifest.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-    write_atomic(private_manifest, json.dumps(content, indent=2) + "\n")
+    manifest_text = json.dumps(content, indent=2) + "\n"
+    write_if_changed(private_manifest, manifest_text)
 
     # A discoverable user explicit layer is inert until requested by name.
     # Create any missing XDG directories as the desktop user, not root:
@@ -374,9 +376,11 @@ def install_native_manifest():
                 directory.mkdir(mode=0o755)
                 if os.geteuid() == 0 and owner.st_uid != 0:
                     os.chown(directory, owner.st_uid, owner.st_gid)
-        write_atomic(public_manifest, json.dumps(content, indent=2) + "\n")
+        write_if_changed(public_manifest, manifest_text)
         if os.geteuid() == 0 and owner.st_uid != 0:
-            os.chown(public_manifest, owner.st_uid, owner.st_gid)
+            current_owner = public_manifest.stat()
+            if (current_owner.st_uid, current_owner.st_gid) != (owner.st_uid, owner.st_gid):
+                os.chown(public_manifest, owner.st_uid, owner.st_gid)
     except OSError as error:
         # This fallback is optional. A permission issue must never prevent
         # the QAM plugin or the private manifest from working.
@@ -1007,6 +1011,21 @@ def write_atomic(path, content, mode=0o644):
         if os.path.exists(temporary):
             os.unlink(temporary)
 
+
+def write_if_changed(path, content):
+    expected = content.encode("utf-8")
+    try:
+        info = path.lstat()
+        if (stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o644
+                and info.st_size == len(expected)):
+            with path.open("rb") as existing:
+                if existing.read(len(expected) + 1) == expected:
+                    return
+    except OSError:
+        pass
+    write_atomic(path, content)
+
+
 def mango_config(settings, native_spacing=False, show_framegen=False):
     d = normalize(settings)
     if native_spacing and d["modular_enabled"]:
@@ -1208,8 +1227,8 @@ def mango_config(settings, native_spacing=False, show_framegen=False):
 
 def publish_native_hud(settings):
     install_native_manifest()
-    write_atomic(native_hud_path(), mango_config(settings, native_spacing=True))
-    write_atomic(native_framegen_hud_path(), mango_config(settings, native_spacing=True, show_framegen=True))
+    write_if_changed(native_hud_path(), mango_config(settings, native_spacing=True))
+    write_if_changed(native_framegen_hud_path(), mango_config(settings, native_spacing=True, show_framegen=True))
     install_short_launcher()
 
 def update_error_message(error):
@@ -1224,7 +1243,6 @@ def update_error_message(error):
 
 
 def read_modular_import(path, loader=None):
-    import stat
     from claw_modular import load_layout
     descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
     try:
@@ -1548,11 +1566,11 @@ class Plugin:
         if before != after:
             write_atomic(BASE / "overlay-design-previous.json", json.dumps(current, indent=2) + "\n")
         publish_modular(data)
-        write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
+        write_if_changed(CONFIG, json.dumps(data, indent=2) + "\n")
         self._current_settings = data
-        write_atomic(draw_path(), draw_text(data) + "\n")
-        write_atomic(tdp_path(), tdp_text(data, getattr(self, "_tdp_last_value", None)) + "\n")
-        write_atomic(HUD, mango_config(data))
+        write_if_changed(draw_path(), draw_text(data) + "\n")
+        write_if_changed(tdp_path(), tdp_text(data, getattr(self, "_tdp_last_value", None)) + "\n")
+        write_if_changed(HUD, mango_config(data))
         if native_renderer_available():
             publish_native_hud(data)
         return {"ok": True, "settings": data, "config_path": str(HUD)}
@@ -1566,7 +1584,7 @@ class Plugin:
         data = normalize({**current,
             "style_presets": settings.get("style_presets", {}),
             "style_names": settings.get("style_names", {})})
-        write_atomic(CONFIG, json.dumps(data, indent=2) + "\n")
+        write_if_changed(CONFIG, json.dumps(data, indent=2) + "\n")
         self._current_settings = data
         return {"ok": True}
 

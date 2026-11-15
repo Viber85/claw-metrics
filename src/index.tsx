@@ -1,23 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin, routerHook } from "@decky/api";
+import { definePlugin, routerHook } from "@decky/api";
 import {
   ButtonItem,
-  ConfirmModal,
-  showModal,
-  DialogButton,
-  Focusable,
   Field,
   PanelSection,
   PanelSectionRow,
-  SliderField,
-  TextField,
-  Router,
-  ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaChartLine, FaChartBar } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "./style-presets";
-import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
 import {useClawController,readActivePdcProfileKey,setTdpGameContext} from "./controller";
 import {EditorPage} from "./pages/EditorPage";
 import {UiBoundary} from "./components/UiBoundary";
@@ -32,7 +21,7 @@ import {AdvancedCard} from "./pages/AdvancedCard";
 /** Thin Decky shell: shared CSS, connection recovery and six independent cards. */
 function Content(){
   const vm=useClawController();
-  const {settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, advancedPanel, setAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton}=vm;
+  const {connecting, connectionError, ready, refresh}=vm;
 
   return (
     <div className="claw-theme" style={{background:"#0b1016",color:"#edf0f5",minHeight:"100%"}}>

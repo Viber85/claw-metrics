@@ -1,24 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
+import { callable } from "@decky/api";
 import {
-  ButtonItem,
   ConfirmModal,
   showModal,
   DialogButton,
-  Focusable,
-  Field,
-  PanelSection,
   PanelSectionRow,
   SliderField,
   TextField,
   Router,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaDesktop, FaPalette, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds, styleSnapshotFrom} from "./style-presets";
+import {styleLayoutFrom, styleMetricUpdatesFrom, independentColors, styleModified, styleSlotIds, styleSnapshotFrom} from "./style-presets";
 import {traceEditor} from "./modular/editor-page";
-import {metricName, relatedLabel, cleanName, groupNames} from "./metric-names";
+import {createSettingsSaveQueue} from "./settings-save";
+import {metricName, relatedLabel, cleanName} from "./metric-names";
 import type {SectionKey} from "./components/AccordionCard";
 
 export type Group = "fps" | "frametime" | "cpu" | "gpu" | "ram" | "vram" | "battery" | "tdp" | "draw" | "time";
@@ -382,6 +379,8 @@ export let lastStyleCategory: StyleCategory | null = "global";
 export let lastLayoutPanel: LayoutPanel | null = "position";
 export let lastAdvancedPanel: AdvancedPanel | null = "updates";
 
+const settingsWrites = createSettingsSaveQueue();
+
 export function useClawController() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [info, setInfo] = useState<Info | null>(null);
@@ -559,7 +558,6 @@ export function useClawController() {
   const [ready, setReady] = useState(false);
 
   const current = useRef<Settings>(defaults);
-  const queue = useRef<Promise<void>>(Promise.resolve());
   const revision = useRef(0);
 
   const refresh = async ():Promise<boolean> => {
@@ -571,6 +569,7 @@ export function useClawController() {
       // Core settings must not depend on optional renderer diagnostics.
       // Previous Promise.all([load(),getInfo()]) disabled EVERY control if
       // getInfo failed or timed out, even when settings were fully available.
+      await settingsWrites.flush();
       const saved=await withTimeout(load());
       if(attempt!==connectionAttempt.current)return false;
       if(!saved || !Array.isArray(saved.order) || !saved.metrics || !saved.colors)
@@ -618,7 +617,7 @@ export function useClawController() {
       await new Promise<void>(resolve=>setTimeout(resolve,1800));
       if(!cancelled)await refresh();
     })();
-    return ()=>{cancelled=true;};
+    return ()=>{cancelled=true; void settingsWrites.flush();};
   },[]);
 
   useEffect(()=>{
@@ -640,31 +639,30 @@ export function useClawController() {
     return ()=>{cancelled=true;};
   },[ready]);
 
-  const update = (patch: Partial<Settings>, stylesOnly=false):Promise<boolean> => {
-    let complete!:(ok:boolean)=>void;
-    const completion=new Promise<boolean>(resolve=>{complete=resolve});
+  const update = (patch: Partial<Settings>, stylesOnly=false, slider=false):Promise<boolean> => {
     const next = { ...current.current, ...patch };
     current.current = next;
     const id = ++revision.current;
-    traceEditor("settings_queued",String(id)+" "+Object.keys(patch).sort().join(","));
     setSettings(next);
     setStatus("Saving…");
-    queue.current = queue.current.then(async () => {
+    return settingsWrites.commit(async () => {
+      traceEditor("settings_queued",String(id)+" "+Object.keys(patch).sort().join(","));
       traceEditor("settings_save_start",String(id));
       try {
         const result = await withTimeout(stylesOnly?saveStyleSettings(next):save(next));
         if (!result.ok) throw new Error("Backend did not confirm the save.");
         if (id === revision.current) setStatus(stylesOnly?"Style saved.":"Saved. Layout changes should refresh in games using the modified renderer; restart the game if the HUD stays unchanged.");
         traceEditor("settings_saved",String(id));
-        complete(true);
+        return true;
       } catch (error) {
         if (id === revision.current) setStatus("Save failed: " + String(error));
         traceEditor("settings_error",String(id)+" "+String(error));
-        complete(false);
+        return false;
       }
-    });
-    return completion;
+    }, slider);
   };
+
+  const updateSlider = (patch: Partial<Settings>) => update(patch, false, true);
 
   // Copy synchronously from a button click: SteamOS Game Mode often does
   // not expose the modern Clipboard API to Decky panels.
@@ -804,8 +802,6 @@ export function useClawController() {
       title={paletteLabel(key,label)} hex={current.current.colors[key] ?? defaultColors[key]}
       closeModal={() => dialog.Close()}
       onConfirm={(hex: string) => {
-        const token_colors={...current.current.token_colors};
-        const changed=new Set<ColorKey>(key==="fps_label"?["fps_label","fps_value"]:[key]);
         // Global color changes must not silently erase individually set colors.
         update({colors:{...current.current.colors,[key]:hex,...(key==="fps_label"?{fps_value:hex}:{})}});
       }}
@@ -838,7 +834,7 @@ export function useClawController() {
 
   // One central controller owns settings, Decky RPC and navigation state.
   // Cards only render this model; they never mount separate backend sessions.
-  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, toggleLayoutPanel, advancedPanel, setAdvancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, queue, revision, refresh, update, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
+  return { settings, setSettings, info, setInfo, status, setStatus, copyStatus, setCopyStatus, connecting, setConnecting, connectionError, setConnectionError, connectionAttempt, layoutPanel, setLayoutPanel, toggleLayoutPanel, advancedPanel, setAdvancedPanel, toggleAdvancedPanel, showTechnical, setShowTechnical, rendererStatus, setRendererStatus, tdpStatus, setTdpStatus, rendererBusy, setRendererBusy, updateBusy, setUpdateBusy, updateStatus, setUpdateStatus, updateFallback, setUpdateFallback, requestGithubInstall, confirmGithubInstall, checkGithubRelease, verifyTdp, verifyRenderer, installedVersion, installedVersionError, expanded, setExpanded, openSection, setOpenSection, styleCategory, setStyleCategory, toggleSection, expandMetric, ready, setReady, current, revision, refresh, update, updateSlider, copyLaunchCommand, renameMetric, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, related, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle, move, metric, visible, hidden, smallButton };
 }
 
 export type ClawController = ReturnType<typeof useClawController>;

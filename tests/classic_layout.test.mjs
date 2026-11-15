@@ -19,7 +19,7 @@ runInNewContext(ts.transpileModule(readFileSync('src/pages/LayoutCard.tsx','utf8
 function walk(v){if(!v||typeof v!=='object')return [];if(Array.isArray(v))return v.flatMap(walk);if(typeof v.type==='function')return walk(v.type(v.props));return[v,...walk(v.props.children)]}
 for(const hud_orientation of ['horizontal','vertical'])for(const supported of [false,true]){
  const updates=[];
- const vm={settings:{hud_orientation,hud_position:'center-right',unit_superscript:false,group_gap_x:0,vertical_category_gap:6,separator_orientation:'auto',separator_length:0,colors:{separator:'777777'},metrics:{graph:false}},info:{layout_spacing_supported:supported},ready:true,update:v=>updates.push(v),toggleSection:()=>{},toggleLayoutPanel:()=>{}};
+ const vm={settings:{hud_orientation,hud_position:'center-right',unit_superscript:false,group_gap_x:0,vertical_category_gap:6,separator_orientation:'auto',separator_length:0,colors:{separator:'777777'},metrics:{graph:false}},info:{layout_spacing_supported:supported},ready:true,update:v=>updates.push(v),updateSlider:v=>updates.push(v),toggleSection:()=>{},toggleLayoutPanel:()=>{}};
  const nodes=walk(module.exports.LayoutCard({vm}));
  const unit=nodes.find(n=>n.type==='ToggleField'&&n.props.label==='Superscript units');assert(unit);
  assert.equal(unit.props.disabled,!supported);unit.props.onChange(true);assert.equal(updates.at(-1).unit_superscript,true);

@@ -1,34 +1,24 @@
 import {BackgroundEditor} from "./BackgroundEditor";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
+import { useState } from "react";
 import {
   ButtonItem,
-  ConfirmModal,
-  showModal,
   DialogButton,
   Focusable,
   Field,
-  PanelSection,
   PanelSectionRow,
-  SliderField,
-  TextField,
-  Router,
-  ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaPalette, FaChevronRight, FaPlay, FaDownload, FaPen } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
-import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
 import {styleSlotIds} from "../style-presets";
 
 type FontWeight = Core.FontWeight;
 type StyleCategory = Core.StyleCategory;
-const { GamepadGrid, tokenGroups, weightLabel, styleTabs, defaultColors, colorRows, groupIcons, groups, save, AccordionCard } = Core;
+const { GamepadGrid, tokenGroups, weightLabel, styleTabs, defaultColors, colorRows, groupIcons, AccordionCard } = Core;
 
 /** Standalone colors presentation; all mutable state is owned by the Decky controller. */
 export function ColorsAndFontCard({vm}:{vm:Core.ClawController}) {
-  const { settings, info, status, openSection, styleCategory, toggleSection, ready, current, update, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle, metric, visible, hidden } = vm;
+  const { settings, info, openSection, styleCategory, toggleSection, ready, current, update, named, tokenTitle, styleTitle, renameStyle, confirmAction, loadedPreset, presetDirty, chooseStyleCategory, cycleTokenWeight, openTokenColorPicker, resetTokenColor, savePreset, addPreset, deletePreset, loadPreset, paletteLabel, openColorPicker, toggle } = vm;
   const [expandedStyle,setExpandedStyle]=useState<string|null>(settings.active_style);
   const savedSlots=styleSlotIds.filter(slot=>Boolean(settings.style_presets?.[slot]));
   return (

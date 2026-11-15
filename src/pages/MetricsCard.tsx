@@ -1,27 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { callable, definePlugin } from "@decky/api";
 import {
-  ButtonItem,
-  ConfirmModal,
-  showModal,
   DialogButton,
   Focusable,
   Field,
-  PanelSection,
   PanelSectionRow,
-  SliderField,
-  TextField,
-  Router,
   ToggleField,
 } from "@decky/ui";
-import { FaChartLine, FaChartBar, FaDesktop, FaThLarge, FaPalette, FaPlayCircle, FaSlidersH, FaChevronDown, FaChevronRight, FaPlay, FaDownload, FaCopy, FaPen, FaTachometerAlt, FaMicrochip, FaMemory, FaBatteryThreeQuarters, FaClock, FaBolt, FaHashtag } from "react-icons/fa";
+import { FaChartBar, FaPen } from "react-icons/fa";
 
-import {styleLayoutFrom, styleMetricSnapshotFrom, styleMetricUpdatesFrom, independentColors, styleModified} from "../style-presets";
-import {metricName, relatedLabel, cleanName, groupNames} from "../metric-names";
 import * as Core from "../controller";
 
-type Settings = Core.Settings;
-const { GamepadGrid, groupIcons, order, groups, AccordionCard } = Core;
+const { GamepadGrid, groupIcons, groups, AccordionCard } = Core;
 
 /** Standalone metrics presentation; all mutable state is owned by the Decky controller. */
 export function MetricsCard({vm}:{vm:Core.ClawController}) {

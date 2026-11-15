@@ -55,7 +55,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("export function useClawController()", controller)
         self.assertIn("const [settings, setSettings] = useState<Settings>(defaults);", controller)
         self.assertIn("const saved=await withTimeout(load());", controller)
-        self.assertIn("queue.current = queue.current.then", controller)
+        self.assertIn("const settingsWrites = createSettingsSaveQueue();", controller)
         for name, section in zip(CARD_NAMES,
                 ("overlay","layout","metrics","colors","activation","advanced")):
             content = (SRC / "pages" / f"{name}.tsx").read_text()
@@ -199,7 +199,6 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('styleSnapshotFrom({...d,...draft})', SOURCE)
         self.assertIn('...styleMetricSnapshotFrom(current)', (pathlib.Path(__file__).resolve().parents[1] / 'src/style-presets.ts').read_text())
         self.assertIn('...styleMetricUpdatesFrom(preset,current.current)', SOURCE)
-        self.assertIn('styleMetricSnapshotFrom, styleMetricUpdatesFrom', SOURCE)
         for name in ("styleMetricSnapshotFrom", "styleMetricUpdatesFrom",
                      "styleMetricSelectionsFrom"):
             self.assertIn("function "+name, helpers)
@@ -355,7 +354,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn('ImGui::TableSetColumnIndex(1);', patch)
         self.assertIn('item.value.find("tdp.txt")', patch)
         self.assertIn('if (HUDElements.params->claw_vertical_stack &&', patch)
-        fps_slider = layout.split('value={settings.fps_scale}',1)[1].split('onChange={(value:number)=>update({fps_scale:value})}',1)[0]
+        fps_slider = layout.split('value={settings.fps_scale}',1)[1].split('onChange={(value:number)=>updateSlider({fps_scale:value})}',1)[0]
         self.assertIn('disabled={!ready || !info?.layout_spacing_supported}', fps_slider)
         self.assertNotIn('settings.hud_orientation', fps_slider)
         self.assertIn('value={settings.fps_scale} min={100} max={200}', layout)
@@ -802,7 +801,7 @@ class GroupedQamTests(unittest.TestCase):
         self.assertIn("copyLaunchCommand(true)", SOURCE)
         self.assertIn('copyLaunchCommand("short")', SOURCE)
         self.assertIn("short_launcher_ready", SOURCE)
-        self.assertIn("onChange={(value: number) => update(", SOURCE)
+        self.assertIn("onChange={(value: number) => updateSlider(", SOURCE)
         self.assertIn('Check TDP sensor', SOURCE)
         self.assertIn('get_tdp_status', SOURCE)
 
