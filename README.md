@@ -1,3 +1,17 @@
+## v0.3.0-rc.7 — Vulkan overlay for 32-bit games
+
+Includes the modified Vulkan overlay for both 32-bit and 64-bit game processes.
+This adds the missing renderer for 32-bit games using DXVK, including Red Faction
+Guerrilla Re-Mars-tered. After installing, fully close and restart the game with
+the existing Claw Metrics launch command.
+
+**Advanced → Diagnostics → Check game renderer** now inspects the current game
+and reports its 32-bit and 64-bit processes. A mapped library confirms loading.
+The diagnostic does not claim that the HUD was drawn.
+
+OpenGL injection continues to use the bundled 64-bit OpenGL renderer.
+Older updaters may show `test.127` and report `0.3.0-rc.7` after installation.
+
 ## v0.3.0-rc.6 — More efficient settings saves
 
 Rapid Layout and Background slider changes update the displayed value immediately

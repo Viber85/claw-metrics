@@ -1,7 +1,7 @@
-name: Build Claw Metrics v0.3.0-rc.6 ZIP
+name: Build Claw Metrics v0.3.0-rc.7 ZIP
 on:
   push:
-    branches: [test/settings-save-030-rc6]
+    branches: [test/vulkan32-030-rc7]
   workflow_dispatch:
 
 permissions:
@@ -9,7 +9,7 @@ permissions:
 
 # Multiple rapid pushes must not race to overwrite the same release candidate.
 concurrency:
-  group: claw-metrics-v0.3.0-rc.6-settings-save
+  group: claw-metrics-v0.3.0-rc.7-vulkan32
   cancel-in-progress: true
 
 jobs:
@@ -112,6 +112,7 @@ jobs:
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           UBUNTU_SOURCES
           apt_options+=(-o Dir::Etc::sourcelist="$ubuntu_sources" -o Dir::Etc::sourceparts=-)
+          sudo dpkg --add-architecture i386
           sudo apt-get "${apt_options[@]}" update
           sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y --no-install-recommends \
             git g++ pkg-config meson ninja-build python3-mako \
@@ -119,6 +120,16 @@ jobs:
             libdrm-dev libcap-dev libgbm-dev libx11-dev libxrandr-dev \
             libxkbcommon-dev libwayland-dev libdbus-1-dev libsystemd-dev \
             libpciaccess-dev libglvnd-dev mesa-vulkan-drivers vulkan-tools mesa-utils xvfb xauth gdb g++-mingw-w64-x86-64-posix
+          sudo apt-get "${apt_options[@]}" install -y g++-multilib \
+            libvulkan-dev:i386 libdrm-dev:i386 libcap-dev:i386 libgbm-dev:i386 \
+            libgl-dev:i386 libegl-dev:i386 libx11-dev:i386 libxrandr-dev:i386 \
+            libxkbcommon-dev:i386 libwayland-dev:i386 libpciaccess-dev:i386 \
+            mesa-vulkan-drivers:i386
+          mkdir -p test32
+          cd test32
+          apt-get download vulkan-tools:i386
+          dpkg-deb -x vulkan-tools_*_i386.deb .
+          readelf -h usr/bin/vkcube | grep -q 'Class:.*ELF32'
       - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
@@ -255,6 +266,21 @@ jobs:
           file ../native64/libMangoHud.so
           readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
           test -s ../native64/libMangoHud.so
+      - name: Build the same Vulkan renderer for 32-bit games
+        run: |
+          cd native-source
+          meson setup build32 --cross-file ../.github/native-i686.ini --prefix=/usr --buildtype=release \
+            -Dwith_nvml=disabled -Dwith_xnvctrl=disabled \
+            -Dwith_dbus=disabled -Dwith_x11=disabled -Dwith_wayland=enabled \
+            -Dmangoplot=disabled -Dmangoapp=false -Dinclude_doc=false -Dtests=disabled
+          ninja -C build32 -j 2 src/libMangoHud.so
+          mkdir -p ../native32
+          cp build32/src/libMangoHud.so ../native32/libMangoHud.so
+          readelf -h ../native32/libMangoHud.so | grep -q 'Class:.*ELF32'
+          readelf -h ../native32/libMangoHud.so | grep -q 'Machine:.*Intel 80386'
+          ldd ../native32/libMangoHud.so
+      - name: Exercise the actual launch command with 32-bit and 64-bit Vulkan
+        run: python3 tools/test_vulkan_architectures.py
       - name: Build and verify DX12 frame telemetry bridge
         run: |
           mkdir -p framegen
@@ -292,19 +318,19 @@ jobs:
           cp diagnostics.py artifact/ClawMetrics/py_modules/diagnostics.py
           cp claw_modular.py artifact/ClawMetrics/py_modules/claw_modular.py
           cp claw_design.py artifact/ClawMetrics/py_modules/claw_design.py
-          cp -r dist assets native64 framegen artifact/ClawMetrics/
+          cp -r dist assets native64 native32 framegen artifact/ClawMetrics/
           cp experiments/framegen/manage_bridge.py artifact/ClawMetrics/framegen/
           python3 - <<'PY'
           import pathlib, json, zipfile, sys
           root=pathlib.Path('artifact')
-          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.6.zip')
+          archive=pathlib.Path('ClawMetrics-v0.3.0-rc.7.zip')
           with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
               for f in sorted(root.rglob('*')):
                   if f.is_file():
                       out.write(f, str(f.relative_to(root)))
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None
-              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','py_modules/framegen_setup.py','plugin.json','dist/index.js','native64/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so','framegen/amd_fidelityfx_framegeneration_dx12.dll','framegen/manage_bridge.py',
+              for p in ['claw_design.py','py_modules/claw_design.py','assets/overlay-design-rules.json','claw_modular.py','py_modules/claw_modular.py','assets/modular/two-rows.json','assets/modular/graph-focus.json','assets/modular/horizontal.json','assets/modular/vertical.json','main.py','diagnostics.py','py_modules/diagnostics.py','py_modules/updates.py','py_modules/framegen_setup.py','plugin.json','dist/index.js','native64/libMangoHud.so','native32/libMangoHud.so','native64/libMangoHud_opengl.so','native64/libMangoHud_shim.so','framegen/amd_fidelityfx_framegeneration_dx12.dll','framegen/manage_bridge.py',
                         'assets/ClawSans.ttf.gz.b64','assets/FONT-LICENSE.txt',
                         'assets/fonts/BarlowSemiCondensed-Light.ttf',
                         'assets/fonts/BarlowSemiCondensed-Regular.ttf',
@@ -312,29 +338,32 @@ jobs:
                         'assets/fonts/BarlowSemiCondensed-Bold.ttf',
                         'assets/fonts/OFL.txt']:
                   assert 'ClawMetrics/'+p in z.namelist(), p
+              for bits, elf in (('32', 1), ('64', 2)):
+                  library=z.read(f'ClawMetrics/native{bits}/libMangoHud.so')
+                  assert library[:5] == b'\x7fELF' + bytes([elf]), bits
               package=json.loads(z.read('ClawMetrics/package.json'))
-              assert package['version'] == '0.3.0-rc.6', package['version']
+              assert package['version'] == '0.3.0-rc.7', package['version']
           print(archive,archive.stat().st_size)
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ClawMetrics-v0.3.0-rc.6
-          path: ClawMetrics-v0.3.0-rc.6.zip
+          name: ClawMetrics-v0.3.0-rc.7
+          path: ClawMetrics-v0.3.0-rc.7.zip
       - name: Publish the prerelease and legacy updater entry
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > release-notes.txt <<'EOF'
-          Rapid Layout and Background slider changes update the displayed value immediately and save the latest value in short batches. Reopening the menu waits for pending settings. The backend skips identical config files and repairs missing or unreadable files.
+          Bundles the modified Vulkan renderer for 32-bit and 64-bit game processes. This addresses missing overlay support for 32-bit DXVK games such as Red Faction Guerrilla Re-Mars-tered. Uses the existing Claw Metrics launch command.
 
-          Removed unused frontend declarations. Automated tests verify slider batching, save ordering, final values and the existing Classic, Layout Builder and FSR renderer paths.
+          Check game renderer now inspects only the current game's processes and reports their architecture. Mapped-library status explicitly distinguishes library loading from visible overlay drawing. CI verifies the actual launcher and Classic/Layout Builder drawing in 32-bit and 64-bit Vulkan processes. Testing on the user's SteamOS game is still required.
           EOF
-          gh release create v0.3.0-rc.6 ClawMetrics-v0.3.0-rc.6.zip \
+          gh release create v0.3.0-rc.7 ClawMetrics-v0.3.0-rc.7.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.6 – More efficient settings saves" \
+            --title "Claw Metrics v0.3.0-rc.7 – Vulkan overlay for 32-bit games" \
             --notes-file release-notes.txt
-          cp ClawMetrics-v0.3.0-rc.6.zip ClawMetrics-v0.2.4-test.126.zip
-          gh release create v0.2.4-test.126 ClawMetrics-v0.2.4-test.126.zip \
+          cp ClawMetrics-v0.3.0-rc.7.zip ClawMetrics-v0.2.4-test.127.zip
+          gh release create v0.2.4-test.127 ClawMetrics-v0.2.4-test.127.zip \
             --target "$GITHUB_SHA" --prerelease \
-            --title "Claw Metrics v0.3.0-rc.6 – Update from older test builds" \
+            --title "Claw Metrics v0.3.0-rc.7 – Update from older test builds" \
             --notes-file release-notes.txt

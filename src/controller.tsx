@@ -323,13 +323,14 @@ export function readActivePdcProfileKey(): string | null | undefined {
 }
 
 export type RendererStatus = {
+  appid: string | null; processes_32bit: number; processes_64bit: number; vulkan32_available: boolean;
   native_loaded: boolean; native_processes: number; stock_processes: number;
   opengl_processes: number; opengl_requests: number;
   layer_requests: number; config_requests: number; path_requests: number;
   processes_seen: number; environments_read: number;
   manifest_in_user_location: boolean; reason: string;
 };
-export const getRendererStatus = callable<[], RendererStatus>("get_renderer_status");
+export const getRendererStatus = callable<[string | null], RendererStatus>("get_renderer_status");
 
 export type GithubRelease = {
   version:string;tag:string;notes:string;
@@ -523,9 +524,13 @@ export function useClawController() {
     setRendererBusy(true);
     setRendererStatus("Checking running game processes…");
     try {
-      const result = await withTimeout(getRendererStatus());
+      const running = Router?.MainRunningApp?.appid;
+      const appid = running ? String(Number(running) >>> 0) : null;
+      const result = await withTimeout(getRendererStatus(appid));
       setRendererStatus(
-        (result.native_loaded ? "ACTIVE" : "NIJE ACTIVE") +
+        (result.native_loaded ? "MAPPED" : "NOT MAPPED") +
+        " · game: " + (result.appid || "none") +
+        " · processes 32/64-bit: " + result.processes_32bit + "/" + result.processes_64bit +
         " · native: " + result.native_processes +
         " · OpenGL: " + (result.opengl_processes ?? 0) +
         " · OpenGL requests: " + (result.opengl_requests ?? 0) +

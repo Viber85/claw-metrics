@@ -303,6 +303,10 @@ def experimental_library():
     return pathlib.Path(__file__).resolve().parent / "native64" / "libMangoHud.so"
 
 
+def vulkan32_library():
+    return pathlib.Path(__file__).resolve().parent / "native32" / "libMangoHud.so"
+
+
 def opengl_library():
     return pathlib.Path(__file__).resolve().parent / "native64" / "libMangoHud_opengl.so"
 
@@ -349,10 +353,11 @@ def install_native_manifest():
         return
     # Use a unique explicit-layer name. Reusing the standard MangoHud name
     # clashes with SteamOS/Proton's already registered implicit layer.
-    content = {"file_format_version": "1.0.0", "layer": {
+    content = {"file_format_version": "1.2.1", "layer": {
         "name": EXPERIMENTAL_LAYER_NAME,
         "type": "GLOBAL", "api_version": "1.3.0",
         "library_path": str(experimental_library()),
+        "library_arch": "64",
         "implementation_version": "1",
         "description": "Claw Metrics experimental Vulkan 64-bit HUD",
         "functions": {"vkGetInstanceProcAddr": "overlay_GetInstanceProcAddr",
@@ -362,6 +367,17 @@ def install_native_manifest():
     private_manifest.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
     manifest_text = json.dumps(content, indent=2) + "\n"
     write_if_changed(private_manifest, manifest_text)
+    manifest32 = private_manifest.with_name("ClawMetrics.x86.json")
+    public32 = user_vulkan_manifest().with_name("ClawMetrics.test3.x86.json")
+    library32 = vulkan32_library()
+    if library32.is_file() and library32.stat().st_size > 100_000:
+        layer32 = {**content["layer"], "library_path": str(library32), "library_arch": "32",
+                   "description": "Claw Metrics Vulkan 32-bit HUD"}
+        manifest32_text = json.dumps({**content, "layer": layer32}, indent=2) + "\n"
+        write_if_changed(manifest32, manifest32_text)
+    else:
+        manifest32_text = None
+        manifest32.unlink(missing_ok=True)
 
     # A discoverable user explicit layer is inert until requested by name.
     # Create any missing XDG directories as the desktop user, not root:
@@ -377,10 +393,15 @@ def install_native_manifest():
                 if os.geteuid() == 0 and owner.st_uid != 0:
                     os.chown(directory, owner.st_uid, owner.st_gid)
         write_if_changed(public_manifest, manifest_text)
+        if manifest32_text:
+            write_if_changed(public32, manifest32_text)
+        else:
+            public32.unlink(missing_ok=True)
         if os.geteuid() == 0 and owner.st_uid != 0:
-            current_owner = public_manifest.stat()
-            if (current_owner.st_uid, current_owner.st_gid) != (owner.st_uid, owner.st_gid):
-                os.chown(public_manifest, owner.st_uid, owner.st_gid)
+            for manifest in (public_manifest, public32) if manifest32_text else (public_manifest,):
+                current_owner = manifest.stat()
+                if (current_owner.st_uid, current_owner.st_gid) != (owner.st_uid, owner.st_gid):
+                    os.chown(manifest, owner.st_uid, owner.st_gid)
     except OSError as error:
         # This fallback is optional. A permission issue must never prevent
         # the QAM plugin or the private manifest from working.
@@ -1278,6 +1299,113 @@ def publish_modular(settings):
         write_atomic(state, value)
 
 
+def renderer_status(appid, proc=pathlib.Path("/proc")):
+    """Inspect only processes belonging to the currently selected Steam game."""
+    expected = str(experimental_library().resolve())
+    expected_gl = str(opengl_library().resolve())
+    expected32 = str(vulkan32_library().resolve())
+    app_valid = isinstance(appid, str) and re.fullmatch(r"[1-9][0-9]{0,9}", appid) and int(appid) <= 0xffffffff
+    from framegen_setup import launch_ids, process_matches
+    ids = {key.encode() for key in launch_ids(appid)} if app_valid else set()
+    config_env = {b"MANGOHUD_CONFIGFILE=" + os.fsencode(path)
+                  for path in (native_hud_path(), native_framegen_hud_path())}
+    found_native = 0
+    found_opengl = 0
+    bits32 = 0
+    bits64 = 0
+    found_other_hud = 0
+    layer_request = 0
+    config_request = 0
+    path_request = 0
+    opengl_request = 0
+    process_count = 0
+    environment_accessible = 0
+    for process in proc.iterdir():
+        if not process.name.isdecimal():
+            continue
+        if not ids or not process_matches(process, ids):
+            continue
+        process_count += 1
+        try:
+            with (process / "exe").open("rb") as binary:
+                header = binary.read(5)
+            if header[:4] == b"\x7fELF":
+                bits32 += header[4] == 1
+                bits64 += header[4] == 2
+        except OSError:
+            pass
+        try:
+            with (process / "maps").open("r", encoding="utf-8", errors="replace") as mapping:
+                paths = [line.split(None, 5)[-1].strip() for line in mapping
+                         if "libMangoHud.so" in line or "libMangoHud_opengl.so" in line]
+                vulkan = any(p.removesuffix(" (deleted)") in (expected, expected32) for p in paths)
+                opengl = any(p == expected_gl or p.startswith(expected_gl + " ") for p in paths)
+                if vulkan or opengl:
+                    found_native += 1
+                    found_opengl += int(opengl)
+                elif paths:
+                    found_other_hud += 1
+        except (OSError, PermissionError):
+            pass
+        try:
+            with (process / "environ").open("rb") as env_file:
+                raw = env_file.read(262144)
+            environment_accessible += 1
+            envs = raw.split(bytes([0]))
+            if any(x.startswith(b"VK_INSTANCE_LAYERS=") and
+                   EXPERIMENTAL_LAYER_NAME.encode() in x for x in envs):
+                layer_request += 1
+            if config_env.intersection(envs):
+                config_request += 1
+            if any(x.startswith(b"VK_ADD_LAYER_PATH=") and
+                   b"ClawMetrics" in x for x in envs):
+                path_request += 1
+            if any(x.startswith(b"MANGOHUD_OPENGL_LIBS=") and
+                   expected_gl.encode() in x for x in envs):
+                opengl_request += 1
+        except (OSError, PermissionError):
+            pass
+    if not ids:
+        reason = "Start a game to check its renderer."
+    elif not process_count:
+        reason = "No readable processes matched the current game. Renderer status is unverified."
+    elif found_native:
+        reason = "Claw renderer mapped in a process for this game. Overlay drawing is not verified."
+    elif bits32 and not vulkan32_library().is_file():
+        reason = "This game has 32-bit processes, but the plugin has no 32-bit Vulkan renderer."
+    elif opengl_request:
+        reason = ("Launch command reached a process, but neither renderer loaded. "
+                  "If the game uses OpenGL, check its Steam Runtime and preload access.")
+    elif layer_request:
+        reason = ("Launch command reached the game, but the Vulkan layer did NOT load. "
+                  "Possible causes: Steam Runtime, duplicate layers, or missing library.")
+    elif config_request:
+        reason = ("Game process sees the Claw configuration but no request "
+                  "for the custom Vulkan layer.")
+    else:
+        reason = ("No evidence that the launch command reached the game. "
+                  "Steam Runtime or inaccessible /proc data may be responsible.")
+    return {
+        "appid": appid if app_valid else None,
+        "processes_32bit": bits32,
+        "processes_64bit": bits64,
+        "vulkan32_available": vulkan32_library().is_file(),
+        "native_loaded": found_native > 0,
+        "native_processes": found_native,
+        "opengl_processes": found_opengl,
+        "opengl_requests": opengl_request,
+        "stock_processes": found_other_hud,
+        "layer_requests": layer_request,
+        "config_requests": config_request,
+        "path_requests": path_request,
+        "processes_seen": process_count,
+        "environments_read": environment_accessible,
+        "manifest_in_user_location": user_vulkan_manifest().is_file(),
+        "reason": reason
+    }
+
+
+
 class Plugin:
     def _framegen_action_lock(self):
         if not hasattr(self, "_framegen_lock"):
@@ -1406,7 +1534,7 @@ class Plugin:
         while not getattr(self, "_diagnostics_stopping", False):
             try:
                 loaded = await asyncio.to_thread(
-                    overlay_loaded, (experimental_library(), opengl_library()))
+                    overlay_loaded, (experimental_library(), vulkan32_library(), opengl_library()))
                 await self._overlay_recording.update(loaded)
                 self._diagnostics_error = ""
             except Exception as error:
@@ -1678,90 +1806,8 @@ class Plugin:
             return {"ok": False, "available": False, "latest": None,
                     "error": update_error_message(error), "source": "GitHub response"}
 
-    async def get_renderer_status(self):
-        """Detect both Vulkan request propagation and actual native library maps.
-
-        Files existing on disk don't prove the game loaded them. The backend is
-        normally root in Decky and can inspect /proc, but sandboxing may limit
-        some reads, so the counts are evidence rather than a definitive error.
-        """
-        expected = str(experimental_library().resolve())
-        expected_gl = str(opengl_library().resolve())
-        config_env = {b"MANGOHUD_CONFIGFILE=" + os.fsencode(path)
-                      for path in (native_hud_path(), native_framegen_hud_path())}
-        found_native = 0
-        found_opengl = 0
-        found_other_hud = 0
-        layer_request = 0
-        config_request = 0
-        path_request = 0
-        opengl_request = 0
-        process_count = 0
-        environment_accessible = 0
-        for process in pathlib.Path("/proc").iterdir():
-            if not process.name.isdecimal():
-                continue
-            process_count += 1
-            try:
-                with (process / "maps").open("r", encoding="utf-8", errors="replace") as mapping:
-                    paths = [line.split(None, 5)[-1].strip() for line in mapping
-                             if "libMangoHud.so" in line or "libMangoHud_opengl.so" in line]
-                    vulkan = any(p == expected or p.startswith(expected + " ") for p in paths)
-                    opengl = any(p == expected_gl or p.startswith(expected_gl + " ") for p in paths)
-                    if vulkan or opengl:
-                        found_native += 1
-                        found_opengl += int(opengl)
-                    elif paths:
-                        found_other_hud += 1
-            except (OSError, PermissionError):
-                pass
-            try:
-                with (process / "environ").open("rb") as env_file:
-                    raw = env_file.read(262144)
-                environment_accessible += 1
-                envs = raw.split(bytes([0]))
-                if any(x.startswith(b"VK_INSTANCE_LAYERS=") and
-                       EXPERIMENTAL_LAYER_NAME.encode() in x for x in envs):
-                    layer_request += 1
-                if config_env.intersection(envs):
-                    config_request += 1
-                if any(x.startswith(b"VK_ADD_LAYER_PATH=") and
-                       b"ClawMetrics" in x for x in envs):
-                    path_request += 1
-                if any(x.startswith(b"MANGOHUD_OPENGL_LIBS=") and
-                       expected_gl.encode() in x for x in envs):
-                    opengl_request += 1
-            except (OSError, PermissionError):
-                pass
-        if found_native:
-            reason = ("Active: modified OpenGL library loaded." if found_opengl
-                      else "Active: modified Vulkan library loaded.")
-        elif opengl_request:
-            reason = ("Launch command reached a process, but neither renderer loaded. "
-                      "If the game uses OpenGL, check its Steam Runtime and preload access.")
-        elif layer_request:
-            reason = ("Launch command reached the game, but the Vulkan layer did NOT load. "
-                      "Possible causes: Steam Runtime, duplicate layers, or missing library.")
-        elif config_request:
-            reason = ("Game process sees the Claw configuration but no request "
-                      "for the custom Vulkan layer.")
-        else:
-            reason = ("No evidence that the launch command reached the game. "
-                      "Steam Runtime or inaccessible /proc data may be responsible.")
-        return {
-            "native_loaded": found_native > 0,
-            "native_processes": found_native,
-            "opengl_processes": found_opengl,
-            "opengl_requests": opengl_request,
-            "stock_processes": found_other_hud,
-            "layer_requests": layer_request,
-            "config_requests": config_request,
-            "path_requests": path_request,
-            "processes_seen": process_count,
-            "environments_read": environment_accessible,
-            "manifest_in_user_location": user_vulkan_manifest().is_file(),
-            "reason": reason
-        }
+    async def get_renderer_status(self, appid=None):
+        return await asyncio.to_thread(renderer_status, appid)
 
     async def get_info(self):
         return {
