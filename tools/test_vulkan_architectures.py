@@ -14,7 +14,7 @@ from claw_modular import load_layout
 
 GRAPH = re.compile(r'CLAW_FRAMEGEN_GRAPH game=([\d.-]+) fg=([\d.-]+) output=([\d.-]+) game_points=(\d+) output_points=(\d+)')
 executables = {
-    '32': ROOT / 'test32/usr/bin/vkcube',
+    '32': ROOT / 'test32/vulkan-present',
     '64': Path('/usr/bin/vkcube'),
 }
 for bits, executable in executables.items():

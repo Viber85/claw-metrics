@@ -126,10 +126,8 @@ jobs:
             libxkbcommon-dev:i386 libwayland-dev:i386 libpciaccess-dev:i386 \
             mesa-vulkan-drivers:i386
           mkdir -p test32
-          cd test32
-          apt-get download vulkan-tools:i386
-          dpkg-deb -x vulkan-tools_*_i386.deb .
-          readelf -h usr/bin/vkcube | grep -q 'Class:.*ELF32'
+          gcc -m32 -std=c99 -Wall -Wextra tests/vulkan_present.c -lvulkan -lX11 -o test32/vulkan-present
+          readelf -h test32/vulkan-present | grep -q 'Class:.*ELF32'
       - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
