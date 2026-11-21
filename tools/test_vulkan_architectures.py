@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the production launcher with real ELF32 and ELF64 Vulkan applications."""
 import os
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -45,12 +46,15 @@ with tempfile.TemporaryDirectory(prefix="Claw's multilib ") as directory:
         config = main.native_hud_path()
         config.write_text(config.read_text() + 'fps_limit=60\n')
         for bits, executable in executables.items():
-            # Mesa's shared ICD directory contains architecture-specific JSONs.
-            icds = sorted(Path('/usr/share/vulkan/icd.d').glob(
-                'lvp_icd.' + ('i686' if bits == '32' else 'x86_64') + '.json'))
-            assert len(icds) == 1, (bits, icds)
+            triplet = 'i386-linux-gnu' if bits == '32' else 'x86_64-linux-gnu'
+            driver = Path('/usr/lib') / triplet / 'libvulkan_lvp.so'
+            assert driver.is_file(), driver
+            icd = home / f'llvmpipe-{bits}.json'
+            icd.write_text(json.dumps({'file_format_version':'1.0.0', 'ICD':{
+                'library_path':str(driver), 'api_version':'1.3.0', 'library_arch':bits,
+            }}))
             env = {**os.environ, 'HOME': str(home), 'CLAW_METRICS_VERIFY': '1',
-                   'VK_ICD_FILENAMES': str(icds[0])}
+                   'VK_ICD_FILENAMES': str(icd)}
             for key in ('CLAW_FRAMEGEN', 'CLAW_FRAMEGEN_FILE', 'MANGOHUD_CONFIG',
                         'VK_LAYER_PATH', 'VK_INSTANCE_LAYERS'):
                 env.pop(key, None)

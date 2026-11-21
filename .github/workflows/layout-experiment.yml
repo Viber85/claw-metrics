@@ -128,7 +128,16 @@ jobs:
           mkdir -p test32
           gcc -m32 -std=c99 -Wall -Wextra tests/vulkan_present.c -lvulkan -lX11 -o test32/vulkan-present
           readelf -h test32/vulkan-present | grep -q 'Class:.*ELF32'
+      - name: Restore identical native builds
+        id: native-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            native64
+            native32
+          key: claw-native-multilib-${{ runner.os }}-${{ env.ImageVersion }}-${{ hashFiles('experiments/**', '.github/native-i686.ini', '.github/native-wraps/**', '.github/workflows/layout-experiment.yml') }}
       - name: Build isolated MangoHud 0.8.1 (x86_64 Vulkan and OpenGL)
+        if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --recurse-submodules --branch v0.8.1 \
             https://github.com/flightlessmango/MangoHud.git native-source
@@ -265,6 +274,7 @@ jobs:
           readelf -h ../native64/libMangoHud.so | grep -q 'Machine:.*X86-64'
           test -s ../native64/libMangoHud.so
       - name: Build the same Vulkan renderer for 32-bit games
+        if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
           cd native-source
           meson setup build32 --cross-file ../.github/native-i686.ini --prefix=/usr --buildtype=release \
@@ -277,6 +287,14 @@ jobs:
           readelf -h ../native32/libMangoHud.so | grep -q 'Class:.*ELF32'
           readelf -h ../native32/libMangoHud.so | grep -q 'Machine:.*Intel 80386'
           ldd ../native32/libMangoHud.so
+      - name: Save verified native builds for test retries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            native64
+            native32
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Exercise the actual launch command with 32-bit and 64-bit Vulkan
         run: python3 tools/test_vulkan_architectures.py
       - name: Build and verify DX12 frame telemetry bridge
