@@ -21,6 +21,8 @@ PREVIOUS_PROXIES = {
     '53484b853f60d95fa13655759e16427625cfbbc26ffb1a49ad3395647442f49d',
     '89b16b63a934f657fbd8dc8470331a6bd745a1e5f7cfad7d63edc591a948b1f5',
     '0c172ac89404495b3e79459fe217d1ab645cb1e9233323de5141f033705dad53',
+    '002948265d0ed95fdb543eed271c2bcb3bfc369ddaa098ff90257a824d25c734',
+    '5005f4ea1a2842542aa2f1b9b1d39c2f9c00f1a0d5c7e8296ccb3f6b94a466c2',
 }
 REQUIRED_EXPORTS = {b'ffxCreateContext', b'ffxDestroyContext', b'ffxConfigure', b'ffxQuery', b'ffxDispatch'}
 KV_TOKEN = re.compile(r'//[^\r\n]*|"(?:\\.|[^"\\])*"|[{}]|[^\s{}"]+')
